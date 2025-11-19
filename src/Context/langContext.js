@@ -1,56 +1,50 @@
-import React, { createContext, useContext, useCallback, useEffect } from "react"
-import { useLocation, useNavigate, useParams } from "react-router-dom"
+import React, { createContext, useContext, useCallback, useEffect, useState } from "react"
 import i18n from "../i18n/i18n"
 
-const SUPPORTED_LANGS = ["lv", "no"]
+const SUPPORTED_LANGS = ["lv", "no", "en", "ru", "ja"];
 const DEFAULT_LANG = "lv"
 
 const LangContext = createContext({
-  currentLang: DEFAULT_LANG,
-  changeLanguage: (_to) => {},
+    currentLang: DEFAULT_LANG,
+    changeLanguage: () => {},
 })
 
 export function useLanguage() {
-  return useContext(LangContext)
+    return useContext(LangContext)
 }
 
 export function LanguageProvider({ children }) {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { lang: routeLang } = useParams()
+    // Nolasa valodu no localStorage vai iestata DEFAULT
+    const [currentLang, setCurrentLang] = useState(() => {
+        try {
+            const saved = localStorage.getItem("appLang")
+            if (saved && SUPPORTED_LANGS.includes(saved)) return saved
+        } catch {}
+        return DEFAULT_LANG
+    })
 
-  const currentLang = SUPPORTED_LANGS.includes(routeLang) ? routeLang : DEFAULT_LANG
+    // Funkcija valodas maiņai
+    const changeLanguage = useCallback((toLang) => {
+        if (!SUPPORTED_LANGS.includes(toLang) || toLang === currentLang) return
 
-  const changeLanguage = useCallback(
-    (toLang) => {
-      if (!SUPPORTED_LANGS.includes(toLang) || toLang === currentLang) return
+        try {
+            localStorage.setItem("appLang", toLang)
+        } catch {}
 
-      try {
-        localStorage.setItem("appLang", toLang)
-      } catch {}
+        setCurrentLang(toLang)
+        i18n.changeLanguage(toLang)
+    }, [currentLang])
 
-      // Pārliec i18n valodu
-      i18n.changeLanguage(toLang)
+    // Kad currentLang mainās → pārslēdz i18n
+    useEffect(() => {
+        if (i18n.language !== currentLang) {
+            i18n.changeLanguage(currentLang);
+        }
+    }, [currentLang])
 
-      const parts = location.pathname.split("/").filter(Boolean);
-      const [, ...rest] = parts
-      const newPath = `/${toLang}/${rest.join("/") || "home"}`
-
-      navigate(newPath, { replace: false })
-    },
-    [currentLang, location.pathname, navigate]
-  )
-
-  // Kad mainās URL valoda, pārslēdz i18n
-  useEffect(() => {
-    if (i18n.language !== currentLang) {
-      i18n.changeLanguage(currentLang)
-    }
-  }, [currentLang])
-
-  return (
-    <LangContext.Provider value={{ currentLang, changeLanguage }}>
-      { children }
-    </LangContext.Provider>
-  )
+    return (
+        <LangContext.Provider value={{ currentLang, changeLanguage }}>
+            {children}
+        </LangContext.Provider>
+    )
 }
