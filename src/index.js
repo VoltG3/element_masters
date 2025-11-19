@@ -1,10 +1,33 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import reducer from './redux/reducer'
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { Provider } from 'react-redux'
+import { configureStore } from '@reduxjs/toolkit'
+import './i18n/i18n'
+import './index.css'
 import App from './App'
+import Home from "./sections/home"
+import Game from "./sections/game"
+import Editor from "./sections/editor"
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const store = configureStore({
+    reducer: reducer,
+})
+
+const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <Provider store={store}>
+        <BrowserRouter>
+            <Routes>
+
+                <Route path="/" element={<App />}>
+                    <Route index element={<Home />} />
+                    <Route path="game" element={<Game />} />
+                    <Route path="editor" element={<Editor />} />
+                </Route>
+
+            </Routes>
+        </BrowserRouter>
+    </Provider>
 )

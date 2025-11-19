@@ -1,8 +1,15 @@
+import { Outlet, Link } from "react-router-dom"
 
 function App() {
   return (
     <>
-        <p>Empty Template</p>
+        <nav style={{ display: "flex", gap: "20px" }}>
+            <Link to="/">Home</Link>
+            <Link to="/game">Game</Link>
+            <Link to="/editor">Editor</Link>
+        </nav>
+
+        <Outlet />
     </>
   )
 }
