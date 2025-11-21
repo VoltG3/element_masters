@@ -1,5 +1,7 @@
 {
   "NAVIGATION_HOME": "Mājas",
   "NAVIGATION_NEW_GAME": "Jauna Spēle",
-  "NAVIGATION_EDITOR": "Karšu Editors"
+  "NAVIGATION_EDITOR": "Karšu Editors",
+  "NAVIGATION_CRYSTALS": "Kristāli",
+  "NAVIGATION_REPOSITORY": "Repozitorijs"
 }

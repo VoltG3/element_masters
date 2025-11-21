@@ -10,6 +10,8 @@ import App from './App'
 import Home from "./sections/chapters/home"
 import Game from "./sections/chapters/game"
 import Editor from "./sections/chapters/editor"
+import Crystals from "./sections/chapters/crystals"
+import Repository from "./sections/chapters/repository"
 
 const store = configureStore({
     reducer: reducer,
@@ -25,6 +27,8 @@ root.render(
                     <Route index element={<Home />} />
                     <Route path="game" element={<Game />} />
                     <Route path="editor" element={<Editor />} />
+                    <Route path="crystals" element={<Crystals />} />
+                    <Route path="repository" element={<Repository />} />
                 </Route>
 
             </Routes>

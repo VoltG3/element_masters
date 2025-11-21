@@ -1,6 +1,6 @@
 import styled from "styled-components"
 import { NavLink } from "react-router-dom"
-import {useTranslation} from "react-i18next";
+import { useTranslation } from "react-i18next"
 
 export const NavLinkButton = styled(NavLink)`
     display: flex;
@@ -39,6 +39,8 @@ export function SectionHeaderNavigationChapters() {
     const chapter_home = t("NAVIGATION_HOME")
     const chapter_game = t("NAVIGATION_NEW_GAME")
     const chapter_editor = t("NAVIGATION_EDITOR")
+    const chapter_crystals = t("NAVIGATION_CRYSTALS")
+    const chapter_repository = t("NAVIGATION_REPOSITORY")
 
     return (
         <nav style={{ display: "flex", gap: "0" }}>
@@ -52,6 +54,14 @@ export function SectionHeaderNavigationChapters() {
 
             <NavLinkButton to="/editor" className={({ isActive }) => isActive ? "active" : ""}>
                 { chapter_editor }
+            </NavLinkButton>
+
+            <NavLinkButton to="/crystals" className={({ isActive }) => isActive ? "active" : ""}>
+                { chapter_crystals }
+            </NavLinkButton>
+
+            <NavLinkButton to="/repository" className={({ isActive }) => isActive ? "active" : ""}>
+                { chapter_repository }
             </NavLinkButton>
         </nav>
     )

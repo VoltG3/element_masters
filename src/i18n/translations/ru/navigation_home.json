@@ -1,5 +1,7 @@
 {
   "NAVIGATION_HOME": "Дом",
   "NAVIGATION_NEW_GAME": "Новая игра",
-  "NAVIGATION_EDITOR": "Редактор карт"
+  "NAVIGATION_EDITOR": "Редактор карт",
+  "NAVIGATION_CRYSTALS": "Кристаллы",
+  "NAVIGATION_REPOSITORY": "Pепозиторий"
 }

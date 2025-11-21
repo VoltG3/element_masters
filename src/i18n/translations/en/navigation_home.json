@@ -1,5 +1,7 @@
 {
   "NAVIGATION_HOME": "Home",
   "NAVIGATION_NEW_GAME": "New Game",
-  "NAVIGATION_EDITOR": "Map Editor"
+  "NAVIGATION_EDITOR": "Map Editor",
+  "NAVIGATION_CRYSTALS": "Crystals",
+  "NAVIGATION_REPOSITORY": "Repository"
 }

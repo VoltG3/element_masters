@@ -1,5 +1,8 @@
 {
   "NAVIGATION_HOME": "Hjem",
   "NAVIGATION_NEW_GAME": "Nyt Spill",
-  "NAVIGATION_EDITOR": "Map Editor"
+  "NAVIGATION_EDITOR": "Map Editor",
+  "NAVIGATION_CRYSTALS": "Krystaller",
+  "NAVIGATION_REPOSITORY": "depot"
+
 }
