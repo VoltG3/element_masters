@@ -10,10 +10,13 @@ export const Editor = () => {
     const [showGrid, setShowGrid] = useState(true);
 
     // Jauni stāvokļi
-    const [isDragging, setIsDragging] = useState(false); // Lai zinātu, vai pele ir nospiesta
-    const [brushSize, setBrushSize] = useState(1); // 1, 2, 3
-    const [activeTool, setActiveTool] = useState('brush'); // 'brush' vai 'move'
-    const [selection, setSelection] = useState(null); // { x, y, w, h, data: [] }
+    const [isDragging, setIsDragging] = useState(false);
+    const [brushSize, setBrushSize] = useState(1);
+    const [activeTool, setActiveTool] = useState('brush');
+    const [selection, setSelection] = useState(null);
+
+    // Jauns stāvoklis priekš hover efekta
+    const [hoverIndex, setHoverIndex] = useState(null);
 
     // Refs priekš resize loģikas
     const stateRef = useRef({ mapWidth, mapHeight, currentMapData });
@@ -30,15 +33,13 @@ export const Editor = () => {
     const registryItems = Array.isArray(GameRegistry) ? GameRegistry : [];
 
     const blocks = registryItems.filter(item => item.name && item.name.startsWith('block.'));
-    
-    // 2. Entities filtrēšana - parādīt tikai tās, kurām type="default" vai nav norādīts type
+
+    // Entities filtrēšana - parādīt tikai tās, kurām type="default" vai nav norādīts type
     const entities = registryItems.filter(item => {
         if (!item.name || !item.name.startsWith('entities.')) return false;
-        // Ja 'type' nav definēts, pieņemam ka tas ir defaultais (lai vecie json strādātu)
-        // Ja 'type' ir definēts, tam jābūt 'default'
         return !item.type || item.type === 'default';
     });
-    
+
     const items = registryItems.filter(item => item.name && item.name.startsWith('item.'));
 
     // Stili
@@ -48,8 +49,8 @@ export const Editor = () => {
         justifyContent: 'center',
         cursor: 'pointer',
         border: '1px solid #333',
-        padding: '0 10px', // Horizontālais padding
-        height: '28px',    // Fiksēts augstums visām pogām
+        padding: '0 10px',
+        height: '28px',
         backgroundColor: '#e0e0e0',
         marginRight: '5px',
         marginBottom: '5px',
@@ -58,7 +59,7 @@ export const Editor = () => {
         borderRadius: '3px',
         userSelect: 'none',
         minWidth: '30px',
-        boxSizing: 'border-box', // Svarīgi, lai border neietekmētu izmēru
+        boxSizing: 'border-box',
         textDecoration: 'none',
         lineHeight: 'normal'
     };
@@ -66,12 +67,11 @@ export const Editor = () => {
     const buttonStyle = { ...baseButtonStyle };
     const activeButtonStyle = { ...baseButtonStyle, backgroundColor: '#aaa', borderColor: '#000', fontWeight: 'bold' };
 
-    // Funkcija kartes notīrīšanai
     const clearMap = () => {
-         if (window.confirm("Are you sure you want to clear the map?")) {
-             const emptyMap = Array(mapWidth * mapHeight).fill(null);
-             setCurrentMapData(emptyMap);
-         }
+        if (window.confirm("Are you sure you want to clear the map?")) {
+            const emptyMap = Array(mapWidth * mapHeight).fill(null);
+            setCurrentMapData(emptyMap);
+        }
     };
 
     const saveMap = () => {
@@ -118,8 +118,6 @@ export const Editor = () => {
         const x = index % mapWidth;
         const y = Math.floor(index / mapWidth);
 
-        // Brush Size loģika
-        // Ja brushSize ir 1, zīmējam 1x1. Ja 2, tad 2x2. utt.
         for (let dy = 0; dy < brushSize; dy++) {
             for (let dx = 0; dx < brushSize; dx++) {
                 const targetX = x + dx;
@@ -127,7 +125,7 @@ export const Editor = () => {
 
                 if (targetX < mapWidth && targetY < mapHeight) {
                     const targetIndex = targetY * mapWidth + targetX;
-                    newData[targetIndex] = selectedTile ? selectedTile.id : null; // Ja nav selectedTile (dzēšgumija?), ieliek null? Pagaidām pieņemam ka vienmēr ir selected
+                    newData[targetIndex] = selectedTile ? selectedTile.id : null;
                 }
             }
         }
@@ -135,10 +133,9 @@ export const Editor = () => {
     };
 
     // --- Move Tool loģika ---
-    const [dragStart, setDragStart] = useState(null); // {x, y}
+    const [dragStart, setDragStart] = useState(null);
 
     const handleGridMouseDown = (index, e) => {
-        // Novēršam noklusēto drag darbību bildēm
         e.preventDefault();
 
         if (activeTool === 'brush') {
@@ -148,15 +145,20 @@ export const Editor = () => {
             const x = index % mapWidth;
             const y = Math.floor(index / mapWidth);
             setDragStart({ x, y });
-            setSelection(null); // Reset selection
+            setSelection(null); 
+            setIsDragging(true); // Svarīgi: aktivizējam vilkšanas stāvokli arī "rokai"
         }
     };
 
     const handleGridMouseEnter = (index) => {
+        setHoverIndex(index); // Atjauninām hover index
         if (activeTool === 'brush' && isDragging) {
             paintTile(index);
         }
-        // Move tool vizualizāciju (selection box) zīmēsim vēlāk vai atstāsim vienkāršu
+    };
+
+    const handleGridMouseLeave = () => {
+        setHoverIndex(null); // Kad pamet grid, noņemam highlight
     };
 
     const handleGridMouseUp = (index) => {
@@ -166,7 +168,6 @@ export const Editor = () => {
             const endX = index % mapWidth;
             const endY = Math.floor(index / mapWidth);
 
-            // Aprēķinam selection box
             const x1 = Math.min(dragStart.x, endX);
             const y1 = Math.min(dragStart.y, endY);
             const x2 = Math.max(dragStart.x, endX);
@@ -175,7 +176,6 @@ export const Editor = () => {
             const w = x2 - x1 + 1;
             const h = y2 - y1 + 1;
 
-            // Iegūstam datus
             const selectionData = [];
             for(let py=0; py<h; py++) {
                 for(let px=0; px<w; px++) {
@@ -228,7 +228,6 @@ export const Editor = () => {
     };
 
 
-    // Resize loģika (Datu pārnešana) - tā pati kas iepriekš
     const resizeMapData = (newWidth, newHeight) => {
         const { mapWidth: oldW, mapHeight: oldH, currentMapData: oldData } = stateRef.current;
         if (newWidth < 1 || newHeight < 1) return;
@@ -249,7 +248,7 @@ export const Editor = () => {
 
     const handleResizeMouseDown = (direction) => (e) => {
         e.preventDefault();
-        e.stopPropagation(); // Lai netraucētu grid click
+        e.stopPropagation();
         const startX = e.clientX;
         const startY = e.clientY;
         const { mapWidth: startW, mapHeight: startH } = stateRef.current;
@@ -279,7 +278,6 @@ export const Editor = () => {
         window.addEventListener('mouseup', onMouseUp);
     };
 
-    // Palīgfunkcija, lai atrastu bildi priekš paletes
     const renderPaletteItem = (item, color) => (
         <div
             key={item.id}
@@ -308,7 +306,6 @@ export const Editor = () => {
 
     return (
         <div className="editor-container" style={{ display: 'flex', height: '100vh', flexDirection: 'row' }}>
-            {/* Sānjosla */}
             <div className="toolbar" style={{ width: '280px', padding: '15px', borderRight: '1px solid #ccc', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f8f8' }}>
                 <div style={{ marginBottom: '15px' }}>
                     <div style={{marginBottom: '10px'}}>
@@ -378,13 +375,12 @@ export const Editor = () => {
                 </div>
             </div>
 
-            {/* Viewport */}
             <div
                 className="viewport"
                 style={{ flex: 1, padding: '40px', backgroundColor: '#555', overflow: 'auto', position: 'relative', userSelect: 'none' }}
-                onMouseUp={() => setIsDragging(false)} // Global mouse up
+                onMouseUp={() => setIsDragging(false)}
             >
-                <div style={{ position: 'relative', width: 'fit-content' }}>
+                <div style={{ position: 'relative', width: 'fit-content' }} onMouseLeave={handleGridMouseLeave}>
 
                     <div
                         className="grid"
@@ -406,15 +402,75 @@ export const Editor = () => {
                                 else if (obj.textures && obj.textures.length > 0) imgSrc = obj.textures[0];
                             }
 
-                            // Selection highlight
+                            // Aprēķinām koordinātes
+                            const x = index % mapWidth;
+                            const y = Math.floor(index / mapWidth);
+
+                            // 1. Selection Highlight (Move Tool - Finalized)
                             let isSelected = false;
                             if (selection) {
-                                const x = index % mapWidth;
-                                const y = Math.floor(index / mapWidth);
                                 if (x >= selection.x && x < selection.x + selection.w &&
                                     y >= selection.y && y < selection.y + selection.h) {
                                     isSelected = true;
                                 }
+                            }
+
+                            // 2. Move Tool Preview (Selecting & Hover)
+                            let isMoveSelecting = false;
+                            let isMoveHover = false;
+
+                            if (activeTool === 'move') {
+                                // Ja velkam (turot peli)
+                                if (isDragging && dragStart && hoverIndex !== null) {
+                                    const hx = hoverIndex % mapWidth;
+                                    const hy = Math.floor(hoverIndex / mapWidth);
+                                    
+                                    const startX = dragStart.x;
+                                    const startY = dragStart.y;
+
+                                    // Aprēķinām taisnstūri starp sākuma punktu un pašreizējo peli
+                                    const minX = Math.min(startX, hx);
+                                    const minY = Math.min(startY, hy);
+                                    const maxX = Math.max(startX, hx);
+                                    const maxY = Math.max(startY, hy);
+
+                                    if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                                        isMoveSelecting = true;
+                                    }
+                                } 
+                                // Ja tikai kustinam peli (nevelkot)
+                                else if (!isDragging && hoverIndex === index) {
+                                    isMoveHover = true;
+                                }
+                            }
+
+                            // 3. Brush Highlight (Brush Tool)
+                            let isBrushTarget = false;
+                            if (activeTool === 'brush' && hoverIndex !== null) {
+                                const hx = hoverIndex % mapWidth;
+                                const hy = Math.floor(hoverIndex / mapWidth);
+                                
+                                if (x >= hx && x < hx + brushSize &&
+                                    y >= hy && y < hy + brushSize) {
+                                    isBrushTarget = true;
+                                }
+                            }
+
+                            // Nosakām stilus prioritārā secībā
+                            let borderStyle = 'none';
+                            let bgStyle = '#fff';
+
+                            if (isBrushTarget) {
+                                borderStyle = '2px solid red';
+                                // bgStyle paliek balts vai caurspīdīgs, lai redzētu apakšā
+                            } else if (isMoveHover) {
+                                borderStyle = '2px solid blue'; // Zils rāmītis "rokai"
+                            } else if (isMoveSelecting) {
+                                borderStyle = '1px dashed blue';
+                                bgStyle = 'rgba(0, 0, 255, 0.1)'; // Gaiši zils fons vilkšanas laikā
+                            } else if (isSelected) {
+                                borderStyle = '1px dashed red';
+                                bgStyle = 'rgba(255, 255, 0, 0.3)';
                             }
 
                             return (
@@ -426,8 +482,9 @@ export const Editor = () => {
                                     style={{
                                         width: '32px',
                                         height: '32px',
-                                        backgroundColor: isSelected ? 'rgba(255, 255, 0, 0.3)' : '#fff',
-                                        border: isSelected ? '1px dashed red' : 'none',
+                                        backgroundColor: bgStyle,
+                                        border: borderStyle,
+                                        zIndex: (isBrushTarget || isMoveHover || isMoveSelecting) ? 20 : (isSelected ? 15 : 1),
                                         boxSizing: 'border-box',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -436,14 +493,12 @@ export const Editor = () => {
                                     }}
                                 >
                                     {imgSrc && <img src={imgSrc} style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} alt="" />}
-                                    {/* Caurspīdīgs slānis virs bildes, lai notikumi strādātu pareizi */}
                                     <div style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10}} />
                                 </div>
                             );
                         })}
                     </div>
 
-                    {/* Resize Rokturi */}
                     <div
                         onMouseDown={handleResizeMouseDown('width')}
                         style={{ position: 'absolute', top: 0, right: -15, width: '15px', height: '100%', backgroundColor: '#777', cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderTopRightRadius: '5px', borderBottomRightRadius: '5px' }}
