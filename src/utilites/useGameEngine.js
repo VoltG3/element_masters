@@ -30,43 +30,67 @@ export const useGameEngine = (mapData, tileData, registryItems) => {
 
     // Inicializējam spēlētāju sākuma pozīcijā
     useEffect(() => {
-        if (mapData && mapData.layers && !isInitialized.current) {
+        // JAUNS: Resetojam inicializācijas karogu un apturam loopu, kamēr meklējam jaunu pozīciju
+        isInitialized.current = false;
+        
+        if (mapData && mapData.layers) {
             const objLayer = mapData.layers.find(l => l.name === 'entities');
             if (objLayer) {
                 // Meklējam spēlētāju (jebko kas satur 'player')
                 const startIndex = objLayer.data.findIndex(id => id && id.includes('player'));
-
+                
                 if (startIndex !== -1) {
                     const startX = (startIndex % mapData.meta.width) * TILE_SIZE;
                     const startY = Math.floor(startIndex / mapData.meta.width) * TILE_SIZE;
-
+                    
                     // Iegūstam datus no registry
                     const playerId = objLayer.data[startIndex];
                     const registryPlayer = findItemById(playerId) || findItemById("player"); // Fallback uz generic player
 
+                    // JAUNS: Pilnībā pārrakstām gameState ar noklusētajām vērtībām + jauno pozīciju
                     gameState.current = {
-                        ...gameState.current,
                         x: startX,
                         y: startY,
-                        // Ja JSONā definēts izmērs (piem "width": "1"), reizinām ar TILE_SIZE, ja nē - 32
-                        width: (registryPlayer?.width || 1) * TILE_SIZE * 0.8, // Nedaudz šaurāks hitbox
-                        height: (registryPlayer?.height || 1) * TILE_SIZE
+                        width: (registryPlayer?.width || 1) * TILE_SIZE * 0.8,
+                        height: (registryPlayer?.height || 1) * TILE_SIZE,
+                        vx: 0,
+                        vy: 0,
+                        isGrounded: false,
+                        direction: 1,
+                        animation: 'idle'
                     };
+                    
                     setPlayer(gameState.current);
                     isInitialized.current = true;
+                } else {
+                    // Ja spēlētājs nav atrasts kartē, novietojam to 0,0 vai kādā drošā vietā
+                    // Tas novērš veco koordinātu saglabāšanos
+                    gameState.current = {
+                        ...gameState.current,
+                        x: 0,
+                        y: 0,
+                        vx: 0, 
+                        vy: 0
+                    };
+                    setPlayer(gameState.current);
+                    // Neuzstādām isInitialized=true, lai spēle "nesāktos" ar kļūdainu pozīciju, 
+                    // vai arī uzstādām, ja gribam, lai spēlētājs parādās stūrī.
+                    // Šoreiz atstāsim false, lai nekas nekustas/nerenderējas nepareizi.
                 }
             }
         }
-    }, [mapData]);
+    }, [mapData]); // Svarīgi: reaģējam tikai uz mapData izmaiņām
 
     // Palīgfunkcija sadursmēm (AABB Collision)
     const checkCollision = (newX, newY, mapWidth) => {
         // Pārbaudām stūrus
+        // Atņemam nelielu vērtību (0.01) no platuma un augstuma, 
+        // lai nepārbaudītu blakus esošos blokus, ja esam tieši uz robežas (piem., uz zemes).
         const points = [
             { x: newX, y: newY }, // Top Left
-            { x: newX + gameState.current.width, y: newY }, // Top Right
-            { x: newX, y: newY + gameState.current.height }, // Bottom Left
-            { x: newX + gameState.current.width, y: newY + gameState.current.height } // Bottom Right
+            { x: newX + gameState.current.width - 0.01, y: newY }, // Top Right
+            { x: newX, y: newY + gameState.current.height - 0.01 }, // Bottom Left
+            { x: newX + gameState.current.width - 0.01, y: newY + gameState.current.height - 0.01 } // Bottom Right
         ];
 
         for (let p of points) {
@@ -76,7 +100,8 @@ export const useGameEngine = (mapData, tileData, registryItems) => {
             const index = gridY * mapWidth + gridX;
 
             // Pārbaudām vai ārpus kartes
-            if (gridX < 0 || gridX >= mapWidth || gridY < 0) continue;
+            // JAUNS: Atgriežam true (sadursme), lai neļautu iziet ārpus kartes
+            if (gridX < 0 || gridX >= mapWidth || gridY < 0) return true;
 
             const tileId = tileData[index];
             if (tileId) {
