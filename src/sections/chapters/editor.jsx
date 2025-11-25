@@ -40,6 +40,9 @@ export const Editor = () => {
     const [mapName, setMapName] = useState("New Map");
     const [creatorName, setCreatorName] = useState("Anonymous");
     const [createdAt, setCreatedAt] = useState(null);
+    const [isNewMapModalOpen, setIsNewMapModalOpen] = useState(false);
+    const [tempMapName, setTempMapName] = useState("");
+    const [tempCreatorName, setTempCreatorName] = useState("");
 
     useEffect(() => {
         stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData };
@@ -59,6 +62,30 @@ export const Editor = () => {
     const baseButtonStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid #333', padding: '0 10px', height: '28px', backgroundColor: '#e0e0e0', marginRight: '5px', marginBottom: '5px', fontSize: '13px', color: '#000', borderRadius: '3px', userSelect: 'none', minWidth: '30px', boxSizing: 'border-box', textDecoration: 'none', lineHeight: 'normal' };
     const buttonStyle = { ...baseButtonStyle };
     const activeButtonStyle = { ...baseButtonStyle, backgroundColor: '#aaa', borderColor: '#000', fontWeight: 'bold' };
+
+    // JAUNS: Funkcija lai atvērtu "New Map" modālo logu
+    const openNewMapModal = () => {
+        setTempMapName("New Map");
+        setTempCreatorName(creatorName);
+        setIsNewMapModalOpen(true);
+    };
+
+    // JAUNS: Funkcija lai apstiprinātu jaunas kartes izveidi
+    const confirmNewMap = () => {
+        if (window.confirm("Are you sure you want to create a new map? Unsaved changes will be lost.")) {
+            const size = 20 * 15;
+            setMapWidth(20);
+            setMapHeight(15);
+            setTileMapData(Array(size).fill(null));
+            setObjectMapData(Array(size).fill(null));
+            
+            setMapName(tempMapName || "New Map");
+            setCreatorName(tempCreatorName || "Anonymous");
+            setCreatedAt(null);
+            
+            setIsNewMapModalOpen(false);
+        }
+    };
 
     const clearMap = () => {
         if (window.confirm("Are you sure you want to clear the map?")) {
@@ -353,123 +380,166 @@ export const Editor = () => {
         : 'transparent';
 
     return (
-        <div className="editor-container" style={{ display: 'flex', height: '100%', flexDirection: 'row' }}>
-            {/* ... Toolbar ... (bez izmaiņām) */}
-            <div className="toolbar" style={{ width: '280px', padding: '15px', borderRight: '1px solid #ccc', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f8f8' }}>
-                <div style={{ marginBottom: '15px' }}>
-                    <div style={{marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                        {/* JAUNIE IEVADES LAUKI */}
-                        <label style={{fontSize: '12px'}}>Map Name:</label>
-                        <input 
-                            type="text" 
-                            value={mapName} 
-                            onChange={(e) => setMapName(e.target.value)}
-                            style={{padding: '4px', marginBottom: '5px'}}
-                        />
-                        <label style={{fontSize: '12px'}}>Creator Nickname:</label>
-                        <input 
-                            type="text" 
-                            value={creatorName} 
-                            onChange={(e) => setCreatorName(e.target.value)}
-                            style={{padding: '4px', marginBottom: '10px'}}
-                        />
-                    </div>
+        <div className="editor-wrapper" style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
+            {/* Modālais logs */}
+            {isNewMapModalOpen && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff', padding: '20px', borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '300px',
+                        display: 'flex', flexDirection: 'column', gap: '10px'
+                    }}>
+                        <h3 style={{ marginTop: 0 }}>Create New Map</h3>
+                        
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Map Name:</label>
+                            <input 
+                                type="text" 
+                                value={tempMapName} 
+                                onChange={(e) => setTempMapName(e.target.value)}
+                                style={{ width: '100%', padding: '5px', boxSizing: 'border-box' }}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Creator Nickname:</label>
+                            <input 
+                                type="text" 
+                                value={tempCreatorName} 
+                                onChange={(e) => setTempCreatorName(e.target.value)}
+                                style={{ width: '100%', padding: '5px', boxSizing: 'border-box' }}
+                            />
+                        </div>
 
-                    <div style={{marginBottom: '10px'}}>
-                        <button onClick={saveMap} style={buttonStyle}>Save</button> <label style={buttonStyle}>Load <input type="file" accept=".json,.txt" onChange={loadMap} style={{display: 'none'}} /></label> <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>#</button> <button onClick={clearMap} style={{...buttonStyle, color: 'red'}} title="Clear Map">✕</button>
-                    </div>
-                    <div style={{borderTop: '1px solid #ddd', paddingTop: '10px', marginBottom: '10px'}}>
-                        <span style={{fontSize: '12px', fontWeight: 'bold', display:'block', marginBottom:'5px'}}>TOOLS</span>
-                        <button onClick={() => setActiveTool('brush')} style={activeTool === 'brush' ? activeButtonStyle : buttonStyle}>🖌️</button> <button onClick={() => setActiveTool('bucket')} style={activeTool === 'bucket' ? activeButtonStyle : buttonStyle}>🪣</button> <button onClick={() => setActiveTool('move')} style={activeTool === 'move' ? activeButtonStyle : buttonStyle}>✋</button>
-                        {(activeTool === 'brush') && ( <div style={{marginTop: '5px'}}> <span style={{fontSize: '11px', marginRight: '5px'}}>Size:</span> {[1, 2, 3, 4, 5].map(size => ( <button key={size} onClick={() => setBrushSize(size)} style={{... (brushSize === size ? activeButtonStyle : buttonStyle), padding: '0 6px', minWidth: '20px'}}>{size}</button> ))} </div> )}
-                        <div style={{marginTop: '10px', padding: '5px', backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : '#fff1f0', borderRadius: '4px', border: '1px solid #ccc'}}> <span style={{fontSize: '11px'}}>Active: <strong>{activeLayer === 'tile' ? '🟦 Background' : '🟥 Objects'}</strong></span> </div>
-                        {activeTool === 'move' && selection && ( <div style={{marginTop: '5px'}}> <span style={{fontSize: '11px', display:'block'}}>Move Selection:</span> <button onClick={() => moveSelection(0, -1)} style={buttonStyle}>▲</button> <div style={{display:'inline-block'}}> <button onClick={() => moveSelection(-1, 0)} style={buttonStyle}>◀</button> <button onClick={() => moveSelection(1, 0)} style={buttonStyle}>▶</button> </div> <button onClick={() => moveSelection(0, 1)} style={buttonStyle}>▼</button> <button onClick={() => setSelection(null)} style={{...buttonStyle, color: 'red', marginLeft: '5px'}}>✕</button> </div> )}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                            <button onClick={() => setIsNewMapModalOpen(false)} style={{ ...buttonStyle, backgroundColor: '#f0f0f0' }}>Cancel</button>
+                            <button onClick={confirmNewMap} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: 'white', borderColor: '#4CAF50' }}>Create</button>
+                        </div>
                     </div>
                 </div>
-                 {/* ... */}
-                 <div className="palette" style={{ flex: 1, overflowY: 'auto' }}>
-                    <PaletteSection title="Erasers" isOpenDefault={true}> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> <BlockEraser /> <ObjectEraser /> </div> </PaletteSection>
-                    <PaletteSection title="Blocks (Background)" isOpenDefault={true}> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))} </div> </PaletteSection>
-                    <PaletteSection title="Entities (Objects)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {entities.map(e => renderPaletteItem(e, 'red', 'object'))} </div> </PaletteSection>
-                    <PaletteSection title="Items (Objects)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {items.map(i => renderPaletteItem(i, 'green', 'object'))} </div> </PaletteSection>
-                </div>
-                {/* ... Stats ... */}
-                 <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #ccc', fontSize: '11px', backgroundColor: '#eee', padding: '10px' }}> <div style={{marginBottom: '4px'}}>Size: <strong>{mapWidth} x {mapHeight}</strong> ({totalTiles} tiles)</div> <div style={{marginBottom: '4px', color: 'blue'}}>🟦 Filled Blocks: <strong>{filledBlocks}</strong></div> <div style={{marginBottom: '4px', color: '#666'}}>⬜ Empty Blocks: <strong>{emptyBlocks}</strong></div> <div style={{marginBottom: '4px', color: 'red'}}>🟥 Objects Count: <strong>{objectsCount}</strong></div> </div>
-            </div>
+            )}
 
-            {/* Viewport */}
-            <div className="viewport" style={{ flex: 1, padding: '40px', backgroundColor: '#555', overflow: 'auto', position: 'relative', userSelect: 'none' }} onMouseUp={() => setIsDragging(false)}>
-                <div style={{ position: 'relative', width: 'fit-content' }} onMouseLeave={handleGridMouseLeave}>
-                    <div className="grid"
-                        style={{
-                            display: 'grid', gridTemplateColumns: `repeat(${mapWidth}, 32px)`, gridTemplateRows: `repeat(${mapHeight}, 32px)`,
-                            gap: showGrid ? '1px' : '0px', border: '1px solid #222', backgroundColor: '#222', position: 'relative',
-                            cursor: activeTool === 'bucket' ? 'cell' : 'default'
-                        }}
-                    >
-                        {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
-                            const tileId = tileMapData[index];
-                            const objectId = objectMapData[index];
-                            const tileObj = tileId ? registryItems.find(r => r.id === tileId) : null;
-                            const objObj = objectId ? registryItems.find(r => r.id === objectId) : null;
+            {/* Galvenais saturs ar blur efektu */}
+            <div className="editor-container" style={{ 
+                display: 'flex', height: '100%', flexDirection: 'row',
+                filter: isNewMapModalOpen ? 'blur(4px) brightness(0.7)' : 'none',
+                transition: 'filter 0.2s ease',
+                pointerEvents: isNewMapModalOpen ? 'none' : 'auto'
+            }}>
+                {/* ... Toolbar ... */}
+                <div className="toolbar" style={{ width: '280px', padding: '15px', borderRight: '1px solid #ccc', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f8f8' }}>
+                    <div style={{ marginBottom: '15px' }}>
+                        
+                        <div style={{marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                            <div style={{fontSize: '12px'}}>Map Name: <strong>{mapName}</strong></div>
+                            <div style={{fontSize: '12px'}}>Creator: <strong>{creatorName}</strong></div>
+                        </div>
+
+                        <div style={{marginBottom: '10px'}}>
+                            {/* Poga NEW */}
+                            <button onClick={openNewMapModal} style={{...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C'}}>New</button> 
+                            <button onClick={saveMap} style={buttonStyle}>Save</button> 
+                            <label style={buttonStyle}>Load <input type="file" accept=".json,.txt" onChange={loadMap} style={{display: 'none'}} /></label> 
+                            <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>#</button> 
+                            <button onClick={clearMap} style={{...buttonStyle, color: 'red'}} title="Clear Map">✕</button>
+                        </div>
+                        <div style={{borderTop: '1px solid #ddd', paddingTop: '10px', marginBottom: '10px'}}>
+                            <span style={{fontSize: '12px', fontWeight: 'bold', display:'block', marginBottom:'5px'}}>TOOLS</span>
+                            <button onClick={() => setActiveTool('brush')} style={activeTool === 'brush' ? activeButtonStyle : buttonStyle}>🖌️</button> <button onClick={() => setActiveTool('bucket')} style={activeTool === 'bucket' ? activeButtonStyle : buttonStyle}>🪣</button> <button onClick={() => setActiveTool('move')} style={activeTool === 'move' ? activeButtonStyle : buttonStyle}>✋</button>
+                            {(activeTool === 'brush') && ( <div style={{marginTop: '5px'}}> <span style={{fontSize: '11px', marginRight: '5px'}}>Size:</span> {[1, 2, 3, 4, 5].map(size => ( <button key={size} onClick={() => setBrushSize(size)} style={{... (brushSize === size ? activeButtonStyle : buttonStyle), padding: '0 6px', minWidth: '20px'}}>{size}</button> ))} </div> )}
+                            <div style={{marginTop: '10px', padding: '5px', backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : '#fff1f0', borderRadius: '4px', border: '1px solid #ccc'}}> <span style={{fontSize: '11px'}}>Active: <strong>{activeLayer === 'tile' ? '🟦 Background' : '🟥 Objects'}</strong></span> </div>
+                            {activeTool === 'move' && selection && ( <div style={{marginTop: '5px'}}> <span style={{fontSize: '11px', display:'block'}}>Move Selection:</span> <button onClick={() => moveSelection(0, -1)} style={buttonStyle}>▲</button> <div style={{display:'inline-block'}}> <button onClick={() => moveSelection(-1, 0)} style={buttonStyle}>◀</button> <button onClick={() => moveSelection(1, 0)} style={buttonStyle}>▶</button> </div> <button onClick={() => moveSelection(0, 1)} style={buttonStyle}>▼</button> <button onClick={() => setSelection(null)} style={{...buttonStyle, color: 'red', marginLeft: '5px'}}>✕</button> </div> )}
+                        </div>
+                    </div>
+                     {/* ... */}
+                     <div className="palette" style={{ flex: 1, overflowY: 'auto' }}>
+                        <PaletteSection title="Erasers" isOpenDefault={true}> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> <BlockEraser /> <ObjectEraser /> </div> </PaletteSection>
+                        <PaletteSection title="Blocks (Background)" isOpenDefault={true}> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))} </div> </PaletteSection>
+                        <PaletteSection title="Entities (Objects)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {entities.map(e => renderPaletteItem(e, 'red', 'object'))} </div> </PaletteSection>
+                        <PaletteSection title="Items (Objects)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {items.map(i => renderPaletteItem(i, 'green', 'object'))} </div> </PaletteSection>
+                    </div>
+                    {/* ... Stats ... */}
+                     <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #ccc', fontSize: '11px', backgroundColor: '#eee', padding: '10px' }}> <div style={{marginBottom: '4px'}}>Size: <strong>{mapWidth} x {mapHeight}</strong> ({totalTiles} tiles)</div> <div style={{marginBottom: '4px', color: 'blue'}}>🟦 Filled Blocks: <strong>{filledBlocks}</strong></div> <div style={{marginBottom: '4px', color: '#666'}}>⬜ Empty Blocks: <strong>{emptyBlocks}</strong></div> <div style={{marginBottom: '4px', color: 'red'}}>🟥 Objects Count: <strong>{objectsCount}</strong></div> </div>
+                </div>
+
+                {/* Viewport */}
+                <div className="viewport" style={{ flex: 1, padding: '40px', backgroundColor: '#555', overflow: 'auto', position: 'relative', userSelect: 'none' }} onMouseUp={() => setIsDragging(false)}>
+                    <div style={{ position: 'relative', width: 'fit-content' }} onMouseLeave={handleGridMouseLeave}>
+                        <div className="grid"
+                            style={{
+                                display: 'grid', gridTemplateColumns: `repeat(${mapWidth}, 32px)`, gridTemplateRows: `repeat(${mapHeight}, 32px)`,
+                                gap: showGrid ? '1px' : '0px', border: '1px solid #222', backgroundColor: '#222', position: 'relative',
+                                cursor: activeTool === 'bucket' ? 'cell' : 'default'
+                            }}
+                        >
+                            {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
+                                const tileId = tileMapData[index];
+                                const objectId = objectMapData[index];
+                                const tileObj = tileId ? registryItems.find(r => r.id === tileId) : null;
+                                const objObj = objectId ? registryItems.find(r => r.id === objectId) : null;
                             
-                            // TE MĒS IZMANTOJAM AnimatedItem GRIDĀ
-                            // Svarīgi: AnimatedItem ir React komponente, tāpēc katra šūna būs nedaudz "smagāka" nekā vienkāršs <img>.
-                            // Ar lielām kartēm (100x100) tas var ietekmēt veiktspēju. 
-                            // Mazām kartēm (20x15) tas būs OK un izskatīsies dzīvīgi.
+                                // TE MĒS IZMANTOJAM AnimatedItem GRIDĀ
+                                // Svarīgi: AnimatedItem ir React komponente, tāpēc katra šūna būs nedaudz "smagāka" nekā vienkāršs <img>.
+                                // Ar lielām kartēm (100x100) tas var ietekmēt veiktspēju. 
+                                // Mazām kartēm (20x15) tas būs OK un izskatīsies dzīvīgi.
 
-                            const x = index % mapWidth; const y = Math.floor(index / mapWidth);
-                            // ... (highlight logic paliek tāds pats) ...
-                            let isSelected = false; if (selection && x >= selection.x && x < selection.x + selection.w && y >= selection.y && y < selection.y + selection.h) isSelected = true;
-                            let isMoveSelecting = false; let isMoveHover = false; if (activeTool === 'move') { if (isDragging && dragStart && hoverIndex !== null) { const hx = hoverIndex % mapWidth; const hy = Math.floor(hoverIndex / mapWidth); const sx = dragStart.x; const sy = dragStart.y; const minX = Math.min(sx, hx); const minY = Math.min(sy, hy); const maxX = Math.max(sx, hx); const maxY = Math.max(sy, hy); if (x >= minX && x <= maxX && y >= minY && y <= maxY) isMoveSelecting = true; } else if (!isDragging && hoverIndex === index) isMoveHover = true; }
-                            let isBrushTarget = false; if ((activeTool === 'brush') && hoverIndex !== null) { const hx = hoverIndex % mapWidth; const hy = Math.floor(hoverIndex / mapWidth); if (x >= hx && x < hx + brushSize && y >= hy && y < hy + brushSize) isBrushTarget = true; }
-                            let isBucketTarget = false; let isBucketPreview = false; if (activeTool === 'bucket') { if (bucketPreviewIndices.has(index)) isBucketPreview = true; else if (hoverIndex === index) isBucketTarget = true; }
+                                const x = index % mapWidth; const y = Math.floor(index / mapWidth);
+                                // ... (highlight logic paliek tāds pats) ...
+                                let isSelected = false; if (selection && x >= selection.x && x < selection.x + selection.w && y >= selection.y && y < selection.y + selection.h) isSelected = true;
+                                let isMoveSelecting = false; let isMoveHover = false; if (activeTool === 'move') { if (isDragging && dragStart && hoverIndex !== null) { const hx = hoverIndex % mapWidth; const hy = Math.floor(hoverIndex / mapWidth); const sx = dragStart.x; const sy = dragStart.y; const minX = Math.min(sx, hx); const minY = Math.min(sy, hy); const maxX = Math.max(sx, hx); const maxY = Math.max(sy, hy); if (x >= minX && x <= maxX && y >= minY && y <= maxY) isMoveSelecting = true; } else if (!isDragging && hoverIndex === index) isMoveHover = true; }
+                                let isBrushTarget = false; if ((activeTool === 'brush') && hoverIndex !== null) { const hx = hoverIndex % mapWidth; const hy = Math.floor(hoverIndex / mapWidth); if (x >= hx && x < hx + brushSize && y >= hy && y < hy + brushSize) isBrushTarget = true; }
+                                let isBucketTarget = false; let isBucketPreview = false; if (activeTool === 'bucket') { if (bucketPreviewIndices.has(index)) isBucketPreview = true; else if (hoverIndex === index) isBucketTarget = true; }
 
-                            // Izmantojam gridColor šeit
-                            let borderStyle = `1px solid ${showGrid ? (activeLayer === 'tile' ? 'rgba(0, 0, 255, 0.1)' : 'rgba(255, 0, 0, 0.1)') : 'transparent'}`;
-                            let bgStyle = '#fff';
-                            if (isBrushTarget) borderStyle = '2px solid red';
-                            else if (isBucketPreview) { borderStyle = '1px dashed orange'; bgStyle = 'rgb(168,187,220)'; }
-                            else if (isBucketTarget) borderStyle = '2px solid orange';
-                            else if (isMoveHover) borderStyle = '2px solid blue';
-                            else if (isMoveSelecting) { borderStyle = '1px dashed blue'; bgStyle = 'rgba(0, 0, 255, 0.1)'; }
-                            else if (isSelected) { borderStyle = '1px dashed red'; bgStyle = 'rgba(255, 255, 0, 0.3)'; }
-                            else if (!showGrid) borderStyle = 'none';
+                                // Izmantojam gridColor šeit
+                                let borderStyle = `1px solid ${showGrid ? (activeLayer === 'tile' ? 'rgba(0, 0, 255, 0.1)' : 'rgba(255, 0, 0, 0.1)') : 'transparent'}`;
+                                let bgStyle = '#fff';
+                                if (isBrushTarget) borderStyle = '2px solid red';
+                                else if (isBucketPreview) { borderStyle = '1px dashed orange'; bgStyle = 'rgb(168,187,220)'; }
+                                else if (isBucketTarget) borderStyle = '2px solid orange';
+                                else if (isMoveHover) borderStyle = '2px solid blue';
+                                else if (isMoveSelecting) { borderStyle = '1px dashed blue'; bgStyle = 'rgba(0, 0, 255, 0.1)'; }
+                                else if (isSelected) { borderStyle = '1px dashed red'; bgStyle = 'rgba(255, 255, 0, 0.3)'; }
+                                else if (!showGrid) borderStyle = 'none';
 
-                            return (
-                                <div key={index}
-                                    onMouseDown={(e) => handleGridMouseDown(index, e)}
-                                    onMouseEnter={() => handleGridMouseEnter(index)}
-                                    onMouseUp={() => handleGridMouseUp(index)}
-                                    style={{
-                                        width: '32px', height: '32px', backgroundColor: bgStyle, border: borderStyle,
-                                        zIndex: (isBrushTarget || isBucketTarget || isBucketPreview || isMoveHover || isMoveSelecting) ? 20 : (isSelected ? 15 : 1),
-                                        boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'
-                                    }}
-                                >
-                                    {/* Background Layer (Tiles) */}
-                                    {tileObj && <AnimatedItem 
-                                        textures={tileObj.textures} 
-                                        texture={tileObj.texture} 
-                                        speed={tileObj.animationSpeed}
-                                        style={{ position:'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2 }} 
-                                    />}
+                                return (
+                                    <div key={index}
+                                        onMouseDown={(e) => handleGridMouseDown(index, e)}
+                                        onMouseEnter={() => handleGridMouseEnter(index)}
+                                        onMouseUp={() => handleGridMouseUp(index)}
+                                        style={{
+                                            width: '32px', height: '32px', backgroundColor: bgStyle, border: borderStyle,
+                                            zIndex: (isBrushTarget || isBucketTarget || isBucketPreview || isMoveHover || isMoveSelecting) ? 20 : (isSelected ? 15 : 1),
+                                            boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'
+                                        }}
+                                    >
+                                        {/* Background Layer (Tiles) */}
+                                        {tileObj && <AnimatedItem 
+                                            textures={tileObj.textures} 
+                                            texture={tileObj.texture} 
+                                            speed={tileObj.animationSpeed}
+                                            style={{ position:'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2 }} 
+                                        />}
                                     
-                                    {/* Foreground Layer (Objects) */}
-                                    {objObj && <AnimatedItem 
-                                        textures={objObj.textures} 
-                                        texture={objObj.texture} 
-                                        speed={objObj.animationSpeed}
-                                        style={{ position:'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 3 }} 
-                                    />}
+                                        {/* Foreground Layer (Objects) */}
+                                        {objObj && <AnimatedItem 
+                                            textures={objObj.textures} 
+                                            texture={objObj.texture} 
+                                            speed={objObj.animationSpeed}
+                                            style={{ position:'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 3 }} 
+                                        />}
                                     
-                                    <div style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10}} />
-                                </div>
-                            );
-                        })}
+                                        <div style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10}} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div onMouseDown={handleResizeMouseDown('width')} style={{ position: 'absolute', top: 0, right: -15, width: '15px', height: '100%', backgroundColor: '#777', cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderTopRightRadius: '5px', borderBottomRightRadius: '5px' }}><span style={{color: '#ccc', fontSize: '20px'}}>⋮</span></div>
+                        <div onMouseDown={handleResizeMouseDown('height')} style={{ position: 'absolute', bottom: -15, left: 0, width: '100%', height: '15px', backgroundColor: '#777', cursor: 'row-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottomLeftRadius: '5px', borderBottomRightRadius: '5px' }}><span style={{color: '#ccc', fontSize: '20px'}}>⋯</span></div>
                     </div>
-                    <div onMouseDown={handleResizeMouseDown('width')} style={{ position: 'absolute', top: 0, right: -15, width: '15px', height: '100%', backgroundColor: '#777', cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderTopRightRadius: '5px', borderBottomRightRadius: '5px' }}><span style={{color: '#ccc', fontSize: '20px'}}>⋮</span></div>
-                    <div onMouseDown={handleResizeMouseDown('height')} style={{ position: 'absolute', bottom: -15, left: 0, width: '100%', height: '15px', backgroundColor: '#777', cursor: 'row-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottomLeftRadius: '5px', borderBottomRightRadius: '5px' }}><span style={{color: '#ccc', fontSize: '20px'}}>⋯</span></div>
                 </div>
             </div>
         </div>

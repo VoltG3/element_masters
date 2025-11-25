@@ -42,13 +42,20 @@ export function SectionHeaderNavigationChapters() {
     const chapter_crystals = t("NAVIGATION_CRYSTALS")
     const chapter_repository = t("NAVIGATION_REPOSITORY")
 
+    // JAUNS: Funkcija, kas nosūta signālu atvērt modālo logu
+    const handleNewGameClick = () => {
+        // Nosūtam globālu notikumu, ko 'game.jsx' varēs uztvert
+        window.dispatchEvent(new Event('open-new-game-modal'));
+    };
+
     return (
         <nav style={{ display: "flex", gap: "0" }}>
             <NavLinkButton to="/" className={({ isActive }) => isActive ? "active" : ""}>
                 { chapter_home }
             </NavLinkButton>
 
-            <NavLinkButton to="/game" className={({ isActive }) => isActive ? "active" : ""}>
+            {/* JAUNS: Pievienots onClick handleris */}
+            <NavLinkButton to="/game" onClick={handleNewGameClick} className={({ isActive }) => isActive ? "active" : ""}>
                 { chapter_game }
             </NavLinkButton>
 
