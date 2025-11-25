@@ -7,6 +7,7 @@ const GRAVITY = 0.6;
 const TERMINAL_VELOCITY = 12;
 const MOVE_SPEED = 4;
 const JUMP_FORCE = 10;
+const MAX_HEALTH = 100;
 
 export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
     const input = useInput();

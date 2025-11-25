@@ -19,6 +19,8 @@ export default function Game() {
     const [mapWidth, setMapWidth] = useState(20);
     const [mapHeight, setMapHeight] = useState(15);
     const [tileMapData, setTileMapData] = useState([]);
+    // JAUNS: Saglabājam arī objektu slāņa datus
+    const [objectMapData, setObjectMapData] = useState([]);
     
     // Reģistrs
     const registryItems = Array.isArray(GameRegistry) ? GameRegistry : [];
@@ -67,11 +69,17 @@ export default function Game() {
         if (mapData.layers) {
             const bgLayer = mapData.layers.find(l => l.name === 'background');
             setTileMapData(bgLayer ? bgLayer.data : Array(w * h).fill(null));
+            
+            // JAUNS: Ielādējam entities slāni priekš items
+            const objLayer = mapData.layers.find(l => l.name === 'entities');
+            setObjectMapData(objLayer ? objLayer.data : Array(w * h).fill(null));
+
             // Mēs vairs neizmantojam 'entities' slāni renderēšanai pa tiešo,
             // jo dzinējs izmanto to, lai atrastu starta pozīciju, bet pēc tam
             // spēlētājs tiek renderēts dinamiski.
         } else {
             setTileMapData(mapData.tiles || Array(w * h).fill(null));
+            setObjectMapData(Array(w * h).fill(null));
         }
 
         setActiveMapData(mapData);
@@ -174,6 +182,29 @@ export default function Game() {
 
                         {/* 2. ENTITIES (Izņemot Player, ko renderējam atsevišķi) */}
                         {/* Šeit varētu renderēt citus objektus, ja tie būtu statiski vai kustētos citādāk */}
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: `repeat(${mapWidth}, 32px)`, 
+                            gridTemplateRows: `repeat(${mapHeight}, 32px)`,
+                            position: 'absolute', top: 0, left: 0,
+                            pointerEvents: 'none' // Lai netraucētu klikšķiem vai citām mijiedarbībām
+                        }}>
+                             {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
+                                const objId = objectMapData[index];
+                                // Ja nav objekta vai tas ir spēlētājs (ko jau renderējam dinamiski), izlaižam
+                                if (!objId || objId.includes('player')) return <div key={index} style={{ width: '32px', height: '32px' }} />;
+
+                                const objDef = registryItems.find(r => r.id === objId);
+                                return (
+                                    <div key={index} style={{ width: '32px', height: '32px', position: 'relative' }}>
+                                        {objDef && <AnimatedItem 
+                                            textures={objDef.textures} texture={objDef.texture} speed={objDef.animationSpeed}
+                                            style={{ position:'absolute', width: '100%', height: '100%', objectFit: 'contain' }} 
+                                        />}
+                                    </div>
+                                );
+                            })}
+                        </div>
 
                         {/* 3. DYNAMIC PLAYER */}
                         {playerVisuals && (
