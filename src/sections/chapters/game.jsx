@@ -23,9 +23,23 @@ export default function Game() {
     // Reģistrs
     const registryItems = Array.isArray(GameRegistry) ? GameRegistry : [];
 
+    const handleGameOver = () => {
+        // Pārlādējam esošo karti
+        if (activeMapData) {
+            console.log("Game Over! Reloading map...");
+            // Lai React saprastu izmaiņas un tiešām pārlādētu,
+            // mēs varam īslaicīgi notīrīt un tad uzstādīt atpakaļ, 
+            // vai vienkārši izsaukt loadMapData vēlreiz (ja tas resetos state).
+            // Bet tā kā loadMapData iestata state, tas var būt pietiekami, 
+            // ja vien mapData objekts nav tieši tas pats references ziņā (ko React varētu ignorēt).
+            // Drošāk ir nokopēt objektu.
+            loadMapData({...activeMapData});
+        }
+    };
+
     // --- START ENGINE ---
     // Dzinējs atgriež spēlētāja koordinātas un stāvokli
-    const playerState = useGameEngine(activeMapData, tileMapData, registryItems);
+    const playerState = useGameEngine(activeMapData, tileMapData, registryItems, handleGameOver);
     
     // Iegūstam spēlētāja vizuālo izskatu (Texture)
     const playerVisuals = useMemo(() => {

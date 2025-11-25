@@ -8,7 +8,7 @@ const TERMINAL_VELOCITY = 12;
 const MOVE_SPEED = 4;
 const JUMP_FORCE = 10;
 
-export const useGameEngine = (mapData, tileData, registryItems) => {
+export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
     const input = useInput();
 
     // Spēlētāja stāvoklis
@@ -99,9 +99,12 @@ export const useGameEngine = (mapData, tileData, registryItems) => {
             const gridY = Math.floor(p.y / TILE_SIZE);
             const index = gridY * mapWidth + gridX;
 
-            // Pārbaudām vai ārpus kartes
-            // JAUNS: Atgriežam true (sadursme), lai neļautu iziet ārpus kartes
+            // Pārbaudām vai ārpus kartes (tikai horizontāli un virs kartes)
+            // JAUNS: Atļaujam krist uz leju (gridY >= mapHeight), lai varētu nomirt
             if (gridX < 0 || gridX >= mapWidth || gridY < 0) return true;
+            
+            // Ja esam zem kartes, tā nav sadursme, tas ir kritiens
+            if (gridY >= mapData.meta.height) continue;
 
             const tileId = tileData[index];
             if (tileId) {
@@ -169,6 +172,16 @@ export const useGameEngine = (mapData, tileData, registryItems) => {
         } else {
             isGrounded = false;
             y += vy;
+        }
+
+        // JAUNS: Game Over pārbaude - ja nokrīt zem kartes
+        const mapPixelHeight = mapData.meta.height * TILE_SIZE;
+        if (y > mapPixelHeight + 100) {
+            if (onGameOver) {
+                onGameOver();
+            }
+            // Apturam loopu lai neizsauktu game over vairākas reizes
+            isInitialized.current = false; 
         }
 
         // Atjaunojam state
