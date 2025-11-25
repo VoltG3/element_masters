@@ -36,6 +36,11 @@ export const Editor = () => {
     const bucketTimerRef = useRef(null);
     const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData });
 
+    // JAUNIE STATE MAINĪGIE
+    const [mapName, setMapName] = useState("New Map");
+    const [creatorName, setCreatorName] = useState("Anonymous");
+    const [createdAt, setCreatedAt] = useState(null);
+
     useEffect(() => {
         stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData };
     }, [mapWidth, mapHeight, tileMapData, objectMapData]);
@@ -60,18 +65,50 @@ export const Editor = () => {
             const size = mapWidth * mapHeight;
             setTileMapData(Array(size).fill(null));
             setObjectMapData(Array(size).fill(null));
+            // Reset metadata on clear if needed, or keep author/name
         }
     };
 
     const saveMap = () => {
+        const currentDate = new Date().toISOString();
+        const createdDate = createdAt || currentDate;
+        
+        // Statistikas aprēķins
+        const filledBlocks = tileMapData.filter(t => t !== null).length;
+        const objectsCount = objectMapData.filter(o => o !== null).length;
+        const itemsCount = objectMapData.filter(o => {
+            if (!o) return false;
+            const item = registryItems.find(r => r.id === o);
+            return item && item.name && item.name.startsWith('item.');
+        }).length;
+
         const mapData = {
-            meta: { width: mapWidth, height: mapHeight, tileSize: 32, version: "1.0" },
+            meta: { 
+                width: mapWidth, 
+                height: mapHeight, 
+                tileSize: 32, 
+                version: "1.0",
+                name: mapName, // 1. Mapes nosaukums
+                author: creatorName, // 2. Autora nickname
+                date_map_created_at: createdDate, // 3. Izveides datums
+                date_map_last_updated: currentDate, // 4. Pēdējās izmaiņas
+            },
+            statistics: { // 5. Papildus statistika
+                total_tiles: mapWidth * mapHeight,
+                filled_tiles: filledBlocks,
+                total_objects: objectsCount,
+                total_items: itemsCount
+            },
             layers: [ { type: "tile", name: "background", data: tileMapData }, { type: "object", name: "entities", data: objectMapData } ]
         };
-        const fileName = "level_01.json";
+        // Failā nosaukumā izmantojam kartes nosaukumu, aizvietojot atstarpes
+        const fileName = `${mapName.replace(/\s+/g, '_')}.json`;
         const json = JSON.stringify(mapData, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        
+        // Iestatām izveides datumu, ja tas vēl nebija
+        if (!createdAt) setCreatedAt(currentDate);
     };
 
     const loadMap = (event) => {
@@ -84,10 +121,17 @@ export const Editor = () => {
                     const loaded = JSON.parse(e.target.result);
                     if (loaded.meta) {
                         setMapWidth(loaded.meta.width); setMapHeight(loaded.meta.height);
+                        
+                        // Ielādējam metadatus
+                        if (loaded.meta.name) setMapName(loaded.meta.name);
+                        if (loaded.meta.author) setCreatorName(loaded.meta.author);
+                        if (loaded.meta.date_map_created_at) setCreatedAt(loaded.meta.date_map_created_at);
+                        
                         const bgLayer = loaded.layers.find(l => l.name === 'background');
                         const objLayer = loaded.layers.find(l => l.name === 'entities');
                         if (bgLayer) setTileMapData(bgLayer.data); if (objLayer) setObjectMapData(objLayer.data);
                     } else {
+                        // Vecais formāts vai cits fails
                         if (loaded.width) setMapWidth(loaded.width); if (loaded.height) setMapHeight(loaded.height);
                         if (loaded.tiles) setTileMapData(loaded.tiles);
                         setObjectMapData(Array(loaded.width * loaded.height).fill(null));
@@ -313,6 +357,24 @@ export const Editor = () => {
             {/* ... Toolbar ... (bez izmaiņām) */}
             <div className="toolbar" style={{ width: '280px', padding: '15px', borderRight: '1px solid #ccc', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f8f8' }}>
                 <div style={{ marginBottom: '15px' }}>
+                    <div style={{marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                        {/* JAUNIE IEVADES LAUKI */}
+                        <label style={{fontSize: '12px'}}>Map Name:</label>
+                        <input 
+                            type="text" 
+                            value={mapName} 
+                            onChange={(e) => setMapName(e.target.value)}
+                            style={{padding: '4px', marginBottom: '5px'}}
+                        />
+                        <label style={{fontSize: '12px'}}>Creator Nickname:</label>
+                        <input 
+                            type="text" 
+                            value={creatorName} 
+                            onChange={(e) => setCreatorName(e.target.value)}
+                            style={{padding: '4px', marginBottom: '10px'}}
+                        />
+                    </div>
+
                     <div style={{marginBottom: '10px'}}>
                         <button onClick={saveMap} style={buttonStyle}>Save</button> <label style={buttonStyle}>Load <input type="file" accept=".json,.txt" onChange={loadMap} style={{display: 'none'}} /></label> <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>#</button> <button onClick={clearMap} style={{...buttonStyle, color: 'red'}} title="Clear Map">✕</button>
                     </div>
