@@ -1,0 +1,10 @@
+{
+  "id": "player",
+  "name": "entities.player",
+  "speed": 4.5,
+  "jumpHeight": 1.2,
+  "maxHealth": 100,
+  "defaultAnimation": "player_default",
+  "deadAnimation": "player_dead",
+  "targetAnimation": "player_target"
+}

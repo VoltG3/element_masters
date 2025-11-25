@@ -7,5 +7,9 @@
     "/assets/images/items/hertz_item.A.png",
     "/assets/images/items/hertz_item.B.png"
   ],
-  "animationSpeed": 300
+  "animationSpeed": 300,
+  "pickup": true,
+  "effect": {
+    "health": "10"
+  }
 }
