@@ -7,11 +7,12 @@ const GRAVITY = 0.6;
 const TERMINAL_VELOCITY = 12;
 const MOVE_SPEED = 4;
 const JUMP_FORCE = 10;
-const MAX_HEALTH = 100;
+const MAX_HEALTH = 90;
 
-export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
+// Izmainīts arguments: pievienots objectData
+export const useGameEngine = (mapData, tileData, objectData, registryItems, onGameOver, onStateUpdate) => {
     const input = useInput();
-
+    
     // Spēlētāja stāvoklis
     const [player, setPlayer] = useState({
         x: 0, // Pikseļos
@@ -22,7 +23,8 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
         vy: 0,
         isGrounded: false,
         direction: 1, // 1 pa labi, -1 pa kreisi
-        animation: 'idle' // idle, run, jump
+        animation: 'idle', // idle, run, jump
+        health: MAX_HEALTH // JAUNS: Izmantojam konstanti
     });
 
     const gameState = useRef({ ...player }); // Izmantojam ref lai izvairītos no closure problēmām loopā
@@ -30,20 +32,21 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
     const isInitialized = useRef(false);
 
     // Inicializējam spēlētāju sākuma pozīcijā
+    // Svarīgi: Šis efekts tagad ir atkarīgs TIKAI no mapData (kurš nemainās, kad savāc itemu)
     useEffect(() => {
         // JAUNS: Resetojam inicializācijas karogu un apturam loopu, kamēr meklējam jaunu pozīciju
         isInitialized.current = false;
-        
+    
         if (mapData && mapData.layers) {
             const objLayer = mapData.layers.find(l => l.name === 'entities');
             if (objLayer) {
                 // Meklējam spēlētāju (jebko kas satur 'player')
                 const startIndex = objLayer.data.findIndex(id => id && id.includes('player'));
-                
+            
                 if (startIndex !== -1) {
                     const startX = (startIndex % mapData.meta.width) * TILE_SIZE;
                     const startY = Math.floor(startIndex / mapData.meta.width) * TILE_SIZE;
-                    
+                
                     // Iegūstam datus no registry
                     const playerId = objLayer.data[startIndex];
                     const registryPlayer = findItemById(playerId) || findItemById("player"); // Fallback uz generic player
@@ -58,9 +61,10 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
                         vy: 0,
                         isGrounded: false,
                         direction: 1,
-                        animation: 'idle'
+                        animation: 'idle',
+                        health: MAX_HEALTH // Resetojam dzīvības sākumā
                     };
-                    
+                
                     setPlayer(gameState.current);
                     isInitialized.current = true;
                 } else {
@@ -74,19 +78,14 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
                         vy: 0
                     };
                     setPlayer(gameState.current);
-                    // Neuzstādām isInitialized=true, lai spēle "nesāktos" ar kļūdainu pozīciju, 
-                    // vai arī uzstādām, ja gribam, lai spēlētājs parādās stūrī.
-                    // Šoreiz atstāsim false, lai nekas nekustas/nerenderējas nepareizi.
                 }
             }
         }
-    }, [mapData]); // Svarīgi: reaģējam tikai uz mapData izmaiņām
+    }, [mapData]); // Šeit mapData ir tas, kas nāk no faila, un tas nemainās spēles laikā
 
     // Palīgfunkcija sadursmēm (AABB Collision)
     const checkCollision = (newX, newY, mapWidth) => {
-        // Pārbaudām stūrus
-        // Atņemam nelielu vērtību (0.01) no platuma un augstuma, 
-        // lai nepārbaudītu blakus esošos blokus, ja esam tieši uz robežas (piem., uz zemes).
+        // ... existing code ...
         const points = [
             { x: newX, y: newY }, // Top Left
             { x: newX + gameState.current.width - 0.01, y: newY }, // Top Right
@@ -103,7 +102,7 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
             // Pārbaudām vai ārpus kartes (tikai horizontāli un virs kartes)
             // JAUNS: Atļaujam krist uz leju (gridY >= mapHeight), lai varētu nomirt
             if (gridX < 0 || gridX >= mapWidth || gridY < 0) return true;
-            
+        
             // Ja esam zem kartes, tā nav sadursme, tas ir kritiens
             if (gridY >= mapData.meta.height) continue;
 
@@ -119,6 +118,50 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
         return false;
     };
 
+    // JAUNS: Pārbauda priekšmetu savākšanu
+    const checkItemCollection = (currentX, currentY, mapWidth, objectLayerData) => {
+        if (!objectLayerData) return;
+
+        // Pārbaudām spēlētāja centru
+        const centerX = currentX + gameState.current.width / 2;
+        const centerY = currentY + gameState.current.height / 2;
+
+        const gridX = Math.floor(centerX / TILE_SIZE);
+        const gridY = Math.floor(centerY / TILE_SIZE);
+        const index = gridY * mapWidth + gridX;
+
+        // Pārbaude vai indekss ir derīgs
+        if (index < 0 || index >= objectLayerData.length) return;
+
+        const itemId = objectLayerData[index];
+        if (itemId) {
+             const itemDef = registryItems.find(r => r.id === itemId);
+             
+             // Ja tas ir "pickup" items un nav spēlētājs
+             if (itemDef && itemDef.pickup && !itemId.includes('player')) {
+                 
+                 // Loģika specifiskiem itemiem
+                 if (itemDef.effect && itemDef.effect.health) {
+                     const healthBonus = parseInt(itemDef.effect.health, 10);
+                     
+                     // Ja dzīvība ir pilna, nevaram paņemt
+                     if (gameState.current.health >= MAX_HEALTH) {
+                         return;
+                     }
+
+                     // Ja varam paņemt
+                     const newHealth = Math.min(gameState.current.health + healthBonus, MAX_HEALTH);
+                     gameState.current.health = newHealth;
+                     
+                     // Paziņojam, ka items ir savākts (lai to izdzēstu no kartes)
+                     if (onStateUpdate) {
+                         onStateUpdate('collectItem', index);
+                     }
+                 }
+             }
+        }
+    };
+
     // Game Loop
     const update = () => {
         if (!isInitialized.current || !mapData) return;
@@ -127,6 +170,7 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
         const keys = input.current;
         let { x, y, vx, vy, width, height, isGrounded } = gameState.current;
 
+        // ... existing code (movement & collision) ...
         // --- 1. Horizontālā kustība ---
         vx = 0;
         if (keys.a) {
@@ -175,6 +219,10 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
             y += vy;
         }
 
+        // JAUNS: Pārbaudām itemu savākšanu pēc kustības
+        // Izmantojam objectData argumentu (kas ir dinamiskais state no game.jsx)
+        checkItemCollection(x, y, mapWidth, objectData);
+
         // JAUNS: Game Over pārbaude - ja nokrīt zem kartes
         const mapPixelHeight = mapData.meta.height * TILE_SIZE;
         if (y > mapPixelHeight + 100) {
@@ -195,10 +243,14 @@ export const useGameEngine = (mapData, tileData, registryItems, onGameOver) => {
         requestRef.current = requestAnimationFrame(update);
     };
 
+    // Mainām dependency array: tagad loop restartējas, ja mainās objectData
+    // Bet tas ir OK, jo update funkcija izmanto closure over objectData, 
+    // tāpēc mums vajag restartēt loopu, lai tas redzētu jauno objectData.
+    // SVARĪGI: Lai neresetotu spēlētāja pozīciju, useEffect ar setPlayer/initialization ir atsevišķs!
     useEffect(() => {
         requestRef.current = requestAnimationFrame(update);
         return () => cancelAnimationFrame(requestRef.current);
-    }, [mapData, tileData]); // Restartējam loopu ja mainās karte
+    }, [mapData, tileData, objectData]); 
 
     return player;
 };

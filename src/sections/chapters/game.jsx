@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import GameRegistry, { findItemById } from '../../GameRegistry'; // Pievienojam findItemById
 import AnimatedItem from '../../utilites/AnimatedItem';
 import { useGameEngine } from '../../utilites/useGameEngine'; // Importējam dzinēju
+import GameHeader from './gameHeader'; // JAUNS
 
 // Importējam kartes (React/Webpack vidē statiskie faili parasti jāimportē vai jāielādē caur fetch)
 import map1 from '../../assets/maps/Temp_01.json';
@@ -14,14 +15,14 @@ const BUILT_IN_MAPS = [map1, map2, map3];
 export default function Game() {
     const [isModalOpen, setIsModalOpen] = useState(true);
     const [activeMapData, setActiveMapData] = useState(null);
-    
+
     // Spēles dati no kartes
     const [mapWidth, setMapWidth] = useState(20);
     const [mapHeight, setMapHeight] = useState(15);
     const [tileMapData, setTileMapData] = useState([]);
     // JAUNS: Saglabājam arī objektu slāņa datus
     const [objectMapData, setObjectMapData] = useState([]);
-    
+
     // Reģistrs
     const registryItems = Array.isArray(GameRegistry) ? GameRegistry : [];
 
@@ -39,10 +40,27 @@ export default function Game() {
         }
     };
 
+    // JAUNS: Funkcija itemu noņemšanai
+    const handleStateUpdate = (action, payload) => {
+        if (action === 'collectItem') {
+            const indexToRemove = payload;
+            setObjectMapData(prevData => {
+                const newData = [...prevData];
+                newData[indexToRemove] = null; // Izņemam itemu no kartes
+                return newData;
+            });
+        }
+    };
+
+    // Mums vairs nevajag 'engineMapData' ar layers, jo mēs padodam objectMapData atsevišķi.
+    // Tāpēc mēs padodam oriģinālo 'activeMapData' kā pirmo argumentu (lai inicializācija strādātu korekti un neresetotos),
+    // un 'objectMapData' kā trešo argumentu priekš itemu pārbaudes.
+    
     // --- START ENGINE ---
     // Dzinējs atgriež spēlētāja koordinātas un stāvokli
-    const playerState = useGameEngine(activeMapData, tileMapData, registryItems, handleGameOver);
-    
+    // objectMapData satur dinamiskos datus (izņemtos itemus)
+    const playerState = useGameEngine(activeMapData, tileMapData, objectMapData, registryItems, handleGameOver, handleStateUpdate);
+
     // Iegūstam spēlētāja vizuālo izskatu (Texture)
     const playerVisuals = useMemo(() => {
         // Šeit varētu būt loģika, kas maina tekstūru atkarībā no playerState.direction vai playerState.vx
@@ -69,7 +87,7 @@ export default function Game() {
         if (mapData.layers) {
             const bgLayer = mapData.layers.find(l => l.name === 'background');
             setTileMapData(bgLayer ? bgLayer.data : Array(w * h).fill(null));
-            
+        
             // JAUNS: Ielādējam entities slāni priekš items
             const objLayer = mapData.layers.find(l => l.name === 'entities');
             setObjectMapData(objLayer ? objLayer.data : Array(w * h).fill(null));
@@ -111,7 +129,10 @@ export default function Game() {
 
     return (
         <div style={{ position: 'relative', height: '100%', overflow: 'hidden', backgroundColor: '#333' }}>
-            
+        
+            {/* JAUNS: Game Header */}
+            <GameHeader health={playerState.health} />
+
             {!isModalOpen && (
                 <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>
                     <button onClick={() => setIsModalOpen(true)} style={{ padding: '10px 20px', backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.3)', textTransform: 'uppercase', fontSize: '12px' }}>
@@ -119,7 +140,7 @@ export default function Game() {
                     </button>
                 </div>
             )}
-            
+        
             {isModalOpen && (
                 <div style={modalOverlayStyle}>
                     <div style={modalContentStyle}>
@@ -158,7 +179,7 @@ export default function Game() {
                         height: mapHeight * 32,
                         border: '5px solid #222', boxShadow: '0 0 20px rgba(0,0,0,0.5)', backgroundColor: '#111'
                     }}>
-                        
+                    
                         {/* 1. BACKGROUND GRID */}
                         <div style={{ 
                             display: 'grid', 
@@ -166,7 +187,7 @@ export default function Game() {
                             gridTemplateRows: `repeat(${mapHeight}, 32px)`,
                             position: 'absolute', top: 0, left: 0
                         }}>
-                             {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
+                                {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
                                 const tileId = tileMapData[index];
                                 const tileObj = tileId ? registryItems.find(r => r.id === tileId) : null;
                                 return (
@@ -189,7 +210,7 @@ export default function Game() {
                             position: 'absolute', top: 0, left: 0,
                             pointerEvents: 'none' // Lai netraucētu klikšķiem vai citām mijiedarbībām
                         }}>
-                             {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
+                                {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
                                 const objId = objectMapData[index];
                                 // Ja nav objekta vai tas ir spēlētājs (ko jau renderējam dinamiski), izlaižam
                                 if (!objId || objId.includes('player')) return <div key={index} style={{ width: '32px', height: '32px' }} />;
@@ -221,6 +242,7 @@ export default function Game() {
                                     texture={playerVisuals.texture} 
                                     speed={playerVisuals.animationSpeed}
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                                    className={playerState.health <= 0 ? 'dead' : ''} // Pievienojam klasi ja miris (var izmantot CSS animācijām)
                                 />
                             </div>
                         )}
