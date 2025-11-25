@@ -54,6 +54,39 @@ const initRegistry = () => {
             };
         });
 
+        // --- JAUNS: Pēcapstrāde (Linking & Merging) ---
+        // Mēs ejam cauri visiem elementiem un meklējam tos, kuriem ir 'defaultAnimation'.
+        // Ja atrodam, mēs kopējam vizuālos datus no animācijas uz galveno objektu.
+        
+        _registry.forEach(item => {
+            if (item.defaultAnimation) {
+                // Meklējam animācijas objektu pēc ID
+                // Piezīme: Tavā piemērā player.json ir "player_default", bet failā id ir "player_default_100". 
+                // Šeit mēs mēģinām atrast precīzu vai daļēju atbilstību, lai kods strādātu abos gadījumos.
+                const animItem = _registry.find(r => r.id === item.defaultAnimation || r.id === item.defaultAnimation + "_100");
+                
+                if (animItem) {
+                    // Kopējam vizuālos datus uz galveno 'player' objektu
+                    if (!item.texture) item.texture = animItem.texture;
+                    if (!item.textures || item.textures.length === 0) item.textures = animItem.textures;
+                    if (!item.animationSpeed) item.animationSpeed = animItem.animationSpeed;
+                    
+                    // Iezīmējam animācijas objektu kā 'hidden', lai to nerādītu Editorā
+                    animItem.isHiddenInEditor = true;
+                }
+                
+                // Tāpat paslēpjam arī dead un target animācijas, ja tās eksistē kā atsevišķi itemi
+                if (item.deadAnimation) {
+                     const deadItem = _registry.find(r => r.id === item.deadAnimation);
+                     if (deadItem) deadItem.isHiddenInEditor = true;
+                }
+                if (item.targetAnimation) {
+                     const targetItem = _registry.find(r => r.id === item.targetAnimation || r.id === item.targetAnimation + "_100");
+                     if (targetItem) targetItem.isHiddenInEditor = true;
+                }
+            }
+        });
+
         console.log(`✅ Game Registry initialized. Loaded ${_registry.length} items.`);
 
     } catch (error) {
