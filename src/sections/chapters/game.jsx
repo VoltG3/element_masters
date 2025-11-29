@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import GameRegistry, { findItemById } from '../../GameRegistry'; // Pievienojam findItemById
 import PixiStage from './PixiStage';
 import { useGameEngine } from '../../utilites/useGameEngine'; // Importējam dzinēju
@@ -14,6 +14,8 @@ import map4 from '../../assets/maps/Temp_04.json';
 const BUILT_IN_MAPS = [map1, map2, map3, map4];
 
 export default function Game() {
+    const viewportRef = useRef(null);
+    const hasAutoScrolledRef = useRef(false);
     const [isModalOpen, setIsModalOpen] = useState(true);
     const [activeMapData, setActiveMapData] = useState(null);
 
@@ -70,6 +72,24 @@ export default function Game() {
     }, []);
     // --- END ENGINE ---
 
+    // Auto-scroll once to bring player into view on large maps
+    useEffect(() => {
+        const vp = viewportRef.current;
+        if (!vp || !activeMapData || isModalOpen) return;
+        if (hasAutoScrolledRef.current) return;
+        const px = Number(playerState?.x);
+        const py = Number(playerState?.y);
+        if (!Number.isFinite(px) || !Number.isFinite(py)) return;
+        const contentWidth = mapWidth * 32;
+        const contentHeight = mapHeight * 32;
+        const vw = vp.clientWidth || 0;
+        const vh = vp.clientHeight || 0;
+        const targetLeft = Math.max(0, Math.min(contentWidth - vw, px - vw / 2));
+        const targetTop = Math.max(0, Math.min(contentHeight - vh, py - vh / 2));
+        vp.scrollTo({ left: targetLeft, top: targetTop, behavior: 'auto' });
+        hasAutoScrolledRef.current = true;
+    }, [activeMapData, playerState, mapWidth, mapHeight, isModalOpen]);
+
     // JAUNS: Klausāmies navigācijas pogas
     useEffect(() => {
         const handleOpenModalEvent = () => setIsModalOpen(true);
@@ -78,6 +98,7 @@ export default function Game() {
     }, []);
 
     const loadMapData = (mapData) => {
+        hasAutoScrolledRef.current = false;
         if (!mapData) return;
 
         const w = mapData.meta?.width || mapData.width || 20;
@@ -169,7 +190,7 @@ export default function Game() {
                 </div>
             )}
 
-            <div style={{ 
+            <div ref={viewportRef} style={{ 
                 height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto',
                 filter: isModalOpen ? 'blur(5px)' : 'none', pointerEvents: isModalOpen ? 'none' : 'auto', transition: 'filter 0.3s ease'
             }}>

@@ -47,14 +47,16 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         triggeredHazardsRef.current = new Set();
 
         if (mapData && mapData.layers) {
+            const mapW = mapData.meta?.width || mapData.width || 20;
+            const mapH = mapData.meta?.height || mapData.height || 15;
             const objLayer = mapData.layers.find(l => l.name === 'entities');
             if (objLayer) {
                 // Meklējam spēlētāju (jebko kas satur 'player')
                 const startIndex = objLayer.data.findIndex(id => id && id.includes('player'));
 
                 if (startIndex !== -1) {
-                    const startX = (startIndex % mapData.meta.width) * TILE_SIZE;
-                    const startY = Math.floor(startIndex / mapData.meta.width) * TILE_SIZE;
+                    let startX = (startIndex % mapW) * TILE_SIZE;
+                    let startY = Math.floor(startIndex / mapW) * TILE_SIZE;
 
                     // Iegūstam datus no registry
                     const playerId = objLayer.data[startIndex];
@@ -74,7 +76,17 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                         health: 90 // Resetojam uz 90 (nevis MAX), lai var testēt itemus
                     };
 
-                    setPlayer(gameState.current);
+                    // Ja starta pozīcija iegrimst blokā, pabīdam uz augšu līdz drošai vietai
+                    let guard = 0;
+                    while (checkCollision(gameState.current.x, gameState.current.y, mapW, mapH) && guard < mapH) {
+                        gameState.current.y = Math.max(0, gameState.current.y - TILE_SIZE);
+                        guard++;
+                    }
+                    // Pārliecināmies, ka neatradāmies ārpus pasaules robežām horizontāli
+                    const maxXAtStart = mapW * TILE_SIZE - gameState.current.width;
+                    gameState.current.x = Math.max(0, Math.min(gameState.current.x, maxXAtStart));
+
+                    setPlayer({ ...gameState.current });
                     isInitialized.current = true;
                 } else {
                     // Ja spēlētājs nav atrasts kartē, novietojam to 0,0 vai kādā drošā vietā
@@ -85,14 +97,26 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                         vx: 0,
                         vy: 0
                     };
-                    setPlayer(gameState.current);
+                    setPlayer({ ...gameState.current });
+                    isInitialized.current = true; // ļaujam loopam darboties arī bez start pozīcijas
                 }
+            } else {
+                // Nav entities slāņa — tomēr startējam spēli 0,0
+                gameState.current = {
+                    ...gameState.current,
+                    x: 0,
+                    y: 0,
+                    vx: 0,
+                    vy: 0
+                };
+                setPlayer({ ...gameState.current });
+                isInitialized.current = true;
             }
         }
     }, [mapData]);
 
     // Palīgfunkcija sadursmēm (AABB Collision) ar blokiem (tile slānis)
-    const checkCollision = (newX, newY, mapWidth) => {
+    const checkCollision = (newX, newY, mapWidth, mapHeightParam) => {
         const points = [
             { x: newX, y: newY }, // Top Left
             { x: newX + gameState.current.width - 0.01, y: newY }, // Top Right
@@ -111,7 +135,7 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             if (gridX < 0 || gridX >= mapWidth || gridY < 0) return true;
 
             // Ja esam zem kartes, tā nav sadursme, tas ir kritiens
-            if (gridY >= mapData.meta.height) continue;
+            if (gridY >= mapHeightParam) continue;
 
             const tileId = tileData[index];
             if (tileId) {
@@ -316,7 +340,8 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         const deltaMs = timestamp - lastTimeRef.current;
         lastTimeRef.current = timestamp;
 
-        const mapWidth = mapData.meta.width;
+        const mapWidth = mapData.meta?.width || mapData.width || 20;
+        const mapHeight = mapData.meta?.height || mapData.height || 15;
         const keys = input.current;
 
         let {
@@ -343,11 +368,20 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             direction = 1;
         }
 
-        // Pārbaudām horizontālo sadursmi
-        if (checkCollision(x + vx, y, mapWidth)) {
+        // Pārbaudām horizontālo sadursmi un pielīdzinām pie sienas
+        const proposedX = x + vx;
+        if (checkCollision(proposedX, y, mapWidth, mapHeight)) {
+            if (vx > 0) {
+                // Kustība pa labi: pielīdzinām pie kreisās sienas malas
+                x = Math.floor((proposedX + width) / TILE_SIZE) * TILE_SIZE - width;
+            } else if (vx < 0) {
+                // Kustība pa kreisi: pielīdzinām pie labās sienas malas
+                x = Math.ceil(proposedX / TILE_SIZE) * TILE_SIZE;
+            }
             vx = 0; // Apstājamies, ja siena
+        } else {
+            x = proposedX;
         }
-        x += vx;
 
         // --- 2. Vertikālā kustība (Gravitācija & Lēkšana) ---
 
@@ -363,7 +397,7 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         if (vy > TERMINAL_VELOCITY) vy = TERMINAL_VELOCITY;
 
         // Pārbaudām vertikālo sadursmi
-        if (checkCollision(x, y + vy, mapWidth)) {
+        if (checkCollision(x, y + vy, mapWidth, mapHeight)) {
             // Ja krītam uz leju (vy > 0), tātad zeme
             if (vy > 0) {
                 isGrounded = true;
@@ -408,7 +442,7 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         }
 
         // JAUNS: Game Over pārbaude - ja nokrīt zem kartes
-        const mapPixelHeight = mapData.meta.height * TILE_SIZE;
+        const mapPixelHeight = mapHeight * TILE_SIZE;
         if (y > mapPixelHeight + 100) {
             if (onGameOver) {
                 onGameOver();
@@ -416,6 +450,11 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             isInitialized.current = false;
             return;
         }
+
+        // Pasaules robežas (horizontāli): neļaujam iziet ārpus kartes
+        const maxX = mapWidth * TILE_SIZE - width;
+        if (x < 0) x = 0;
+        if (x > maxX) x = Math.max(0, maxX);
 
         // Atjaunojam state ref
         gameState.current = {

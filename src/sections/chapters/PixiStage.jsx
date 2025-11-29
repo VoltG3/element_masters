@@ -157,17 +157,20 @@ const PixiStage = ({
         const s = playerStateRef.current;
         if (!s) return;
         const p = playerRef.current;
-        p.x = s.x || 0;
-        p.y = s.y || 0;
 
         // width/height from state if provided (scaled), else default to tileSize
         if (s.width) p.width = s.width;
         if (s.height) p.height = s.height;
 
-        // Flip by scaling X to -1 when direction < 0 around left origin
+        // Flip by scaling X to -1 when direction < 0, but keep the visual left edge aligned with s.x
         const dir = s.direction || 1;
         const mag = Math.abs(p.scale.x || 1);
         p.scale.x = dir >= 0 ? mag : -mag;
+
+        // Position: adjust x when facing left so sprite does not extend outside left bound
+        const effectiveWidth = s.width || p.width || tileSize;
+        p.x = dir >= 0 ? (s.x || 0) : ( (s.x || 0) + effectiveWidth );
+        p.y = s.y || 0;
       });
     };
 
