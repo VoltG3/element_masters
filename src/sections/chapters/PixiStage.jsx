@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Application, Container, Sprite, Texture, AnimatedSprite, Assets } from 'pixi.js';
+import { Application, Container, Sprite, Texture, AnimatedSprite, Assets, TilingSprite, WRAP_MODES } from 'pixi.js';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
 Assets.setPreferences?.({ skipCacheIdWarning: true });
@@ -22,9 +22,13 @@ const PixiStage = ({
   registryItems = [],
   playerState,
   playerVisuals,
+  backgroundImage,
+  backgroundParallaxFactor = 0.3,
 }) => {
   const mountRef = useRef(null);
   const appRef = useRef(null);
+  const parallaxRef = useRef(null);
+  const parallaxSpriteRef = useRef(null);
   const bgRef = useRef(null);
   const objRef = useRef(null);
   const playerRef = useRef(null);
@@ -45,6 +49,71 @@ const PixiStage = ({
     cache.set(url, tex);
     return tex;
   };
+
+  // Background images resolver (from src/assets/background)
+  // Meta stores `/assets/background/<name>`
+  let bgContext;
+  try {
+    // webpack require.context (CRA)
+    // relative to this file: '../../assets/background'
+    bgContext = require.context('../../assets/background', false, /\.(png|jpe?g|svg)$/);
+  } catch (e) {
+    bgContext = null;
+  }
+  const resolveBackgroundUrl = (metaPath) => {
+    if (!bgContext) return null;
+    if (!metaPath) {
+      const keys = bgContext.keys();
+      if (keys && keys.length) {
+        const mod = bgContext(keys[0]);
+        return mod.default || mod;
+      }
+      return null;
+    }
+    const name = metaPath.split('/').pop();
+    const rel = `./${name}`;
+    try {
+      const mod = bgContext(rel);
+      return mod.default || mod;
+    } catch (e) {
+      // fallback to first available
+      const keys = bgContext.keys();
+      if (keys && keys.length) {
+        const mod = bgContext(keys[0]);
+        return mod.default || mod;
+      }
+      return null;
+    }
+  };
+
+  // Build or rebuild parallax tiling sprite layer
+  const rebuildParallax = () => {
+    const app = appRef.current;
+    const layer = parallaxRef.current;
+    if (!app || !layer) return;
+
+    // Clear previous
+    layer.removeChildren();
+    parallaxSpriteRef.current = null;
+
+    const url = resolveBackgroundUrl(backgroundImage);
+    if (!url) return;
+
+    // Ensure texture is created and repeatable
+    const tex = getTexture(url);
+    if (!tex) return;
+    if (tex.baseTexture) {
+      tex.baseTexture.wrapMode = WRAP_MODES.REPEAT;
+    }
+
+    const sprite = new TilingSprite({ texture: tex, width: mapWidth * tileSize, height: mapHeight * tileSize });
+    sprite.tileScale.set(1, 1);
+    sprite.x = 0;
+    sprite.y = 0;
+    layer.addChild(sprite);
+    parallaxSpriteRef.current = sprite;
+  };
+
   // Convert ms-per-frame (JSON) to Pixi AnimatedSprite speed factor (1 = 60fps)
   const msToSpeed = (ms) => {
     const m = Number(ms);
@@ -79,6 +148,10 @@ const PixiStage = ({
       bgRef.current = bg;
       objRef.current = obj;
 
+      // Parallax layer (behind everything)
+      const parallaxLayer = new Container();
+      parallaxRef.current = parallaxLayer;
+      app.stage.addChild(parallaxLayer);
       app.stage.addChild(bg);
       app.stage.addChild(obj);
       app.stage.addChild(playerLayer);
@@ -95,6 +168,8 @@ const PixiStage = ({
           addUrl(playerVisuals.texture);
           if (Array.isArray(playerVisuals.textures)) playerVisuals.textures.forEach(addUrl);
         }
+        const bgUrl = resolveBackgroundUrl(backgroundImage);
+        if (bgUrl) addUrl(bgUrl);
         const urls = Array.from(urlSet);
         if (urls.length) {
           await Assets.load(urls);
@@ -145,32 +220,41 @@ const PixiStage = ({
         app.canvas.addEventListener('webglcontextrestored', () => {
           console.info('WebGL context restored. Rebuilding layers...');
           rebuildLayers();
+          rebuildParallax();
         });
       }
 
       // First draw of map layers
       rebuildLayers();
+      // Build or rebuild parallax background
+      rebuildParallax();
 
-      // Update player each frame
+      // Update player and parallax each frame
       app.ticker.add(() => {
-        if (!playerRef.current) return;
         const s = playerStateRef.current;
         if (!s) return;
-        const p = playerRef.current;
 
-        // width/height from state if provided (scaled), else default to tileSize
-        if (s.width) p.width = s.width;
-        if (s.height) p.height = s.height;
+        // Update player sprite if available
+        if (playerRef.current) {
+          const p = playerRef.current;
+          if (s.width) p.width = s.width;
+          if (s.height) p.height = s.height;
+          const dir = s.direction || 1;
+          const mag = Math.abs(p.scale.x || 1);
+          p.scale.x = dir >= 0 ? mag : -mag;
+          const effectiveWidth = s.width || p.width || tileSize;
+          p.x = dir >= 0 ? (s.x || 0) : ( (s.x || 0) + effectiveWidth );
+          p.y = s.y || 0;
+        }
 
-        // Flip by scaling X to -1 when direction < 0, but keep the visual left edge aligned with s.x
-        const dir = s.direction || 1;
-        const mag = Math.abs(p.scale.x || 1);
-        p.scale.x = dir >= 0 ? mag : -mag;
-
-        // Position: adjust x when facing left so sprite does not extend outside left bound
-        const effectiveWidth = s.width || p.width || tileSize;
-        p.x = dir >= 0 ? (s.x || 0) : ( (s.x || 0) + effectiveWidth );
-        p.y = s.y || 0;
+        // Update parallax background tile offset
+        if (parallaxSpriteRef.current) {
+          // Move slower than foreground: factor in [0..1)
+          const f = Number(backgroundParallaxFactor) || 0.3;
+          // Negative to move in opposite direction of camera (assuming camera follows player)
+          parallaxSpriteRef.current.tilePosition.x = -(s.x || 0) * f;
+          parallaxSpriteRef.current.tilePosition.y = 0;
+        }
       });
     };
 
@@ -267,7 +351,6 @@ const PixiStage = ({
     // Rebuild background and object layers
     if (bgRef.current && objRef.current) {
       // Simple approach: full rebuild
-      // We implement the same helper locally
       // Background
       bgRef.current.removeChildren();
       for (let i = 0; i < mapWidth * mapHeight; i++) {
@@ -332,11 +415,23 @@ const PixiStage = ({
     }
   }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize]);
 
+  // Rebuild parallax when props change
+  useEffect(() => {
+    const app = appRef.current;
+    if (!app) return;
+    rebuildParallax();
+  }, [backgroundImage, backgroundParallaxFactor, mapWidth, mapHeight, tileSize]);
+
   // Resize application when map size changes
   useEffect(() => {
     const app = appRef.current;
     if (!app) return;
     app.renderer.resize(mapWidth * tileSize, mapHeight * tileSize);
+    // Resize parallax tiling sprite too
+    if (parallaxSpriteRef.current) {
+      parallaxSpriteRef.current.width = mapWidth * tileSize;
+      parallaxSpriteRef.current.height = mapHeight * tileSize;
+    }
   }, [mapWidth, mapHeight, tileSize]);
 
   return (

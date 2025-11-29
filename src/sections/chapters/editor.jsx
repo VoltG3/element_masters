@@ -60,6 +60,18 @@ export const Editor = () => {
     const items = registryItems.filter(item => item.name && item.name.startsWith('item.'));
     const hazards = registryItems.filter(item => item.type === 'hazard');
 
+    // Background images from src/assets/background
+    const bgContext = require.context('../../assets/background', false, /\.(png|jpe?g|svg)$/);
+    const backgroundOptions = bgContext.keys().map((key) => {
+        const mod = bgContext(key);
+        const url = mod.default || mod;
+        const name = key.replace('./', '');
+        return { key, name, src: url, metaPath: `/assets/background/${name}` };
+    });
+
+    const [selectedBackgroundImage, setSelectedBackgroundImage] = useState(backgroundOptions[0]?.metaPath || null);
+    const [backgroundParallaxFactor, setBackgroundParallaxFactor] = useState(0.3);
+
     const baseButtonStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid #333', padding: '0 10px', height: '28px', backgroundColor: '#e0e0e0', marginRight: '5px', marginBottom: '5px', fontSize: '13px', color: '#000', borderRadius: '3px', userSelect: 'none', minWidth: '30px', boxSizing: 'border-box', textDecoration: 'none', lineHeight: 'normal' };
     const buttonStyle = { ...baseButtonStyle };
     const activeButtonStyle = { ...baseButtonStyle, backgroundColor: '#aaa', borderColor: '#000', fontWeight: 'bold' };
@@ -83,6 +95,9 @@ export const Editor = () => {
             setMapName(tempMapName || "New Map");
             setCreatorName(tempCreatorName || "Anonymous");
             setCreatedAt(null);
+            // defaults for background meta
+            setSelectedBackgroundImage(backgroundOptions[0]?.metaPath || null);
+            setBackgroundParallaxFactor(0.3);
             
             setIsNewMapModalOpen(false);
         }
@@ -120,6 +135,8 @@ export const Editor = () => {
                 author: creatorName, // 2. Autora nickname
                 date_map_created_at: createdDate, // 3. Izveides datums
                 date_map_last_updated: currentDate, // 4. Pēdējās izmaiņas
+                backgroundImage: selectedBackgroundImage || null, // 5. Fona bilde (seamless)
+                backgroundParallaxFactor: backgroundParallaxFactor // 6. Parallakses koeficients
             },
             statistics: { // 5. Papildus statistika
                 total_tiles: mapWidth * mapHeight,
@@ -154,6 +171,17 @@ export const Editor = () => {
                         if (loaded.meta.name) setMapName(loaded.meta.name);
                         if (loaded.meta.author) setCreatorName(loaded.meta.author);
                         if (loaded.meta.date_map_created_at) setCreatedAt(loaded.meta.date_map_created_at);
+                        // Jaunais: fona bilde un parallakse
+                        if (typeof loaded.meta.backgroundImage !== 'undefined') {
+                            setSelectedBackgroundImage(loaded.meta.backgroundImage);
+                        } else {
+                            setSelectedBackgroundImage(backgroundOptions[0]?.metaPath || null);
+                        }
+                        if (typeof loaded.meta.backgroundParallaxFactor !== 'undefined') {
+                            setBackgroundParallaxFactor(loaded.meta.backgroundParallaxFactor);
+                        } else {
+                            setBackgroundParallaxFactor(0.3);
+                        }
                         
                         const bgLayer = loaded.layers.find(l => l.name === 'background');
                         const objLayer = loaded.layers.find(l => l.name === 'entities');
@@ -467,6 +495,25 @@ export const Editor = () => {
                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                  {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
                              </div>
+                         </PaletteSection>
+                         {/* JAUNS: Background Image izvēle */}
+                         <PaletteSection title="Background Image" isOpenDefault={true}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                                {backgroundOptions.map((bg) => (
+                                    <div key={bg.name} onClick={() => setSelectedBackgroundImage(bg.metaPath)}
+                                         style={{ border: selectedBackgroundImage === bg.metaPath ? '2px solid #4CAF50' : '1px solid #ccc', borderRadius: '4px', padding: '2px', cursor: 'pointer', background:'#fff' }}
+                                         title={bg.name}
+                                    >
+                                        <img src={bg.src} alt={bg.name} style={{ width: '100%', height: '48px', objectFit: 'cover', display:'block' }} />
+                                        <div style={{ fontSize: '10px', textAlign:'center', paddingTop:'2px' }}>{bg.name}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop: '8px' }}>
+                                <label style={{ fontSize: '12px' }}>Parallax: </label>
+                                <input type="range" min="0" max="1" step="0.05" value={backgroundParallaxFactor} onChange={(e) => setBackgroundParallaxFactor(parseFloat(e.target.value))} />
+                                <span style={{ fontSize: '12px', marginLeft:'6px' }}>{backgroundParallaxFactor.toFixed(2)}</span>
+                            </div>
                          </PaletteSection>
                     </div>
                     {/* ... Stats ... */}

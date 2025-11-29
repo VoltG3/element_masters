@@ -9,9 +9,10 @@ import map1 from '../../assets/maps/Temp_01.json';
 import map2 from '../../assets/maps/Temp_02.json';
 import map3 from '../../assets/maps/Temp_03.json';
 import map4 from '../../assets/maps/Temp_04.json';
+import map5 from '../../assets/maps/Temp_05.json';
 
 // Simulējam failu sarakstu no mapes
-const BUILT_IN_MAPS = [map1, map2, map3, map4];
+const BUILT_IN_MAPS = [map1, map2, map3, map4, map5];
 
 export default function Game() {
     const viewportRef = useRef(null);
@@ -251,6 +252,8 @@ export default function Game() {
                             registryItems={registryItems}
                             playerState={playerState}
                             playerVisuals={playerVisuals}
+                            backgroundImage={activeMapData?.meta?.backgroundImage}
+                            backgroundParallaxFactor={activeMapData?.meta?.backgroundParallaxFactor}
                         />
 
                     </div>
