@@ -5,6 +5,7 @@ import { useGameEngine } from '../../utilites/useGameEngine'; // Importējam dzi
 import GameHeader from './gameHeader'; // JAUNS
 import GameTerminal from './GameTerminal';
 import GameSettings from './GameSettings';
+import BackgroundMusicPlayer from '../../utilites/BackgroundMusicPlayer';
 
 // Importējam kartes (React/Webpack vidē statiskie faili parasti jāimportē vai jāielādē caur fetch)
 import map1 from '../../assets/maps/Temp_01.json';
@@ -12,9 +13,10 @@ import map2 from '../../assets/maps/Temp_02.json';
 import map3 from '../../assets/maps/Temp_03.json';
 import map4 from '../../assets/maps/Temp_04.json';
 import map5 from '../../assets/maps/Temp_05.json';
+import map6 from '../../assets/maps/Temp_06.json';
 
 // Simulējam failu sarakstu no mapes
-const BUILT_IN_MAPS = [map1, map2, map3, map4, map5];
+const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6];
 
 export default function Game() {
     const viewportRef = useRef(null);
@@ -23,6 +25,13 @@ export default function Game() {
     const [cameraScrollX, setCameraScrollX] = useState(0);
     // Runtime settings that can be changed from GameSettings on the fly
     const [runtimeSettings, setRuntimeSettings] = useState({});
+    // Global sound toggle (persisted)
+    const [soundEnabled, setSoundEnabled] = useState(() => {
+        try {
+            const v = localStorage.getItem('game_sound_enabled');
+            return v === null ? false : v !== '0';
+        } catch { return false; }
+    });
 
     // Spēles dati no kartes
     const [mapWidth, setMapWidth] = useState(20);
@@ -217,7 +226,14 @@ export default function Game() {
         <div style={{ position: 'relative', height: '100%', overflow: 'hidden', backgroundColor: '#333' }}>
         
             {/* JAUNS: Game Header */}
-            <GameHeader health={playerState.health} />
+            <GameHeader health={playerState.health} soundEnabled={soundEnabled} onToggleSound={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                try { localStorage.setItem('game_sound_enabled', next ? '1' : '0'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('game-sound-toggle', { detail: { enabled: next } })); } catch {}
+                // Also signal a user gesture to unblock autoplay on first enable
+                try { window.dispatchEvent(new CustomEvent('game-sound-user-gesture')); } catch {}
+            }} />
 
         
             {isModalOpen && (
@@ -284,6 +300,9 @@ export default function Game() {
                     <div style={{ color: '#777', fontSize: '24px' }}>Select a map to start playing</div>
                 )}
             </div>
+            {/* Background music runtime player */}
+            <BackgroundMusicPlayer metaPath={activeMapData?.meta?.backgroundMusic} enabled={soundEnabled} volume={0.6} />
+
             {/* Overlays at root level so they sit above the canvas and slide from the footer area */}
             <GameSettings />
             <GameTerminal />

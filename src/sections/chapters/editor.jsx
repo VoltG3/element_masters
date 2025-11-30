@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import GameRegistry from '../../GameRegistry';
 import AnimatedItem from '../../utilites/AnimatedItem';
+import BackgroundMusicPlayer from '../../utilites/BackgroundMusicPlayer';
 
 // ... PaletteSection komponente ... (bez izmaiņām)
 const PaletteSection = ({ title, children, isOpenDefault = false }) => {
@@ -69,9 +70,18 @@ export const Editor = () => {
         return { key, name, src: url, metaPath: `/assets/background/${name}` };
     });
 
+    // Background music from src/assets/sound/background (ogg)
+    const musicContext = require.context('../../assets/sound/background', false, /\.ogg$/);
+    const musicOptions = musicContext.keys().map((key) => {
+        const mod = musicContext(key);
+        const name = key.replace('./', '');
+        return { key, name, src: (mod.default || mod), metaPath: `/assets/sound/background/${name}` };
+    });
+
     const [selectedBackgroundImage, setSelectedBackgroundImage] = useState(backgroundOptions[0]?.metaPath || null);
     const [backgroundParallaxFactor, setBackgroundParallaxFactor] = useState(0.3);
     const [selectedBackgroundColor, setSelectedBackgroundColor] = useState('#87CEEB'); // fallback sky color when no image
+    const [selectedBackgroundMusic, setSelectedBackgroundMusic] = useState(null); // meta path like "/sound/background/foo.ogg"
 
     // Resolve selected background actual URL for preview in editor
     const selectedBgOption = backgroundOptions.find((bg) => bg.metaPath === selectedBackgroundImage) || backgroundOptions[0];
@@ -103,6 +113,8 @@ export const Editor = () => {
             // defaults for background meta
             setSelectedBackgroundImage(backgroundOptions[0]?.metaPath || null);
             setBackgroundParallaxFactor(0.3);
+            setSelectedBackgroundColor('#87CEEB');
+            setSelectedBackgroundMusic(null);
             
             setIsNewMapModalOpen(false);
         }
@@ -142,7 +154,8 @@ export const Editor = () => {
                 date_map_last_updated: currentDate, // 4. Pēdējās izmaiņas
                 backgroundImage: selectedBackgroundImage || null, // 5. Fona bilde (seamless)
                 backgroundColor: selectedBackgroundImage ? null : selectedBackgroundColor, // 5.1. Fona krāsa, ja nav bildes
-                backgroundParallaxFactor: backgroundParallaxFactor // 6. Parallakses koeficients
+                backgroundParallaxFactor: backgroundParallaxFactor, // 6. Parallakses koeficients
+                backgroundMusic: selectedBackgroundMusic || null // 7. Background music track (ogg)
             },
             statistics: { // 5. Papildus statistika
                 total_tiles: mapWidth * mapHeight,
@@ -190,6 +203,14 @@ export const Editor = () => {
                             setBackgroundParallaxFactor(loaded.meta.backgroundParallaxFactor);
                         } else {
                             setBackgroundParallaxFactor(0.3);
+                        }
+                        if (typeof loaded.meta.backgroundMusic !== 'undefined' && loaded.meta.backgroundMusic) {
+                            const m = loaded.meta.backgroundMusic;
+                            // Normalize legacy path to new assets path if needed
+                            const normalized = typeof m === 'string' ? m.replace('/sound/background/', '/assets/sound/background/') : m;
+                            setSelectedBackgroundMusic(normalized);
+                        } else {
+                            setSelectedBackgroundMusic(null);
                         }
                         
                         const bgLayer = loaded.layers.find(l => l.name === 'background');
@@ -534,6 +555,27 @@ export const Editor = () => {
                             <div style={{ marginTop: '8px', display:'flex', alignItems:'center', gap:'8px' }}>
                                 <label style={{ fontSize: '12px' }}>Background Color:</label>
                                 <input type="color" value={selectedBackgroundColor} onChange={(e) => setSelectedBackgroundColor(e.target.value)} />
+                            </div>
+                         </PaletteSection>
+
+                         {/* JAUNS: Background Music izvēle */}
+                         <PaletteSection title="Background Music" isOpenDefault={true}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <select
+                                    value={selectedBackgroundMusic || ''}
+                                    onChange={(e) => setSelectedBackgroundMusic(e.target.value || null)}
+                                    style={{ width: '100%', padding: '6px', fontSize: '12px' }}
+                                >
+                                    <option value="">— None —</option>
+                                    {musicOptions.map(m => (
+                                        <option key={m.name} value={m.metaPath}>{m.name}</option>
+                                    ))}
+                                </select>
+                                {/* Live preview player in editor */}
+                                <BackgroundMusicPlayer metaPath={selectedBackgroundMusic} enabled={true} volume={0.4} />
+                                <div style={{ fontSize: '11px', color: '#555' }}>
+                                    Selected: {selectedBackgroundMusic ? selectedBackgroundMusic.split('/').pop() : 'None'}
+                                </div>
                             </div>
                          </PaletteSection>
                     </div>
