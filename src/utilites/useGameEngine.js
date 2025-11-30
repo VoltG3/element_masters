@@ -340,6 +340,14 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         const deltaMs = timestamp - lastTimeRef.current;
         lastTimeRef.current = timestamp;
 
+        // Pause the game while terminal is open, but keep RAF alive and time in sync
+        try {
+            if (window.__GAME_TERMINAL_OPEN__) {
+                requestRef.current = requestAnimationFrame(update);
+                return;
+            }
+        } catch {}
+
         const mapWidth = mapData.meta?.width || mapData.width || 20;
         const mapHeight = mapData.meta?.height || mapData.height || 15;
         const keys = input.current;

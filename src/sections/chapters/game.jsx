@@ -3,6 +3,8 @@ import GameRegistry, { findItemById } from '../../GameRegistry'; // Pievienojam 
 import PixiStage from './PixiStage';
 import { useGameEngine } from '../../utilites/useGameEngine'; // Importējam dzinēju
 import GameHeader from './gameHeader'; // JAUNS
+import GameTerminal from './GameTerminal';
+import GameSettings from './GameSettings';
 
 // Importējam kartes (React/Webpack vidē statiskie faili parasti jāimportē vai jāielādē caur fetch)
 import map1 from '../../assets/maps/Temp_01.json';
@@ -267,6 +269,9 @@ export default function Game() {
                     <div style={{ color: '#777', fontSize: '24px' }}>Select a map to start playing</div>
                 )}
             </div>
+            {/* Overlays at root level so they sit above the canvas and slide from the footer area */}
+            <GameSettings />
+            <GameTerminal />
         </div>
     );
 }

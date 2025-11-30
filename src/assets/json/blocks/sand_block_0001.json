@@ -1,0 +1,13 @@
+{
+  "id": "sand_block_0001",
+  "name": "block.sand",
+  "width": "1",
+  "height": "1",
+  "texture": "/assets/images/blocks/sand_block_0001.png",
+  "collision": {
+    "top": true,
+    "bottom": true,
+    "left": true,
+    "right": true
+  }
+}
