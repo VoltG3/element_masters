@@ -163,7 +163,10 @@ export default function Game() {
         try {
             window.__GAME_RUNTIME_SETTINGS__ = {
                 ...(window.__GAME_RUNTIME_SETTINGS__ || {}),
-                backgroundParallaxFactor: (runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor ?? 0.3)
+                backgroundParallaxFactor: (runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor ?? 0.3),
+                weatherRain: (runtimeSettings.weatherRain ?? 0),
+                weatherSnow: (runtimeSettings.weatherSnow ?? 0),
+                weatherFog: (runtimeSettings.weatherFog ?? 0),
             };
         } catch {}
     }, [runtimeSettings, activeMapData]);
@@ -293,6 +296,9 @@ export default function Game() {
                             backgroundColor={activeMapData?.meta?.backgroundColor}
                             backgroundParallaxFactor={(runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor)}
                             cameraScrollX={cameraScrollX}
+                            weatherRain={runtimeSettings.weatherRain ?? 0}
+                            weatherSnow={runtimeSettings.weatherSnow ?? 0}
+                            weatherFog={runtimeSettings.weatherFog ?? 0}
                         />
 
                     </div>
