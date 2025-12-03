@@ -1,0 +1,29 @@
+{
+  "id": "fireball_basic",
+  "name": "projectile.fireball",
+  "type": "projectile",
+
+  "width": 0.25,
+  "height": 0.25,
+
+  "textures": [
+    "/assets/images/projectiles/fireball_basic_A.png",
+    "/assets/images/projectiles/fireball_basic_B.png",
+    "/assets/images/projectiles/fireball_basic_C.png",
+    "/assets/images/projectiles/fireball_basic_D.png",
+    "/assets/images/projectiles/fireball_basic_C.png",
+    "/assets/images/projectiles/fireball_basic_B.png"
+  ],
+  "animationSpeed": 80,
+
+  "speed": 14,
+  "damage": 12,
+  "lifespan": 600,
+
+  "hitboxScale": 0.8,
+
+  "collisionWithTiles": false,
+  "collisionWithEntities": true,
+
+  "directional": true
+}

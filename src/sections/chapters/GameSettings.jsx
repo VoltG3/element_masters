@@ -66,6 +66,22 @@ export default function GameSettings() {
 
   const draggingRef = useRef({ active: false, offsetX: 0, offsetY: 0 });
 
+  // Helper: clamp position so the window stays within viewport (with small margin)
+  const clampPos = (p, sz, isMin) => {
+    const margin = 12;
+    const vw = (typeof window !== 'undefined' ? window.innerWidth : 0) || 0;
+    const vh = (typeof window !== 'undefined' ? window.innerHeight : 0) || 0;
+    const maxL = Math.max(0, vw - (sz?.width || 300) - margin);
+    const maxT = Math.max(0, vh - (isMin ? 36 : (sz?.height || 220)) - margin);
+    let left = Number(p?.left);
+    let top = Number(p?.top);
+    if (!Number.isFinite(left)) left = margin;
+    if (!Number.isFinite(top)) top = margin;
+    left = Math.max(0, Math.min(maxL, left));
+    top = Math.max(0, Math.min(maxT, top));
+    return { left, top };
+  };
+
   // Restore minimized state
   useEffect(() => {
     try {
@@ -77,6 +93,8 @@ export default function GameSettings() {
   // Open handler from global event
   useEffect(() => {
     const onOpen = () => {
+      // Ensure the window will be visible even if saved pos was off-screen
+      setPos((p) => clampPos(p, size, false));
       setOpen(true);
       setMinimized(false);
       // Sync current values from global when opening
@@ -130,6 +148,16 @@ export default function GameSettings() {
       window.removeEventListener('mouseup', onUp);
     };
   }, [size.width, size.height, minimized]);
+
+  // Re-clamp into viewport when window resizes while settings are open
+  useEffect(() => {
+    if (!open) return;
+    const onResize = () => setPos((p) => clampPos(p, size, minimized));
+    window.addEventListener('resize', onResize);
+    // Run once immediately to correct if needed
+    onResize();
+    return () => window.removeEventListener('resize', onResize);
+  }, [open, size.width, size.height, minimized]);
 
   const onHeaderMouseDown = (e) => {
     draggingRef.current.active = true;

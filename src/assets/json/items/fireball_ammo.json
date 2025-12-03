@@ -1,0 +1,19 @@
+{
+  "id": "hertz_item",
+  "name": "item.fireball",
+  "width": "1",
+  "height": "1",
+  "textures": [
+    "/assets/images/items/fireball_basic_A.png",
+    "/assets/images/items/fireball_basic_B.png",
+    "/assets/images/items/fireball_basic_C.png",
+    "/assets/images/items/fireball_basic_D.png",
+    "/assets/images/items/fireball_basic_C.png",
+    "/assets/images/items/fireball_basic_B.png"
+  ],
+  "animationSpeed": 300,
+  "pickup": true,
+  "effect": {
+    "fireball": "10"
+  }
+}
