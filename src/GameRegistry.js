@@ -18,12 +18,21 @@ const initRegistry = () => {
         const imageContext = require.context('./assets/images', true, /\.(png|jpe?g|svg)$/);
         // 3. Ielādējam SKAŅAS (ne-fatāls: ja nav atbalsta vai mapes, turpinām bez skaņām)
         let soundContext = null;
+        let soundContextAlt = null; // atbalstam arī singular "sound" mapi
         try {
-            soundContext = require.context('./assets/sounds', true, /\.(mp3|wav|ogg)$/);
+            soundContext = require.context('./assets/sounds', true, /\.(mp3|wav|ogg|m4a|aac|flac|webm)$/);
         } catch (e) {
-            // Turpinām bez skaņām; tas nedrīkst izjaukt reģistra ielādi
-            console.warn('Sound context unavailable. Continuing without pre-resolved sound assets.');
+            // primārais konteksts nav pieejams — nav fatāli
             soundContext = null;
+        }
+        try {
+            // alternatīvais ceļš: projekts var lietot ./assets/sound (singular)
+            soundContextAlt = require.context('./assets/sound', true, /\.(mp3|wav|ogg|m4a|aac|flac|webm)$/);
+        } catch (e) {
+            soundContextAlt = null;
+        }
+        if (!soundContext && !soundContextAlt) {
+            console.warn('Sound context unavailable. Continuing without pre-resolved sound assets.');
         }
 
         // Palīgfunkcija ceļu apstrādei
@@ -43,20 +52,37 @@ const initRegistry = () => {
             }
         };
 
+        let _warnedUnresolvedSound = false;
         const resolveSound = (rawPath) => {
             if (!rawPath) return null;
-            // Ja nav soundContext, atgriežam neapstrādātu ceļu (Audio var mēģināt ielādēt; kļūmes ir nekaitīgas)
-            if (!soundContext) return rawPath;
-            try {
-                // "/assets/sounds/sfx/file.ogg" -> "./sfx/file.ogg"
-                const cleanPath = rawPath.replace('/assets/sounds/', './').replace('src/assets/sounds/', './');
-                const relativePath = cleanPath.startsWith('./') ? cleanPath : `./${cleanPath}`;
-                const mod = soundContext(relativePath);
-                return mod.default || mod;
-            } catch (e) {
-                console.warn(`Sound not found: ${rawPath}`);
-                return rawPath;
+            // mēģinām atrisināt, ja ir kāds no kontekstiem; atbalstām gan "sounds/", gan "sound/"
+            const normalize = (p) => {
+                let out = p;
+                out = out.replace('/assets/sounds/', './').replace('src/assets/sounds/', './');
+                out = out.replace('/assets/sound/', './').replace('src/assets/sound/', './');
+                return out.startsWith('./') ? out : `./${out}`;
+            };
+            const rel = normalize(rawPath);
+            // Primārais: plural
+            if (soundContext) {
+                try {
+                    const mod = soundContext(rel);
+                    return mod.default || mod;
+                } catch {}
             }
+            // Alternatīvais: singular
+            if (soundContextAlt) {
+                try {
+                    const mod = soundContextAlt(rel);
+                    return mod.default || mod;
+                } catch {}
+            }
+            // Nav atrisināms bundlerī — atgriežam izejas ceļu, lai mēģina public ceļu
+            if (!_warnedUnresolvedSound) {
+                console.warn(`SFX not bundled: ${rawPath}. Will try loading via public URL. Place files under src/assets/sounds or src/assets/sound, or copy to public/assets/sounds.`);
+                _warnedUnresolvedSound = true;
+            }
+            return rawPath;
         };
 
         _registry = jsonContext.keys().map((key) => {

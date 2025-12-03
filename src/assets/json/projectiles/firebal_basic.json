@@ -32,6 +32,6 @@
 
   "directional": true,
 
-  "sfx": "/assets/sounds/sfx/zzox-fx_nite-hit-item.ogg",
+  "sfx": "/assets/sound/sfx/zzox-fx_nite-hit-item.ogg",
   "sfxVolume": 0.85
 }

@@ -48,6 +48,8 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
     const shootCooldownRef = useRef(0);                    // Atlikušais cooldown laiks (ms)
     const projectileIdRef = useRef(1);                     // Auto ID pieaugums
     const soundEnabledRef = useRef(false);                 // Globālais skaņas slēdzis
+    const audioCtxRef = useRef(null);                      // WebAudio konteksts (fallbackam)
+    const audioCtxUnlockedRef = useRef(false);             // Vai AudioContext ir atbloķēts ar user gesture
 
     // Sync global sound toggle from localStorage and events
     useEffect(() => {
@@ -62,8 +64,78 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             } catch {}
         };
         window.addEventListener('game-sound-toggle', onToggle);
-        return () => window.removeEventListener('game-sound-toggle', onToggle);
+        // AudioContext atbloķēšana ar user gesture (klikšķis uz HUD pogas u.c.)
+        const onUserGesture = () => {
+            try {
+                if (!audioCtxRef.current) {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    if (AC) audioCtxRef.current = new AC();
+                }
+                if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+                    audioCtxRef.current.resume?.();
+                }
+                if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+                    audioCtxUnlockedRef.current = true;
+                }
+            } catch {}
+        };
+        window.addEventListener('game-sound-user-gesture', onUserGesture);
+        return () => {
+            window.removeEventListener('game-sound-toggle', onToggle);
+            window.removeEventListener('game-sound-user-gesture', onUserGesture);
+        };
     }, []);
+
+    // Palīgfunkcija: atskaņo SFX vai WebAudio pīkstienu kā fallback
+    const playShotSfx = (url, volume) => {
+        try {
+            if (!soundEnabledRef.current) return;
+            const vol = Math.max(0, Math.min(1, volume ?? 1));
+            // 1) mēģinām ar HTMLAudio
+            if (url && typeof url === 'string' && url.length > 0) {
+                try {
+                    const audio = new Audio(url);
+                    audio.volume = vol;
+                    // ja atskaņošana neizdodas, izmantojam fallback
+                    audio.addEventListener?.('error', () => {
+                        try { audio.pause(); } catch {}
+                        beepFallback(vol);
+                    }, { once: true });
+                    const p = audio.play?.();
+                    if (p && typeof p.catch === 'function') p.catch(() => beepFallback(vol));
+                    return;
+                } catch {
+                    // kritiens uz fallback
+                }
+            }
+            // 2) fallback uz WebAudio pīkstienu
+            beepFallback(vol);
+        } catch {}
+    };
+
+    const beepFallback = (vol) => {
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            if (!audioCtxRef.current) audioCtxRef.current = new AC();
+            const ctx = audioCtxRef.current;
+            if (!ctx) return;
+            if (ctx.state === 'suspended') ctx.resume?.();
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            // neliels klikšķis ~500Hz uz 80ms
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(520, now);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(Math.max(0.05, vol * 0.2), now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.09);
+        } catch {}
+    };
 
     // Inicializējam spēlētāju sākuma pozīcijā
     // Svarīgi: Šis efekts tagad ir atkarīgs TIKAI no mapData (kurš nemainās, kad savāc itemu)
@@ -420,15 +492,10 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         };
         projectilesRef.current.push(proj);
 
-        // Play shot SFX if available and sound is enabled
+        // Play shot SFX (ar fallback)
         try {
-            if (soundEnabledRef.current && pDef?.sfx) {
-                const vol = Math.max(0, Math.min(1, pDef?.sfxVolume ?? 1));
-                const audio = new Audio(pDef.sfx);
-                audio.volume = vol;
-                // Fire-and-forget; if browser blocks, it fails silently
-                audio.play?.().catch?.(() => {});
-            }
+            const vol = Math.max(0, Math.min(1, pDef?.sfxVolume ?? 1));
+            playShotSfx(pDef?.sfx, vol);
         } catch {}
     };
 
