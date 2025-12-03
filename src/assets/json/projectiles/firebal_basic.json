@@ -22,6 +22,7 @@
 
   "hitboxScale": 0.8,
 
+  "collisionWithPenetration": "true",
   "collisionWithTiles": true,
   "collisionWithEntities": true,
 
@@ -29,5 +30,8 @@
   "bounceDamping": 0.6,
   "ricochetRandom": 0.15,
 
-  "directional": true
+  "directional": true,
+
+  "sfx": "/assets/sounds/sfx/zzox-fx_nite-hit-item.ogg",
+  "sfxVolume": 0.85
 }

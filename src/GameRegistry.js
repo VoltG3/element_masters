@@ -13,9 +13,18 @@ const initRegistry = () => {
     try {
         // 1. Ielādējam JSON datus
         const jsonContext = require.context('./assets/json', true, /\.json$/);
-    
+
         // 2. Ielādējam BILDES
         const imageContext = require.context('./assets/images', true, /\.(png|jpe?g|svg)$/);
+        // 3. Ielādējam SKAŅAS (ne-fatāls: ja nav atbalsta vai mapes, turpinām bez skaņām)
+        let soundContext = null;
+        try {
+            soundContext = require.context('./assets/sounds', true, /\.(mp3|wav|ogg)$/);
+        } catch (e) {
+            // Turpinām bez skaņām; tas nedrīkst izjaukt reģistra ielādi
+            console.warn('Sound context unavailable. Continuing without pre-resolved sound assets.');
+            soundContext = null;
+        }
 
         // Palīgfunkcija ceļu apstrādei
         const resolvePath = (rawPath) => {
@@ -31,6 +40,22 @@ const initRegistry = () => {
             } catch (e) {
                 console.warn(`Image not found: ${rawPath}`);
                 return rawPath; // Ja neatrod, atgriežam oriģinālo ceļu
+            }
+        };
+
+        const resolveSound = (rawPath) => {
+            if (!rawPath) return null;
+            // Ja nav soundContext, atgriežam neapstrādātu ceļu (Audio var mēģināt ielādēt; kļūmes ir nekaitīgas)
+            if (!soundContext) return rawPath;
+            try {
+                // "/assets/sounds/sfx/file.ogg" -> "./sfx/file.ogg"
+                const cleanPath = rawPath.replace('/assets/sounds/', './').replace('src/assets/sounds/', './');
+                const relativePath = cleanPath.startsWith('./') ? cleanPath : `./${cleanPath}`;
+                const mod = soundContext(relativePath);
+                return mod.default || mod;
+            } catch (e) {
+                console.warn(`Sound not found: ${rawPath}`);
+                return rawPath;
             }
         };
 
@@ -50,7 +75,9 @@ const initRegistry = () => {
             return {
                 ...item,
                 texture: resolvedTexture,     // Viena bilde (ja ir)
-                textures: resolvedTextures    // Masīvs (ja ir)
+                textures: resolvedTextures,   // Masīvs (ja ir)
+                // Skaņas ceļš (ja ir) — pārvērsts uz bundlera URL
+                sfx: resolveSound(item.sfx || item.sfxResolved || null)
             };
         });
 

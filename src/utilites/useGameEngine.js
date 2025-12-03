@@ -9,6 +9,13 @@ const MOVE_SPEED = 4;
 const JUMP_FORCE = 10;
 const MAX_HEALTH = 100; // Maksimālā veselība
 
+// Helper: accept boolean or string values like "true"/"false"
+const parseBool = (v, def = false) => {
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'string') return v.trim().toLowerCase() === 'true';
+    return def;
+};
+
 // Izmainīts arguments: pievienots objectData
 export const useGameEngine = (mapData, tileData, objectData, registryItems, onGameOver, onStateUpdate) => {
     const input = useInput();
@@ -40,6 +47,23 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
     const projectilesRef = useRef([]);                     // Aktīvie šāviņi
     const shootCooldownRef = useRef(0);                    // Atlikušais cooldown laiks (ms)
     const projectileIdRef = useRef(1);                     // Auto ID pieaugums
+    const soundEnabledRef = useRef(false);                 // Globālais skaņas slēdzis
+
+    // Sync global sound toggle from localStorage and events
+    useEffect(() => {
+        try {
+            const v = localStorage.getItem('game_sound_enabled');
+            soundEnabledRef.current = (v === null ? false : v !== '0');
+        } catch { soundEnabledRef.current = false; }
+        const onToggle = (e) => {
+            try {
+                const enabled = !!(e?.detail?.enabled);
+                soundEnabledRef.current = enabled;
+            } catch {}
+        };
+        window.addEventListener('game-sound-toggle', onToggle);
+        return () => window.removeEventListener('game-sound-toggle', onToggle);
+    }, []);
 
     // Inicializējam spēlētāju sākuma pozīcijā
     // Svarīgi: Šis efekts tagad ir atkarīgs TIKAI no mapData (kurš nemainās, kad savāc itemu)
@@ -374,6 +398,10 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
         const vx = (direction >= 0 ? 1 : -1) * speedPxPerSec;
         const vy = 0;
         const life = Math.max(200, pDef?.lifespan || 600);
+        // Ricochet toggle: prefer new key 'ricochetOnTiles', else fallback to 'collisionWithPenetration'
+        const ricochetFlag = (typeof pDef?.ricochetOnTiles !== 'undefined')
+            ? !!pDef.ricochetOnTiles
+            : parseBool(pDef?.collisionWithPenetration, true); // default true to match previous behavior
         const proj = {
             id,
             x: originX,
@@ -387,9 +415,21 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             dir: direction >= 0 ? 1 : -1,
             // cache collision flags no reģistra
             cwt: !!(pDef && pDef.collisionWithTiles),
-            hbs: Math.max(0.1, Math.min(1.0, (pDef?.hitboxScale ?? 1)))
+            hbs: Math.max(0.1, Math.min(1.0, (pDef?.hitboxScale ?? 1))),
+            ric: ricochetFlag
         };
         projectilesRef.current.push(proj);
+
+        // Play shot SFX if available and sound is enabled
+        try {
+            if (soundEnabledRef.current && pDef?.sfx) {
+                const vol = Math.max(0, Math.min(1, pDef?.sfxVolume ?? 1));
+                const audio = new Audio(pDef.sfx);
+                audio.volume = vol;
+                // Fire-and-forget; if browser blocks, it fails silently
+                audio.play?.().catch?.(() => {});
+            }
+        } catch {}
     };
 
     // Game Loop
@@ -563,15 +603,20 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                     // 1) kustība pa X
                     let nextX = cx + p.vx * stepTime;
                     if (p.cwt && isSolidRect(nextX, cy, hw, hh)) {
-                        // rikošets pa X asi
-                        p.vx = -p.vx * bounceDamp;
-                        // neliels trajektorijas sajaukums (atkarīgs no kopējā ātruma)
-                        const sp = Math.max(40, Math.hypot(p.vx, p.vy));
-                        const jitter = (Math.random() * 2 - 1) * sp * ricRand;
-                        p.vy += jitter * 0.15;
-                        p.bounces += 1;
-                        p.life = Math.max(0, p.life - 80); // saīsina mūžu pēc trieciena
-                        // neatjauninām X pozīciju šajā apakšsolī (paliek pie sienas malas)
+                        if (p.ric) {
+                            // rikošets pa X asi
+                            p.vx = -p.vx * bounceDamp;
+                            // neliels trajektorijas sajaukums (atkarīgs no kopējā ātruma)
+                            const sp = Math.max(40, Math.hypot(p.vx, p.vy));
+                            const jitter = (Math.random() * 2 - 1) * sp * ricRand;
+                            p.vy += jitter * 0.15;
+                            p.bounces += 1;
+                            p.life = Math.max(0, p.life - 80); // saīsina mūžu pēc trieciena
+                            // neatjauninām X pozīciju šajā apakšsolī (paliek pie sienas malas)
+                        } else {
+                            removed = true;
+                            break;
+                        }
                     } else {
                         cx = nextX;
                     }
@@ -579,26 +624,36 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                     // 2) kustība pa Y
                     let nextY = cy + p.vy * stepTime;
                     if (p.cwt && isSolidRect(cx, nextY, hw, hh)) {
-                        // rikošets pa Y asi
-                        p.vy = -p.vy * bounceDamp;
-                        const sp = Math.max(40, Math.hypot(p.vx, p.vy));
-                        const jitter = (Math.random() * 2 - 1) * sp * ricRand;
-                        p.vx += jitter * 0.15;
-                        p.bounces += 1;
-                        p.life = Math.max(0, p.life - 80);
-                        // neatjauninām Y pozīciju šajā apakšsolī
+                        if (p.ric) {
+                            // rikošets pa Y asi
+                            p.vy = -p.vy * bounceDamp;
+                            const sp = Math.max(40, Math.hypot(p.vx, p.vy));
+                            const jitter = (Math.random() * 2 - 1) * sp * ricRand;
+                            p.vx += jitter * 0.15;
+                            p.bounces += 1;
+                            p.life = Math.max(0, p.life - 80);
+                            // neatjauninām Y pozīciju šajā apakšsolī
+                        } else {
+                            removed = true;
+                            break;
+                        }
                     } else {
                         cy = nextY;
                     }
 
                     // Aizsardzība pret iesprūšanu stūros: ja nokļūst solīdā, atbīdam atpakaļ un atspoguļojam abas ass
                     if (p.cwt && isSolidRect(cx, cy, hw, hh)) {
-                        // atspoguļojam abas asis un pabīdam minimāli ārā
-                        p.vx = -p.vx * bounceDamp;
-                        p.vy = -p.vy * bounceDamp;
-                        p.bounces += 1;
-                        cx -= Math.sign(p.vx || 1) * 0.5;
-                        cy -= Math.sign(p.vy || 1) * 0.5;
+                        if (p.ric) {
+                            // atspoguļojam abas asis un pabīdam minimāli ārā
+                            p.vx = -p.vx * bounceDamp;
+                            p.vy = -p.vy * bounceDamp;
+                            p.bounces += 1;
+                            cx -= Math.sign(p.vx || 1) * 0.5;
+                            cy -= Math.sign(p.vy || 1) * 0.5;
+                        } else {
+                            removed = true;
+                            break;
+                        }
                     }
 
                     // pārtraucam, ja pārsniegts bounces limits vai mazs ātrums
