@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Application, Container, Sprite, Texture, AnimatedSprite, Assets, TilingSprite, WRAP_MODES, BlurFilter, Graphics } from 'pixi.js';
+import { TextureCache } from '../../Pixi/TextureCache';
+import { ParallaxBackground } from '../../Pixi/layers/ParallaxBackground';
+import { TileChunkLayer } from '../../Pixi/layers/TileChunkLayer';
 import WeatherRain from './weatherRain';
 import WeatherSnow from './weatherSnow';
 import WeatherClouds from './weatherClouds';
@@ -38,9 +41,12 @@ const PixiStage = ({
   const appRef = useRef(null);
   const parallaxRef = useRef(null);
   const parallaxSpriteRef = useRef(null);
+  const parallaxHelperRef = useRef(null); // ParallaxBackground helper
   const cameraScrollRef = useRef(0);
   const parallaxFactorRef = useRef(Number(backgroundParallaxFactor) || 0.3);
   const bgRef = useRef(null);
+  const bgAnimRef = useRef(null); // animated tiles container above baked chunks
+  const bgChunkLayerRef = useRef(null); // TileChunkLayer instance
   const objRef = useRef(null);
   const playerRef = useRef(null);
   const playerStateRef = useRef(null);
@@ -50,6 +56,7 @@ const PixiStage = ({
   const projectilesLayerRef = useRef(null);
   const projectileSpritesRef = useRef(new Map()); // id -> sprite
   const projectilesPropRef = useRef([]);
+  const pixiTextureCacheRef = useRef(null); // central TextureCache
 
   // keep latest player state and camera scroll for ticker without re-subscribing
   useEffect(() => {
@@ -112,59 +119,24 @@ const PixiStage = ({
     }
   };
 
-  // Build or rebuild parallax tiling sprite layer
+  // Build or rebuild parallax background via helper
   const rebuildParallax = () => {
     const app = appRef.current;
     const layer = parallaxRef.current;
     if (!app || !layer) return;
 
-    // Clear previous
-    layer.removeChildren();
-    parallaxSpriteRef.current = null;
+    if (!pixiTextureCacheRef.current) pixiTextureCacheRef.current = new TextureCache();
+    if (!parallaxHelperRef.current) parallaxHelperRef.current = new ParallaxBackground(layer, pixiTextureCacheRef.current);
 
     const url = resolveBackgroundUrl(backgroundImage);
-
-    // If image exists, create TilingSprite; otherwise, solid color Sprite
-    if (url) {
-      // Ensure texture is created and repeatable
-      const tex = getTexture(url);
-      if (!tex) return;
-      if (tex.baseTexture) {
-        tex.baseTexture.wrapMode = WRAP_MODES.REPEAT;
-      }
-
-      // Scale the tiling pattern vertically so exactly one tile fills the full map height.
-      const targetH = mapHeight * tileSize;
-      const texH = (tex.height || tex.baseTexture?.height || 1);
-      const scaleY = targetH / texH;
-
-      const sprite = new TilingSprite({ texture: tex, width: mapWidth * tileSize, height: targetH });
-      // Keep natural horizontal scale, stretch only vertically to avoid multi-row tiling
-      sprite.tileScale.set(1, scaleY);
-      sprite.x = 0;
-      sprite.y = 0;
-      // Depth look: slightly dim and blur
-      sprite.alpha = 0.9;
-      try {
-        sprite.filters = [new BlurFilter({ strength: 1.2, quality: 2 })];
-      } catch (e) { /* filters optional */ }
-      layer.addChild(sprite);
-      parallaxSpriteRef.current = sprite;
-    } else {
-      // Solid color fill
-      const color = backgroundColor || '#87CEEB';
-      const hex = (typeof color === 'string' && color.startsWith('#')) ? parseInt(color.slice(1), 16) : (Number(color) || 0x87CEEB);
-      const solid = new Sprite(Texture.WHITE);
-      solid.tint = hex;
-      solid.width = mapWidth * tileSize;
-      solid.height = mapHeight * tileSize;
-      solid.alpha = 0.95;
-      try {
-        solid.filters = [new BlurFilter({ strength: 0.8, quality: 2 })];
-      } catch (e) { /* optional */ }
-      layer.addChild(solid);
-      parallaxSpriteRef.current = solid;
-    }
+    parallaxHelperRef.current.build({
+      worldWidth: mapWidth * tileSize,
+      worldHeight: mapHeight * tileSize,
+      url,
+      color: backgroundColor,
+      factor: parallaxFactorRef.current || 0.3,
+    });
+    parallaxSpriteRef.current = parallaxHelperRef.current.sprite;
   };
 
   // Convert ms-per-frame (JSON) to Pixi AnimatedSprite speed factor (1 = 60fps)
@@ -219,6 +191,7 @@ const PixiStage = ({
       appRef.current = app;
 
       const bg = new Container();
+      const bgAnim = new Container();
       const obj = new Container();
       const playerLayer = new Container();
       const weatherLayer = new Container();
@@ -226,6 +199,7 @@ const PixiStage = ({
       const projLayer = new Container();
 
       bgRef.current = bg;
+      bgAnimRef.current = bgAnim;
       objRef.current = obj;
 
       // Parallax layer (behind everything)
@@ -233,6 +207,7 @@ const PixiStage = ({
       parallaxRef.current = parallaxLayer;
       app.stage.addChild(parallaxLayer);
       app.stage.addChild(bg);
+      app.stage.addChild(bgAnim); // animated tiles above baked layer
       app.stage.addChild(obj);
       app.stage.addChild(playerLayer);
       app.stage.addChild(projLayer); // projectiles above player
@@ -335,14 +310,8 @@ const PixiStage = ({
         // Update parallax background tile offset based on camera scroll
         const f = parallaxFactorRef.current;
         const camX = cameraScrollRef.current || 0;
-        if (parallaxSpriteRef.current) {
-          const spr = parallaxSpriteRef.current;
-          if (spr.tilePosition) {
-            spr.tilePosition.x = -camX * f;
-            spr.tilePosition.y = 0;
-          } else {
-            // Solid color sprite: nothing to tile, keep static
-          }
+        if (parallaxHelperRef.current) {
+          parallaxHelperRef.current.setScroll(camX, f);
         }
 
         // Weather update with delta time
@@ -479,6 +448,11 @@ const PixiStage = ({
         appRef.current.destroy(true);
         appRef.current = null;
       }
+      // Destroy parallax helper and texture cache (releasing references only)
+      try { parallaxHelperRef.current?.destroy(); } catch {}
+      parallaxHelperRef.current = null;
+      try { pixiTextureCacheRef.current?.clear?.(); } catch {}
+      pixiTextureCacheRef.current = null;
       // Destroy weather systems
       try {
         weatherSystemsRef.current.rain?.destroy();
@@ -639,15 +613,9 @@ const PixiStage = ({
     const app = appRef.current;
     if (!app) return;
     app.renderer.resize(mapWidth * tileSize, mapHeight * tileSize);
-    // Resize parallax tiling sprite too and recalc vertical tile scale
-    if (parallaxSpriteRef.current) {
-      const spr = parallaxSpriteRef.current;
-      spr.width = mapWidth * tileSize;
-      spr.height = mapHeight * tileSize;
-      const tex = spr.texture;
-      const texH = (tex?.height || tex?.baseTexture?.height || 1);
-      const scaleY = (mapHeight * tileSize) / texH;
-      spr.tileScale.set(1, scaleY);
+    // Resize parallax background
+    if (parallaxHelperRef.current) {
+      parallaxHelperRef.current.resize(mapWidth * tileSize, mapHeight * tileSize);
     }
   }, [mapWidth, mapHeight, tileSize]);
 
