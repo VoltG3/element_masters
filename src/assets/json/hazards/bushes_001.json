@@ -6,6 +6,7 @@
   "height": 1,
   "texture": "/assets/images/hazards/bushes_001.png",
   "collision": true,
+  "renderAbovePlayer": true,
 
   "damage": 5,
   "damageOnce": false,

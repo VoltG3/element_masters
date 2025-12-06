@@ -47,7 +47,8 @@ const PixiStage = ({
   const bgRef = useRef(null);
   const bgAnimRef = useRef(null); // animated tiles container above baked chunks
   const bgChunkLayerRef = useRef(null); // TileChunkLayer instance
-  const objRef = useRef(null);
+  const objBehindRef = useRef(null); // objects behind player
+  const objFrontRef = useRef(null);  // objects above player
   const playerRef = useRef(null);
   const playerStateRef = useRef(null);
   const weatherLayerRef = useRef(null);
@@ -192,7 +193,8 @@ const PixiStage = ({
 
       const bg = new Container();
       const bgAnim = new Container();
-      const obj = new Container();
+      const objBehind = new Container();
+      const objFront = new Container();
       const playerLayer = new Container();
       const weatherLayer = new Container();
       const fogLayer = new Container();
@@ -200,7 +202,8 @@ const PixiStage = ({
 
       bgRef.current = bg;
       bgAnimRef.current = bgAnim;
-      objRef.current = obj;
+      objBehindRef.current = objBehind;
+      objFrontRef.current = objFront;
 
       // Parallax layer (behind everything)
       const parallaxLayer = new Container();
@@ -208,10 +211,11 @@ const PixiStage = ({
       app.stage.addChild(parallaxLayer);
       app.stage.addChild(bg);
       app.stage.addChild(bgAnim); // animated tiles above baked layer
-      app.stage.addChild(obj);
+      app.stage.addChild(objBehind); // objects behind player
       app.stage.addChild(playerLayer);
       app.stage.addChild(projLayer); // projectiles above player
-      app.stage.addChild(weatherLayer); // rain/snow above projectiles
+      app.stage.addChild(objFront); // objects above player but below weather/fog
+      app.stage.addChild(weatherLayer); // rain/snow above projectiles and front objects
       app.stage.addChild(fogLayer); // clouds overlay on top
 
       weatherLayerRef.current = weatherLayer;
@@ -371,11 +375,12 @@ const PixiStage = ({
 
     const rebuildLayers = () => {
       const app = appRef.current;
-      if (!app || !bgRef.current || !objRef.current) return;
+      if (!app || !bgRef.current || !objBehindRef.current || !objFrontRef.current) return;
 
       // Clear previous
       bgRef.current.removeChildren();
-      objRef.current.removeChildren();
+      objBehindRef.current.removeChildren();
+      objFrontRef.current.removeChildren();
 
       // Background tiles
       for (let i = 0; i < mapWidth * mapHeight; i++) {
@@ -436,7 +441,12 @@ const PixiStage = ({
         sprite.y = y;
         sprite.width = tileSize;
         sprite.height = tileSize;
-        objRef.current.addChild(sprite);
+        const renderAbove = !!def.renderAbovePlayer;
+        if (renderAbove) {
+          objFrontRef.current.addChild(sprite);
+        } else {
+          objBehindRef.current.addChild(sprite);
+        }
       }
     };
 
@@ -480,7 +490,7 @@ const PixiStage = ({
     const app = appRef.current;
     if (!app) return;
     // Rebuild background and object layers
-    if (bgRef.current && objRef.current) {
+    if (bgRef.current && objBehindRef.current && objFrontRef.current) {
       // Simple approach: full rebuild
       // Background
       bgRef.current.removeChildren();
@@ -514,7 +524,8 @@ const PixiStage = ({
       }
 
       // Objects
-      objRef.current.removeChildren();
+      objBehindRef.current.removeChildren();
+      objFrontRef.current.removeChildren();
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = objectMapData[i];
         if (!id || id.includes('player')) continue;
@@ -541,7 +552,12 @@ const PixiStage = ({
         sprite.y = y;
         sprite.width = tileSize;
         sprite.height = tileSize;
-        objRef.current.addChild(sprite);
+        const renderAbove = !!def.renderAbovePlayer;
+        if (renderAbove) {
+          objFrontRef.current.addChild(sprite);
+        } else {
+          objBehindRef.current.addChild(sprite);
+        }
       }
     }
   }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize]);
