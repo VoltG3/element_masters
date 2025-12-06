@@ -15,5 +15,8 @@
   "pickup": true,
   "effect": {
     "fireball": "10"
-  }
+  },
+
+  "sfx": "/assets/sound/sfx/zzox-fx_sling-selector.ogg",
+  "sfxVolume": 0.85
 }

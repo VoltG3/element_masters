@@ -308,6 +308,12 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                     const newHealth = Math.min(gameState.current.health + healthBonus, MAX_HEALTH);
                     gameState.current.health = newHealth;
 
+                    // Atskaņojam item pickup SFX (ja definēts)
+                    try {
+                        const vol = Math.max(0, Math.min(1, itemDef?.sfxVolume ?? 1));
+                        playShotSfx(itemDef?.sfx, vol);
+                    } catch {}
+
                     // Paziņojam, ka items ir savākts (lai to izdzēstu no kartes)
                     if (onStateUpdate) {
                         onStateUpdate('collectItem', index);
@@ -319,6 +325,12 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                 if (itemDef.effect && itemDef.effect.fireball) {
                     const ammoBonus = parseInt(itemDef.effect.fireball, 10) || 0;
                     gameState.current.ammo = Math.max(0, (gameState.current.ammo || 0) + ammoBonus);
+
+                    // Atskaņojam item pickup SFX (ja definēts)
+                    try {
+                        const vol = Math.max(0, Math.min(1, itemDef?.sfxVolume ?? 1));
+                        playShotSfx(itemDef?.sfx, vol);
+                    } catch {}
                     if (onStateUpdate) {
                         onStateUpdate('collectItem', index);
                     }
