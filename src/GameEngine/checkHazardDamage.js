@@ -134,9 +134,22 @@ export function checkHazardDamage({
     }
   } else {
     // Continuous DPS: reset accumulator if we switched tiles
-    if (prevIndex !== index) {
+    const firstTouch = prevIndex !== index;
+    if (firstTouch) {
+      // Immediate damage on first contact, then start ticking
       hazardDamageAccumulatorRef.current = 0;
+      const immediate = Number.isFinite(baseDamage) && baseDamage > 0 ? baseDamage : dps;
+      if (immediate > 0) {
+        gameState.current.health = Math.max(0, gameState.current.health - immediate);
+        // Hit flash on immediate hit
+        const HIT_FLASH_MS = 500;
+        const prev = Number(gameState.current.hitTimerMs) || 0;
+        gameState.current.hitTimerMs = Math.max(prev, HIT_FLASH_MS);
+      }
+      // Skip DPS accumulation this same frame to avoid double damage on long frames
+      return;
     }
+
     hazardDamageAccumulatorRef.current += deltaMs;
     const TICK_MS = 1000;
     while (hazardDamageAccumulatorRef.current >= TICK_MS) {
