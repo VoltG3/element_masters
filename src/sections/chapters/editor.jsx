@@ -57,7 +57,9 @@ export const Editor = () => {
     }, []);
 
     const registryItems = Array.isArray(GameRegistry) ? GameRegistry : [];
-    const blocks = registryItems.filter(item => item.name && item.name.startsWith('block.'));
+    // Separate regular blocks and liquids so they appear in distinct palettes
+    const blocks = registryItems.filter(item => item.name && item.name.startsWith('block.') && !(item.flags && item.flags.liquid));
+    const liquids = registryItems.filter(item => item.flags && item.flags.liquid);
     const entities = registryItems.filter(item => { if (!item.name || !item.name.startsWith('entities.')) return false; return !item.type || item.type === 'default'; });
     const items = registryItems.filter(item => item.name && item.name.startsWith('item.'));
     const hazards = registryItems.filter(item => item.type === 'hazard');
@@ -524,6 +526,7 @@ export const Editor = () => {
                      <div className="palette" style={{ flex: 1, overflowY: 'auto' }}>
                         <PaletteSection title="Erasers" isOpenDefault={true}> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> <BlockEraser /> <ObjectEraser /> </div> </PaletteSection>
                         <PaletteSection title="Blocks (Background)" isOpenDefault={true}> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))} </div> </PaletteSection>
+                        <PaletteSection title="Liquids (Blocks)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))} </div> </PaletteSection>
                         <PaletteSection title="Entities (Objects)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {entities.map(e => renderPaletteItem(e, 'red', 'object'))} </div> </PaletteSection>
                         <PaletteSection title="Items (Objects)"> <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}> {items.map(i => renderPaletteItem(i, 'green', 'object'))} </div> </PaletteSection>
                          {/* JAUNS: Hazards sadaļa */}

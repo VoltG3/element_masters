@@ -9,7 +9,8 @@
   "liquid": {
     "buoyancy": 0.5,
     "drag": { "x": 0.55, "y": 0.65 },
-    "surface": true
+    "surface": true,
+    "damagePerSecond": 0
   },
   "tintBelowSurface": 3829853
 }

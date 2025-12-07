@@ -70,6 +70,7 @@ const PixiStage = ({
   const overlayLayerRef = useRef(null); // topmost overlay (underwater tint)
   const underwaterRef = useRef({ g: null, time: 0 });
   const waterFramesRef = useRef(null); // cached procedural water textures
+  const lavaFramesRef = useRef(null);  // cached procedural lava textures
 
   // keep latest player state and camera scroll for ticker without re-subscribing
   useEffect(() => {
@@ -416,11 +417,11 @@ const PixiStage = ({
         if (systems.fog) systems.fog.update(dt);
         if (systems.thunder) systems.thunder.update(dt);
 
-        // Underwater overlay animation
+        // Underwater overlay animation (only for water)
         try {
           const u = underwaterRef.current;
           if (u && u.g) {
-            const submerged = !!(playerStateRef.current && playerStateRef.current.headUnderWater);
+            const submerged = !!(playerStateRef.current && playerStateRef.current.headUnderWater && playerStateRef.current.liquidType === 'water');
             if (submerged) {
               u.time += dt;
               const pulse = 0.12 + 0.06 * Math.sin(u.time * 0.0025);
@@ -493,7 +494,8 @@ const PixiStage = ({
 
       // Helper: resolve registry item by id
       const getDef = (id) => registryItems.find((r) => r.id === id);
-      const isWaterDef = (def) => !!(def && def.flags && (def.flags.water || def.flags.liquid));
+      const isWaterDef = (def) => !!(def && def.flags && def.flags.water);
+      const isLavaDef = (def) => !!(def && def.flags && def.flags.lava);
 
       // Generate procedural water frames (cached per tile size)
       const getWaterFrames = () => {
@@ -530,6 +532,49 @@ const PixiStage = ({
         return frames;
       };
 
+      // Generate procedural lava frames (cached per tile size)
+      const getLavaFrames = () => {
+        if (lavaFramesRef.current && lavaFramesRef.current.size === tileSize) return lavaFramesRef.current.frames;
+        const frames = [];
+        const F = 8;
+        for (let i = 0; i < F; i++) {
+          const canvas = document.createElement('canvas');
+          canvas.width = tileSize; canvas.height = tileSize;
+          const ctx = canvas.getContext('2d');
+          // base gradient (dark red to orange)
+          const g = ctx.createLinearGradient(0, 0, 0, tileSize);
+          g.addColorStop(0, '#6b1a07');
+          g.addColorStop(1, '#c43f0f');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, tileSize, tileSize);
+          // glowing veins
+          const t = i / F;
+          ctx.globalAlpha = 0.3;
+          for (let b = 0; b < 3; b++) {
+            const y = Math.floor((tileSize / 3) * b + (tileSize / 3) * 0.5 + Math.sin((t * 2 + b * 0.6) * Math.PI * 2) * (tileSize * 0.1));
+            const h = Math.max(1, Math.floor(tileSize * 0.07));
+            const grad = ctx.createLinearGradient(0, y, 0, y + h);
+            grad.addColorStop(0, '#ffed8a');
+            grad.addColorStop(1, '#ff7b00');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, y, tileSize, h);
+          }
+          // bubbles/dots
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = '#ffd36e';
+          const count = Math.max(2, Math.floor(tileSize * 0.12));
+          for (let k = 0; k < count; k++) {
+            const rx = Math.floor((k * 37 + i * 13) % tileSize);
+            const ry = Math.floor((k * 53 + i * 29) % tileSize);
+            ctx.fillRect(rx, ry, 1, 1);
+          }
+          const tex = Texture.from(canvas);
+          frames.push(tex);
+        }
+        lavaFramesRef.current = { size: tileSize, frames };
+        return frames;
+      };
+
       // Background tiles
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
@@ -545,6 +590,12 @@ const PixiStage = ({
           sprite = new AnimatedSprite(frames);
           sprite.animationSpeed = 0.18; // gentle
           sprite.alpha = 0.95;
+          sprite.play();
+        } else if (isLavaDef(def)) {
+          frames = getLavaFrames();
+          sprite = new AnimatedSprite(frames);
+          sprite.animationSpeed = 0.22;
+          sprite.alpha = 0.98;
           sprite.play();
         } else {
           if (Array.isArray(def.textures) && def.textures.length > 1) {
@@ -651,8 +702,9 @@ const PixiStage = ({
       // Simple approach: full rebuild
       // Background
       bgRef.current.removeChildren();
-      // Helpers for water rendering
-      const isWaterDef = (def) => !!(def && def.flags && (def.flags.water || def.flags.liquid));
+      // Helpers for liquid rendering
+      const isWaterDef = (def) => !!(def && def.flags && def.flags.water);
+      const isLavaDef = (def) => !!(def && def.flags && def.flags.lava);
       const getWaterFrames = () => {
         if (waterFramesRef.current && waterFramesRef.current.size === tileSize) return waterFramesRef.current.frames;
         const frames = [];
@@ -683,6 +735,44 @@ const PixiStage = ({
         waterFramesRef.current = { size: tileSize, frames };
         return frames;
       };
+      const getLavaFrames = () => {
+        if (lavaFramesRef.current && lavaFramesRef.current.size === tileSize) return lavaFramesRef.current.frames;
+        const frames = [];
+        const F = 8;
+        for (let i = 0; i < F; i++) {
+          const canvas = document.createElement('canvas');
+          canvas.width = tileSize; canvas.height = tileSize;
+          const ctx = canvas.getContext('2d');
+          const g = ctx.createLinearGradient(0, 0, 0, tileSize);
+          g.addColorStop(0, '#6b1a07');
+          g.addColorStop(1, '#c43f0f');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, tileSize, tileSize);
+          const t = i / F;
+          ctx.globalAlpha = 0.3;
+          for (let b = 0; b < 3; b++) {
+            const yb = Math.floor((tileSize / 3) * b + (tileSize / 3) * 0.5 + Math.sin((t * 2 + b * 0.6) * Math.PI * 2) * (tileSize * 0.1));
+            const h = Math.max(1, Math.floor(tileSize * 0.07));
+            const grad = ctx.createLinearGradient(0, yb, 0, yb + h);
+            grad.addColorStop(0, '#ffed8a');
+            grad.addColorStop(1, '#ff7b00');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, yb, tileSize, h);
+          }
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = '#ffd36e';
+          const count = Math.max(2, Math.floor(tileSize * 0.12));
+          for (let k = 0; k < count; k++) {
+            const rx = Math.floor((k * 37 + i * 13) % tileSize);
+            const ry = Math.floor((k * 53 + i * 29) % tileSize);
+            ctx.fillRect(rx, ry, 1, 1);
+          }
+          const tex = Texture.from(canvas);
+          frames.push(tex);
+        }
+        lavaFramesRef.current = { size: tileSize, frames };
+        return frames;
+      };
 
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
@@ -697,6 +787,12 @@ const PixiStage = ({
           sprite = new AnimatedSprite(frames);
           sprite.animationSpeed = 0.18;
           sprite.alpha = 0.95;
+          sprite.play();
+        } else if (isLavaDef(def)) {
+          frames = getLavaFrames();
+          sprite = new AnimatedSprite(frames);
+          sprite.animationSpeed = 0.22;
+          sprite.alpha = 0.98;
           sprite.play();
         } else {
           if (Array.isArray(def.textures) && def.textures.length > 1) {

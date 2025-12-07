@@ -1,12 +1,13 @@
 // One-frame update orchestrator extracted from useGameEngine.js
 import { moveHorizontal } from './moveHorizontal';
 import { applyVerticalPhysics } from './applyVerticalPhysics';
+import { tickLiquidDamage } from './liquids/liquidUtils';
 
 // updateFrame(ctx, timestamp) → { continue: boolean }
 // ctx expects:
 // - mapData, objectData
 // - input
-// - refs: { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef }
+// - refs: { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef }
 // - constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE }
 // - helpers: { checkCollision }
 // - actions: {
@@ -28,9 +29,9 @@ export function updateFrame(ctx, timestamp) {
     actions
   } = ctx;
 
-  const { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef } = refs;
+  const { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
-  const { checkCollision, isWaterAt } = helpers;
+  const { checkCollision, isWaterAt, getLiquidSample } = helpers;
   const { collectItem, checkHazardDamage, spawnProjectile, updateProjectiles, setPlayer, onGameOver } = actions;
 
   // Keep RAF alive even if init not finished yet
@@ -108,9 +109,38 @@ export function updateFrame(ctx, timestamp) {
   const headUnderWater = !!vp.headUnderWater;
   const atSurface = !!vp.atSurface;
 
+  // 2.5) Generic liquid sampling (water, lava, etc.)
+  let liquidType = null;
+  let liquidParams = null;
+  if (typeof getLiquidSample === 'function') {
+    try {
+      const sample = getLiquidSample({ x, y, width, height, TILE_SIZE, mapWidth, mapHeight });
+      if (sample && sample.inLiquid) {
+        liquidType = sample.type || null;
+        liquidParams = sample.params || null;
+      }
+      // Reset DPS accumulator if we just left liquids
+      if (!sample || !sample.inLiquid) {
+        if (liquidDamageAccumulatorRef) liquidDamageAccumulatorRef.current = 0;
+      }
+    } catch {}
+  }
+
   // Extra horizontal damping when in water (simple model)
-  if (inWater) {
-    vx *= 0.82;
+  if (inWater || liquidType) {
+    // Apply simple horizontal damping in liquids
+    if (liquidType === 'lava') {
+      vx *= 0.78;
+    } else {
+      vx *= 0.82;
+    }
+  }
+
+  // 2.6) Apply liquid damage-per-second if defined (e.g., lava)
+  if (liquidType && liquidParams && Number(liquidParams.dps) > 0) {
+    try {
+      tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, liquidParams);
+    } catch {}
   }
 
   // 3) Item collection
@@ -170,7 +200,8 @@ export function updateFrame(ctx, timestamp) {
     animation,
     inWater,
     headUnderWater,
-    atSurface
+    atSurface,
+    liquidType: liquidType || null
   };
   setPlayer({ ...gameState.current, projectiles: projectilesRef.current.slice(0) });
 

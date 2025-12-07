@@ -7,6 +7,7 @@ import { collectItem } from '../GameEngine/collectItem';
 import { updateProjectiles } from '../GameEngine/updateProjectiles';
 import { playSfx } from '../GameEngine/audio';
 import { updateFrame } from '../GameEngine/updateFrame';
+import { getLiquidAtPixel, isLiquidAtPixel as isLiquidAtPixelUtil, sampleLiquidForAABB } from '../GameEngine/liquids/liquidUtils';
 import {
     isSolidAtPixel as isSolidAtPixelExternal,
     checkCollision as checkCollisionExternal
@@ -61,6 +62,7 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
     const soundEnabledRef = useRef(false);                 // Globālais skaņas slēdzis
     const audioCtxRef = useRef(null);                      // WebAudio konteksts (fallbackam)
     const audioCtxUnlockedRef = useRef(false);             // Vai AudioContext ir atbloķēts ar user gesture
+    const liquidDamageAccumulatorRef = useRef(0);          // Uzkrātais laiks šķidrumu DPS tiksēšanai
 
     // Sync global sound toggle from localStorage and events
     useEffect(() => {
@@ -240,17 +242,24 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
 
     // New: water presence check at a world pixel
     const isWaterAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles) => {
-        if (wy < 0) return false;
-        const gx = Math.floor(wx / TILE_SIZE);
-        const gy = Math.floor(wy / TILE_SIZE);
-        if (gx < 0 || gy < 0 || gx >= mapWidthTiles || gy >= mapHeightTiles) return false;
-        const idx = gy * mapWidthTiles + gx;
-        const id = tileData[idx];
-        if (!id) return false;
-        const def = registryItems.find(r => r.id === id);
-        if (!def) return false;
-        const flags = def.flags || {};
-        return !!(flags.water || flags.liquid);
+        // Strict: Only treat WATER as buoyant/swimmable in vertical physics
+        const liq = getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems);
+        return !!(liq && liq.type === 'water');
+    };
+
+    // Liquid sampling helper for update loop (AABB based)
+    const sampleLiquid = (aabb, mapWidthTiles, mapHeightTiles) => {
+        return sampleLiquidForAABB({
+            x: aabb.x,
+            y: aabb.y,
+            width: aabb.width,
+            height: aabb.height,
+            TILE_SIZE,
+            mapWidth: mapWidthTiles,
+            mapHeight: mapHeightTiles,
+            tileData,
+            registryItems
+        });
     };
 
     // Item savākšana — pārcelta uz GameEngine/collectItem
@@ -273,9 +282,14 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             mapData,
             objectData,
             input,
-            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef },
+            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef },
             constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE },
-            helpers: { checkCollision, isWaterAt: (wx, wy) => isWaterAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)) },
+            helpers: {
+                checkCollision,
+                isWaterAt: (wx, wy) => isWaterAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)),
+                getLiquidSample: ({ x, y, width, height, TILE_SIZE: TS, mapWidth, mapHeight }) =>
+                    sampleLiquid({ x, y, width, height }, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15))
+            },
             actions: {
                 collectItem: (x, y, mapWidth, objectLayer) =>
                     collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState }, x, y, mapWidth, objectLayer),
