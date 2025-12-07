@@ -432,11 +432,12 @@ const PixiStage = ({
           if (hb) {
             const enabled = hbEnabledRef.current !== false;
             const inWater = !!s.inWater;
+            const inLava = s.liquidType === 'lava';
             if (!enabled) {
               hb.visible = false;
             } else {
-              // When in water, we hide the player-attached HB and use overlay version instead
-              hb.visible = !inWater;
+              // When in water or lava, hide the player-attached HB and use overlay version instead
+              hb.visible = !(inWater || inLava);
               const effectiveWidth = s.width || (def?.width) || tileSize;
               hb.resize(effectiveWidth, 4);
               hb.y = -Math.max(4, Math.floor((s.height || def?.height || tileSize) * 0.12)); // small offset above sprite
@@ -506,11 +507,11 @@ const PixiStage = ({
           const baseX = (s2.x || 0);
           const baseY = (s2.y || 0) - baseYOffset;
 
-          // Overlay health when in water
+          // Overlay health when in water or lava
           const hbO = overlayHBRef.current;
           if (hbO) {
             const enabled = hbEnabledRef.current !== false;
-            const show = enabled && !!s2.inWater;
+            const show = enabled && (!!s2.inWater || s2.liquidType === 'lava');
             hbO.visible = !!show;
             if (show) {
               hbO.x = baseX;
@@ -519,6 +520,10 @@ const PixiStage = ({
               hbO.update(s2.health, (Number(s2.maxHealth) || 100));
             }
           }
+
+          // Compute stacking Y for additional bars
+          let nextBarY = baseY;
+          if (hbO && hbO.visible) nextBarY += 6;
 
           // Oxygen bar when in water OR when oxygen hasn't refilled to max yet
           const oxyBar = oxygenBarRef.current;
@@ -530,11 +535,10 @@ const PixiStage = ({
             oxyBar.visible = !!show;
             if (show) {
               oxyBar.x = baseX;
-              // place just below overlay health bar when both visible
-              const yOffset = (overlayHBRef.current && overlayHBRef.current.visible) ? 6 : 0;
-              oxyBar.y = baseY + yOffset;
+              oxyBar.y = nextBarY;
               oxyBar.resize(effW, 4);
               oxyBar.update((Number.isFinite(curOxy) ? curOxy : maxOxy), maxOxy);
+              nextBarY += 6;
             }
           }
 
@@ -548,9 +552,7 @@ const PixiStage = ({
             lvBar.visible = !!show;
             if (show) {
               lvBar.x = baseX;
-              // If health overlay is not visible, align to base; else stack
-              const yOffset = (overlayHBRef.current && overlayHBRef.current.visible) ? 6 : 0;
-              lvBar.y = baseY + yOffset;
+              lvBar.y = nextBarY;
               lvBar.resize(effW, 4);
               lvBar.update((Number.isFinite(curLv) ? curLv : maxLv), maxLv);
             }

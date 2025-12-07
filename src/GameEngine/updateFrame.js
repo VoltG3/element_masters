@@ -137,11 +137,7 @@ export function updateFrame(ctx, timestamp) {
   }
 
   // 2.6) Apply liquid damage-per-second if defined (e.g., lava)
-  if (liquidType && liquidParams && Number(liquidParams.dps) > 0) {
-    try {
-      tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, liquidParams);
-    } catch {}
-  }
+  // Moved to after resource processing to allow gating by resistance/oxygen.
 
   // 2.7) Resource bars logic (oxygen & lava resistance indicators)
   // Now with gameplay effects on depletion: when oxygen/lavaResist reach 0 and player stays in the liquid, health takes DPS from JSON.
@@ -202,13 +198,36 @@ export function updateFrame(ctx, timestamp) {
       oxygenDepleteAccRef.current = 0;
     }
 
-    // Lava resist depleted and still in lava → damage
+    // Lava resist depleted and still in lava → health damage model
+    // We gate base lava DPS (liquidParams.dps) until resistance hits 0 (see section 2.8).
+    // To avoid double-damage, we do NOT also apply a separate depleted-DPS here for lava.
     if (liquidType === 'lava' && lavaRes <= 0) {
-      tickDepleteDps(lavaDepleteAccRef, lavaParams.damagePerSecondWhenDepleted);
+      // no-op here; base DPS application happens later when curRes<=0
+      if (lavaDepleteAccRef) lavaDepleteAccRef.current = 0;
     } else if (lavaDepleteAccRef) {
       lavaDepleteAccRef.current = 0;
     }
   } catch {}
+
+  // 2.8) Base liquid DPS (e.g., lava) — only after resource logic so we can gate by resistance
+  if (liquidType && liquidParams && Number(liquidParams.dps) > 0) {
+    try {
+      // For lava: don't apply base DPS until resistance is fully depleted
+      if (liquidType === 'lava') {
+        const curRes = Math.max(0, Number(gameState.current.lavaResist));
+        if (curRes <= 0) {
+          tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, liquidParams);
+        } else {
+          if (liquidDamageAccumulatorRef) liquidDamageAccumulatorRef.current = 0;
+        }
+      } else {
+        // Other liquids (if any in future) apply their DPS normally
+        tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, liquidParams);
+      }
+    } catch {}
+  } else {
+    if (liquidDamageAccumulatorRef) liquidDamageAccumulatorRef.current = 0;
+  }
 
   // 3) Item collection
   collectItem(x, y, mapWidth, objectData);
