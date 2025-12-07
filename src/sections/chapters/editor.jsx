@@ -658,6 +658,11 @@ export const Editor = () => {
                                 // Grid: neutral light grey lines, transparent background by default
                                 let borderStyle = showGrid ? '0.5px solid rgba(128,128,128,0.5)' : 'none';
                                 let bgStyle = 'transparent';
+                                // If the tile is a liquid without textures, provide a visible gradient swatch in the editor viewport
+                                const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
+                                const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
+                                const isLavaTile = !!(tileObj && tileObj.flags && tileObj.flags.lava);
+
                                 if (isBrushTarget) borderStyle = '2px solid red';
                                 else if (isBucketPreview) { borderStyle = '1px dashed orange'; bgStyle = 'rgb(168,187,220)'; }
                                 else if (isBucketTarget) borderStyle = '2px solid orange';
@@ -666,18 +671,33 @@ export const Editor = () => {
                                 else if (isSelected) { borderStyle = '1px dashed red'; bgStyle = 'rgba(255, 255, 0, 0.3)'; }
                                 else if (!showGrid) borderStyle = 'none';
 
+                                // Compose background style object (allow gradients)
+                                let backgroundStyleObj = {};
+                                if (bgStyle !== 'transparent') {
+                                    backgroundStyleObj.backgroundColor = bgStyle;
+                                } else if (isLiquidTile) {
+                                    if (isWaterTile) {
+                                        backgroundStyleObj.background = 'linear-gradient(180deg, #2a5d8f, #174369)';
+                                    } else if (isLavaTile) {
+                                        backgroundStyleObj.background = 'linear-gradient(180deg, #6b1a07, #c43f0f)';
+                                    } else {
+                                        backgroundStyleObj.background = 'linear-gradient(180deg, #3a3a3a, #1e1e1e)';
+                                    }
+                                }
+
                                 return (
                                     <div key={index}
                                         onMouseDown={(e) => handleGridMouseDown(index, e)}
                                         onMouseEnter={() => handleGridMouseEnter(index)}
                                         onMouseUp={() => handleGridMouseUp(index)}
                                         style={{
-                                            width: '32px', height: '32px', backgroundColor: bgStyle, border: borderStyle,
+                                            width: '32px', height: '32px', border: borderStyle,
                                             zIndex: (isBrushTarget || isBucketTarget || isBucketPreview || isMoveHover || isMoveSelecting) ? 20 : (isSelected ? 15 : 1),
-                                            boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'
+                                            boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+                                            ...backgroundStyleObj
                                         }}
                                     >
-                                        {/* Background Layer (Tiles) */}
+                                            {/* Background Layer (Tiles) */}
                                         {tileObj && <AnimatedItem 
                                             textures={tileObj.textures} 
                                             texture={tileObj.texture} 
