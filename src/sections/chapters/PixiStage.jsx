@@ -6,6 +6,7 @@ import { TileChunkLayer } from '../../Pixi/layers/TileChunkLayer';
 import WeatherRain from './weatherRain';
 import WeatherSnow from './weatherSnow';
 import WeatherClouds from './weatherClouds';
+import WeatherFog from './weatherFog';
 import HealthBar from '../../Pixi/ui/HealthBar';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
@@ -38,6 +39,7 @@ const PixiStage = ({
   weatherClouds = 0,
   projectiles = [],
   healthBarEnabled = true,
+  weatherFog = 0,
 }) => {
   const mountRef = useRef(null);
   const appRef = useRef(null);
@@ -217,14 +219,16 @@ const PixiStage = ({
       const parallaxLayer = new Container();
       parallaxRef.current = parallaxLayer;
       app.stage.addChild(parallaxLayer);
-      app.stage.addChild(bg);
-      app.stage.addChild(bgAnim); // animated tiles above baked layer
+      // Objects and weather first
       app.stage.addChild(objBehind); // objects behind player
       app.stage.addChild(playerLayer);
       app.stage.addChild(projLayer); // projectiles above player
-      app.stage.addChild(objFront); // objects above player but below weather/fog
+      app.stage.addChild(objFront); // objects above player
       app.stage.addChild(weatherLayer); // rain/snow above projectiles and front objects
-      app.stage.addChild(fogLayer); // clouds overlay on top
+      app.stage.addChild(fogLayer); // fog overlay above all objects/weather
+      // Finally, tiles ("blocks") drawn last so they appear in front of fog
+      app.stage.addChild(bg);
+      app.stage.addChild(bgAnim); // animated tiles above baked layer
 
       weatherLayerRef.current = weatherLayer;
       fogLayerRef.current = fogLayer;
@@ -382,6 +386,7 @@ const PixiStage = ({
         if (systems.rain) systems.rain.update(dt);
         if (systems.snow) systems.snow.update(dt);
         if (systems.clouds) systems.clouds.update(dt);
+        if (systems.fog) systems.fog.update(dt);
 
         // Projectiles sync/update: create missing sprites, remove stale, update positions
         const layer = projectilesLayerRef.current;
@@ -636,9 +641,11 @@ const PixiStage = ({
     try { weatherSystemsRef.current.rain?.destroy(); } catch {}
     try { weatherSystemsRef.current.snow?.destroy(); } catch {}
     try { weatherSystemsRef.current.clouds?.destroy(); } catch {}
+    try { weatherSystemsRef.current.fog?.destroy(); } catch {}
     weatherSystemsRef.current.rain = null;
     weatherSystemsRef.current.snow = null;
     weatherSystemsRef.current.clouds = null;
+    weatherSystemsRef.current.fog = null;
 
     // Rain
     if (getRainIntensity() > 0) {
@@ -673,7 +680,20 @@ const PixiStage = ({
       weatherSystemsRef.current.clouds = null;
     }
 
-  }, [weatherRain, weatherSnow, weatherClouds, mapWidth, mapHeight, tileSize, tileMapData]);
+    // Full-screen Fog overlay (affects entire screen)
+    const getFogIntensity = () => Math.max(0, Math.min(100, Number(weatherFog) || 0));
+    if (getFogIntensity() > 0) {
+      if (!weatherSystemsRef.current.fog) {
+        weatherSystemsRef.current.fog = new WeatherFog(fogLayer, api, getFogIntensity);
+      }
+      weatherSystemsRef.current.fog.setIntensity(getFogIntensity());
+      // ensure fog overlay covers full current canvas size
+      try { weatherSystemsRef.current.fog.resize(mapWidth * tileSize, mapHeight * tileSize); } catch {}
+    } else {
+      weatherSystemsRef.current.fog?.setIntensity(0);
+    }
+
+  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, mapWidth, mapHeight, tileSize, tileMapData]);
 
   // Rebuild parallax when props change
   useEffect(() => {
@@ -691,6 +711,8 @@ const PixiStage = ({
     if (parallaxHelperRef.current) {
       parallaxHelperRef.current.resize(mapWidth * tileSize, mapHeight * tileSize);
     }
+    // Resize fog overlay to match new world size
+    try { weatherSystemsRef.current.fog?.resize(mapWidth * tileSize, mapHeight * tileSize); } catch {}
   }, [mapWidth, mapHeight, tileSize]);
 
   return (

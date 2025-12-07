@@ -51,6 +51,16 @@ export default function GameSettings() {
     } catch {}
     return 0;
   });
+  // New: dedicated Fog density (0..100)
+  const [fog, setFog] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_weather_fog');
+      if (ls !== null) return Math.max(0, Math.min(100, parseInt(ls, 10) || 0));
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.weatherFog === 'number') return Math.max(0, Math.min(100, g.weatherFog));
+    } catch {}
+    return 0;
+  });
   // UI: Health bar visibility
   const [healthBarEnabled, setHealthBarEnabled] = useState(() => {
     try {
@@ -122,7 +132,7 @@ export default function GameSettings() {
         if (typeof g.weatherRain === 'number') setRain(Math.max(0, Math.min(100, g.weatherRain)));
         if (typeof g.weatherSnow === 'number') setSnow(Math.max(0, Math.min(100, g.weatherSnow)));
         if (typeof g.weatherClouds === 'number') setClouds(Math.max(0, Math.min(100, g.weatherClouds)));
-        else if (typeof g.weatherFog === 'number') setClouds(Math.max(0, Math.min(100, g.weatherFog)));
+        if (typeof g.weatherFog === 'number') setFog(Math.max(0, Math.min(100, g.weatherFog)));
         if (typeof g.healthBarEnabled === 'boolean') setHealthBarEnabled(!!g.healthBarEnabled);
       } catch {}
       // Auto-close the in-game terminal when settings opens
@@ -387,6 +397,23 @@ export default function GameSettings() {
           }}
         />
         <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(snow) ? snow : 0}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Migla (Fog)</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(fog) ? fog : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setFog(v);
+            try { localStorage.setItem('game_weather_fog', String(v)); } catch {}
+            emitUpdate({ weatherFog: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(fog) ? fog : 0}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <label style={{ fontSize: 12, width: 120 }}>Mākoņi (Clouds)</label>

@@ -1,6 +1,7 @@
-import { Graphics, BlurFilter } from 'pixi.js';
+import { Graphics } from 'pixi.js';
 
-// Fog overlay: uneven semi-transparent patches drifting slowly with varying alpha.
+// Full-screen fog overlay: a semi-transparent rectangle covering entire viewport.
+// Intensity 0..100 maps to alpha 0..0.65.
 export default class WeatherFog {
   constructor(container, api, getIntensity) {
     this.container = container;
@@ -8,100 +9,58 @@ export default class WeatherFog {
     this.getIntensity = getIntensity || (() => 0);
     this.width = api.mapWidth * api.tileSize;
     this.height = api.mapHeight * api.tileSize;
-    this.patches = [];
     this.intensity = 0;
 
-    // Soft blur for nicer fog appearance
-    try {
-      this.container.filters = [new BlurFilter({ strength: 2.2, quality: 2 })];
-    } catch {}
+    this.g = new Graphics();
+    this.container.addChild(this.g);
+    this._draw();
+  }
 
-    this.rebuild();
+  _alphaFromIntensity(v) {
+    const t = Math.max(0, Math.min(100, Number(v) || 0)) / 100; // 0..1
+    return Math.max(0, Math.min(0.65, t * 0.65));
   }
 
   setIntensity(v) {
     const nv = Math.max(0, Math.min(100, Number(v) || 0));
     if (nv === this.intensity) return;
     this.intensity = nv;
-    this.rebuild();
+    this._draw();
   }
 
-  rebuild() {
-    // Clear existing
-    for (const p of this.patches) {
-      try { p.g.parent && p.g.parent.removeChild(p.g); } catch {}
-      try { p.g.destroy(); } catch {}
-    }
-    this.patches = [];
-
-    const count = Math.round((this.intensity / 100) * 20); // slightly more patches for smoother look
-    for (let i = 0; i < count; i++) {
-      const g = new Graphics();
-      const w = 100 + Math.random() * 240; // patch size
-      const h = 70 + Math.random() * 180;
-      const x = Math.random() * (this.width + 200) - 100;
-      const y = Math.random() * (this.height + 120) - 60;
-      const alpha = 0.06 + (this.intensity / 100) * (0.14 + Math.random() * 0.12); // a bit softer base, overlaps will thicken
-      const speed = 4 + Math.random() * 18; // px/s drift
-      const vy = (Math.random() - 0.5) * 6; // slight vertical drift
-
-      // Draw an organic blob using multiple overlapping circles (no sharp edges)
-      g.beginFill(0x9fb7c9, 1.0);
-      const rx = w * 0.5;
-      const ry = h * 0.5;
-      const circles = 7 + Math.floor(Math.random() * 5); // 7..11 lobes
-      const baseR = Math.min(rx, ry) * 0.5;
-      for (let k = 0; k < circles; k++) {
-        const t = (k / circles) * Math.PI * 2 + Math.random() * 0.6;
-        const dist = 0.25 + Math.random() * 0.35; // how far from center
-        const cx = Math.cos(t) * rx * dist;
-        const cy = Math.sin(t) * ry * dist;
-        const r = baseR * (0.8 + Math.random() * 0.7);
-        g.drawCircle(cx, cy, r);
-      }
-      // Add a soft core to avoid donut shapes
-      g.drawCircle(0, 0, baseR * (0.7 + Math.random() * 0.4));
-      g.endFill();
-      g.alpha = alpha;
-      g.x = x;
-      g.y = y;
-      this.container.addChild(g);
-      this.patches.push({ g, w, h, vx: speed * (Math.random() < 0.5 ? -1 : 1), vy, alpha, phase: Math.random() * Math.PI * 2 });
-    }
+  resize(width, height) {
+    const w = Math.max(1, Math.floor(width));
+    const h = Math.max(1, Math.floor(height));
+    if (w === this.width && h === this.height) return;
+    this.width = w;
+    this.height = h;
+    this._draw();
   }
 
-  update(dtMs) {
+  _draw() {
+    const alpha = this._alphaFromIntensity(this.intensity);
+    const w = this.width;
+    const h = this.height;
+    const g = this.g;
+    g.clear();
+    if (alpha <= 0) return;
+    // Neutral gray-blue fog color; tweak if needed
+    g.beginFill(0x9fb7c9, alpha);
+    g.drawRect(0, 0, w, h);
+    g.endFill();
+  }
+
+  update(_dtMs) {
     // live intensity update
     const cur = Math.max(0, Math.min(100, this.getIntensity()));
     if (cur !== this.intensity) this.setIntensity(cur);
-
-    const dt = dtMs / 1000;
-    const W = this.width;
-    const H = this.height;
-    for (const p of this.patches) {
-      // drift
-      p.g.x += p.vx * dt;
-      p.g.y += p.vy * dt;
-
-      // gentle alpha oscillation for unevenness
-      p.phase += dt * 0.5;
-      const osc = (Math.sin(p.phase) + 1) * 0.5; // 0..1
-      p.g.alpha = Math.max(0.02, Math.min(0.6, p.alpha * (0.7 + 0.6 * osc)));
-
-      // wrap around edges to keep fog continuous
-      if (p.g.x < -150) p.g.x = W + 150;
-      if (p.g.x > W + 150) p.g.x = -150;
-      if (p.g.y < -100) p.g.y = H + 100;
-      if (p.g.y > H + 100) p.g.y = -100;
-    }
   }
 
   destroy() {
-    try { this.container.filters = []; } catch {}
-    for (const p of this.patches) {
-      try { p.g.parent && p.g.parent.removeChild(p.g); } catch {}
-      try { p.g.destroy(); } catch {}
+    if (this.g) {
+      try { this.g.parent && this.g.parent.removeChild(this.g); } catch {}
+      try { this.g.destroy(); } catch {}
     }
-    this.patches = [];
+    this.g = null;
   }
 }

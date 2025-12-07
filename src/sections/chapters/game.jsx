@@ -162,16 +162,18 @@ export default function Game() {
     // Mirror current effective runtime settings for other components to read (like GameSettings)
     useEffect(() => {
         try {
-            const clouds = (runtimeSettings.weatherClouds ?? runtimeSettings.weatherFog ?? 0);
+            const clouds = (runtimeSettings.weatherClouds ?? 0);
+            const fog = (runtimeSettings.weatherFog ?? 0);
             window.__GAME_RUNTIME_SETTINGS__ = {
                 ...(window.__GAME_RUNTIME_SETTINGS__ || {}),
                 backgroundParallaxFactor: (runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor ?? 0.3),
                 weatherRain: (runtimeSettings.weatherRain ?? 0),
                 weatherSnow: (runtimeSettings.weatherSnow ?? 0),
                 weatherClouds: clouds,
+                weatherFog: fog,
                 healthBarEnabled: (runtimeSettings.healthBarEnabled ?? true),
                 // legacy mirror for compatibility (e.g., older UI)
-                weatherFog: clouds,
+                weatherFogLegacy: fog,
             };
         } catch {}
     }, [runtimeSettings, activeMapData]);
@@ -304,7 +306,8 @@ export default function Game() {
                             cameraScrollX={cameraScrollX}
                             weatherRain={runtimeSettings.weatherRain ?? 0}
                             weatherSnow={runtimeSettings.weatherSnow ?? 0}
-                            weatherClouds={runtimeSettings.weatherClouds ?? runtimeSettings.weatherFog ?? 0}
+                            weatherClouds={runtimeSettings.weatherClouds ?? 0}
+                            weatherFog={runtimeSettings.weatherFog ?? 0}
                             healthBarEnabled={runtimeSettings.healthBarEnabled ?? true}
                         />
 
