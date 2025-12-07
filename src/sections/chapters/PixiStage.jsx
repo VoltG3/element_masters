@@ -9,6 +9,7 @@ import WeatherClouds from './weatherClouds';
 import WeatherFog from './weatherFog';
 import WeatherThunder from './weatherThunder';
 import HealthBar from '../../Pixi/ui/HealthBar';
+import LiquidRegionSystem from './LiquidRegionSystem';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
 Assets.setPreferences?.({ skipCacheIdWarning: true });
@@ -62,6 +63,8 @@ const PixiStage = ({
   const playerHealthBarRef = useRef(null);
   const playerStateRef = useRef(null);
   const weatherLayerRef = useRef(null);
+  const liquidLayerRef = useRef(null);
+  const liquidSystemRef = useRef(null);
   const fogLayerRef = useRef(null); // reused as clouds overlay layer
   const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null });
   const projectilesLayerRef = useRef(null);
@@ -226,6 +229,7 @@ const PixiStage = ({
       const objFront = new Container();
       const playerLayer = new Container();
       const weatherLayer = new Container();
+      const liquidLayer = new Container();
       const fogLayer = new Container();
       const projLayer = new Container();
       const overlayLayer = new Container();
@@ -244,7 +248,9 @@ const PixiStage = ({
       app.stage.addChild(playerLayer);
       app.stage.addChild(projLayer); // projectiles above player
       app.stage.addChild(objFront); // objects above player
-      app.stage.addChild(weatherLayer); // rain/snow above projectiles and front objects
+      // Liquids rendered like weather (under fog, above player/objects)
+      app.stage.addChild(liquidLayer);
+      app.stage.addChild(weatherLayer); // rain/snow above liquids
       app.stage.addChild(fogLayer); // fog overlay above all objects/weather
       // Finally, tiles ("blocks") drawn last so they appear in front of fog
       app.stage.addChild(bg);
@@ -253,6 +259,7 @@ const PixiStage = ({
       app.stage.addChild(overlayLayer);
 
       weatherLayerRef.current = weatherLayer;
+      liquidLayerRef.current = liquidLayer;
       fogLayerRef.current = fogLayer;
       projectilesLayerRef.current = projLayer;
       overlayLayerRef.current = overlayLayer;
@@ -385,11 +392,26 @@ const PixiStage = ({
           console.info('WebGL context restored. Rebuilding layers...');
           rebuildLayers();
           rebuildParallax();
+          try {
+            if (liquidSystemRef.current) liquidSystemRef.current.destroy();
+          } catch {}
+          try {
+            liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+            liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+          } catch (e) { console.warn('LiquidRegionSystem rebuild failed after context restore:', e); }
         });
       }
 
       // First draw of map layers
       rebuildLayers();
+      // Initialize liquid regions
+      try {
+        if (liquidSystemRef.current) {
+          liquidSystemRef.current.destroy();
+        }
+        liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+        liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+      } catch (e) { console.warn('LiquidRegionSystem init failed:', e); }
       // Build or rebuild parallax background
       rebuildParallax();
 
@@ -453,6 +475,8 @@ const PixiStage = ({
         if (systems.clouds) systems.clouds.update(dt);
         if (systems.fog) systems.fog.update(dt);
         if (systems.thunder) systems.thunder.update(dt);
+        // Liquids region update
+        try { liquidSystemRef.current?.update(dt); } catch {}
 
         // Underwater overlay animation (only for water)
         try {
@@ -673,7 +697,7 @@ const PixiStage = ({
         return frames;
       };
 
-      // Background tiles
+      // Background tiles (skip liquids here; they will be rendered by LiquidRegionSystem)
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
         if (!id) continue;
@@ -682,19 +706,9 @@ const PixiStage = ({
 
         let sprite;
         let frames = null;
-        if (isWaterDef(def)) {
-          // Procedural animated water
-          frames = getWaterFrames();
-          sprite = new AnimatedSprite(frames);
-          sprite.animationSpeed = 0.18; // gentle
-          sprite.alpha = 0.95;
-          sprite.play();
-        } else if (isLavaDef(def)) {
-          frames = getLavaFrames();
-          sprite = new AnimatedSprite(frames);
-          sprite.animationSpeed = 0.22;
-          sprite.alpha = 0.98;
-          sprite.play();
+        if (isWaterDef(def) || isLavaDef(def)) {
+          // liquids are handled by LiquidRegionSystem; skip per-tile sprite
+          continue;
         } else {
           if (Array.isArray(def.textures) && def.textures.length > 1) {
             frames = def.textures.map((u) => getTexture(u)).filter(Boolean);
@@ -764,6 +778,9 @@ const PixiStage = ({
         appRef.current.destroy(true);
         appRef.current = null;
       }
+      // Destroy liquid system
+      try { liquidSystemRef.current?.destroy(); } catch {}
+      liquidSystemRef.current = null;
       // Destroy parallax helper and texture cache (releasing references only)
       try { parallaxHelperRef.current?.destroy(); } catch {}
       parallaxHelperRef.current = null;
@@ -872,39 +889,27 @@ const PixiStage = ({
         return frames;
       };
 
+      // Background tiles (skip liquids; handled by LiquidRegionSystem)
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
         if (!id) continue;
         const def = registryItems.find((r) => r.id === id);
         if (!def) continue;
+        if (isWaterDef(def) || isLavaDef(def)) continue;
 
         let sprite;
         let frames = null;
-        if (isWaterDef(def)) {
-          frames = getWaterFrames();
+        if (Array.isArray(def.textures) && def.textures.length > 1) {
+          frames = def.textures.map((u) => getTexture(u)).filter(Boolean);
+        }
+        if (frames && frames.length > 0) {
           sprite = new AnimatedSprite(frames);
-          sprite.animationSpeed = 0.18;
-          sprite.alpha = 0.95;
-          sprite.play();
-        } else if (isLavaDef(def)) {
-          frames = getLavaFrames();
-          sprite = new AnimatedSprite(frames);
-          sprite.animationSpeed = 0.22;
-          sprite.alpha = 0.98;
+          sprite.animationSpeed = msToSpeed(def.animationSpeed);
           sprite.play();
         } else {
-          if (Array.isArray(def.textures) && def.textures.length > 1) {
-            frames = def.textures.map((u) => getTexture(u)).filter(Boolean);
-          }
-          if (frames && frames.length > 0) {
-            sprite = new AnimatedSprite(frames);
-            sprite.animationSpeed = msToSpeed(def.animationSpeed);
-            sprite.play();
-          } else {
-            const tex = getTexture(def.texture) || null;
-            if (!tex) continue;
-            sprite = new Sprite(tex);
-          }
+          const tex = getTexture(def.texture) || null;
+          if (!tex) continue;
+          sprite = new Sprite(tex);
         }
         const x = (i % mapWidth) * tileSize;
         const y = Math.floor(i / mapWidth) * tileSize;
@@ -914,6 +919,17 @@ const PixiStage = ({
         sprite.height = tileSize;
         bgRef.current.addChild(sprite);
       }
+
+      // Rebuild liquid regions for new tile data
+      try {
+        if (liquidSystemRef.current) {
+          liquidSystemRef.current.destroy();
+        }
+        if (liquidLayerRef.current) {
+          liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+          liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+        }
+      } catch (e) { console.warn('LiquidRegionSystem rebuild failed (map data change):', e); }
 
       // Objects
       objBehindRef.current.removeChildren();
