@@ -17,10 +17,28 @@ export default class LiquidRegionSystem {
     this.mapWidth = opts.mapWidth || 0;
     this.mapHeight = opts.mapHeight || 0;
     this.tileSize = opts.tileSize || 32;
-    this._regions = []; // { type, node, mask, sprite }
+    this._regions = []; // { type, node, mask, sprite, noise1, noise2, capG, topEdges }
     this._waterTex = null;
     this._lavaTex = null;
     this._time = 0;
+    this._noiseTex = null;
+  }
+
+  // Query approximate surface Y (pixel) for a given X within liquid regions of type ('water'|'lava')
+  getSurfaceY(type, x) {
+    if (!Array.isArray(this._regions) || this._regions.length === 0) return null;
+    const X = Math.max(0, Math.floor(Number(x) || 0));
+    for (const r of this._regions) {
+      if (r.type !== type) continue;
+      if (!Array.isArray(r.topEdges)) continue;
+      for (let i = 0; i < r.topEdges.length; i++) {
+        const e = r.topEdges[i];
+        if (X >= e.x && X <= e.x + e.w) {
+          return e.y; // region tile top in pixels
+        }
+      }
+    }
+    return null;
   }
 
   destroy() {
@@ -33,8 +51,10 @@ export default class LiquidRegionSystem {
     this._regions = [];
     try { this._waterTex?.destroy(true); } catch {}
     try { this._lavaTex?.destroy(true); } catch {}
+    try { this._noiseTex?.destroy(true); } catch {}
     this._waterTex = null;
     this._lavaTex = null;
+    this._noiseTex = null;
   }
 
   clear() {
@@ -77,6 +97,32 @@ export default class LiquidRegionSystem {
         sprite.alpha = 0.9 * pulse; // around ~0.86..0.94
       } else {
         sprite.alpha = 0.98;
+      }
+
+      // Animate noise overlays to break repetition
+      if (r.noise1) {
+        r.noise1.tilePosition.x += drift.x * 1.6 * dt;
+        r.noise1.tilePosition.y += drift.y * 1.2 * dt;
+      }
+      if (r.noise2) {
+        r.noise2.tilePosition.x += -drift.x * 1.1 * dt;
+        r.noise2.tilePosition.y += drift.y * 0.9 * dt;
+      }
+
+      // Animate water surface cap (rim light) with slight sine undulation
+      if (r.type === 'water' && r.capG && Array.isArray(r.topEdges) && r.topEdges.length) {
+        const g = r.capG;
+        const amp = Math.max(1, Math.floor(this.tileSize * 0.06));
+        const thickness = Math.max(1, Math.floor(this.tileSize * 0.08));
+        g.clear();
+        g.beginFill(0xc9ecff, 0.35);
+        for (let i = 0; i < r.topEdges.length; i++) {
+          const e = r.topEdges[i];
+          // slight vertical offset wave
+          const dy = Math.sin((this._time * 0.002) + e.x * 0.15) * (amp * 0.5);
+          g.drawRect(e.x, e.y - thickness + dy, e.w, thickness);
+        }
+        g.endFill();
       }
     }
   }
@@ -173,11 +219,37 @@ export default class LiquidRegionSystem {
 
     // Constrain fill to region mask
     node.addChild(tiling);
+    // Add subtle noise overlays to break repetition
+    const noiseTex = this._noiseTex || (this._noiseTex = this._createNoiseTexture(128, 128));
+    const noise1 = new TilingSprite(noiseTex, worldW, worldH);
+    const noise2 = new TilingSprite(noiseTex, worldW, worldH);
+    // Different scales/alphas per liquid
+    if (type === 'water') {
+      noise1.tileScale.set(0.9, 1.1);
+      noise2.tileScale.set(0.6, 0.7);
+      noise1.alpha = 0.06; noise2.alpha = 0.08;
+    } else {
+      noise1.tileScale.set(1.2, 0.9);
+      noise2.tileScale.set(0.7, 0.6);
+      noise1.alpha = 0.08; noise2.alpha = 0.12;
+    }
+    node.addChild(noise1);
+    node.addChild(noise2);
+
     node.addChild(mask);
     node.mask = mask;
 
+    // Water surface rim highlight along top edges of the region
+    let capG = null;
+    let topEdges = null;
+    if (type === 'water') {
+      capG = new Graphics();
+      node.addChild(capG);
+      topEdges = this._computeTopEdgeSpans(tileIndices, mapWidth, tileSize);
+    }
+
     this.container.addChild(node);
-    this._regions.push({ type, node, mask, sprite: tiling });
+    this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges });
   }
 
   _createWaterTexture(tileSize) {
@@ -235,5 +307,55 @@ export default class LiquidRegionSystem {
       ctx.fillRect(rx, ry, 1, 1);
     }
     return Texture.from(canvas);
+  }
+
+  _createNoiseTexture(w = 128, h = 128) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    for (let i = 0; i < img.data.length; i += 4) {
+      // soft noise around mid-high values
+      const v = 200 + Math.floor(Math.random() * 55); // 200..254
+      img.data[i] = v; img.data[i + 1] = v; img.data[i + 2] = v; img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return Texture.from(canvas);
+  }
+
+  // Given tile indices of a region, compute horizontal spans representing its top boundary per row.
+  _computeTopEdgeSpans(tileIndices, mapWidth, tileSize) {
+    // Build a set for O(1) membership
+    const set = new Set(tileIndices);
+    const spans = [];
+    // For each tile that has no neighbor directly above, create a span; merge contiguous tiles in that row
+    const tilesByRow = new Map();
+    for (const idx of tileIndices) {
+      const gy = Math.floor(idx / mapWidth);
+      const gx = idx % mapWidth;
+      const above = idx - mapWidth;
+      if (!set.has(above)) {
+        // This tile contributes to the top edge
+        const rowList = tilesByRow.get(gy) || [];
+        rowList.push(gx);
+        tilesByRow.set(gy, rowList);
+      }
+    }
+    // Merge contiguous gx into spans
+    for (const [gy, cols] of tilesByRow.entries()) {
+      cols.sort((a, b) => a - b);
+      let start = null; let prev = null;
+      for (const gx of cols) {
+        if (start === null) { start = gx; prev = gx; continue; }
+        if (gx === prev + 1) { prev = gx; continue; }
+        // flush previous span
+        spans.push({ x: start * tileSize, y: gy * tileSize, w: (prev - start + 1) * tileSize });
+        start = gx; prev = gx;
+      }
+      if (start !== null) {
+        spans.push({ x: start * tileSize, y: gy * tileSize, w: (prev - start + 1) * tileSize });
+      }
+    }
+    return spans;
   }
 }

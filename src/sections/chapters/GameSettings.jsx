@@ -100,6 +100,25 @@ export default function GameSettings() {
     } catch {}
     return true;
   });
+  // FX toggles
+  const [waterSplashesEnabled, setWaterSplashesEnabled] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_fx_water_splashes');
+      if (ls !== null) return ls !== '0';
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.waterSplashesEnabled === 'boolean') return g.waterSplashesEnabled;
+    } catch {}
+    return true;
+  });
+  const [lavaEmbersEnabled, setLavaEmbersEnabled] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_fx_lava_embers');
+      if (ls !== null) return ls !== '0';
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.lavaEmbersEnabled === 'boolean') return g.lavaEmbersEnabled;
+    } catch {}
+    return true;
+  });
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [pos, setPos] = useState(() => {
@@ -166,6 +185,8 @@ export default function GameSettings() {
         if (typeof g.healthBarEnabled === 'boolean') setHealthBarEnabled(!!g.healthBarEnabled);
         if (typeof g.oxygenBarEnabled === 'boolean') setOxygenBarEnabled(!!g.oxygenBarEnabled);
         if (typeof g.lavaBarEnabled === 'boolean') setLavaBarEnabled(!!g.lavaBarEnabled);
+        if (typeof g.waterSplashesEnabled === 'boolean') setWaterSplashesEnabled(!!g.waterSplashesEnabled);
+        if (typeof g.lavaEmbersEnabled === 'boolean') setLavaEmbersEnabled(!!g.lavaEmbersEnabled);
       } catch {}
       // Auto-close the in-game terminal when settings opens
       try { window.dispatchEvent(new CustomEvent('game-close-terminal')); } catch {}
@@ -412,6 +433,32 @@ export default function GameSettings() {
               setLavaBarEnabled(v);
               try { localStorage.setItem('game_ui_lavabar', v ? '1' : '0'); } catch {}
               emitUpdate({ lavaBarEnabled: v });
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <label style={{ fontSize: 12, width: 120 }}>Water Splashes</label>
+          <input
+            type="checkbox"
+            checked={!!waterSplashesEnabled}
+            onChange={(e) => {
+              const v = !!e.target.checked;
+              setWaterSplashesEnabled(v);
+              try { localStorage.setItem('game_fx_water_splashes', v ? '1' : '0'); } catch {}
+              emitUpdate({ waterSplashesEnabled: v });
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <label style={{ fontSize: 12, width: 120 }}>Lava Embers</label>
+          <input
+            type="checkbox"
+            checked={!!lavaEmbersEnabled}
+            onChange={(e) => {
+              const v = !!e.target.checked;
+              setLavaEmbersEnabled(v);
+              try { localStorage.setItem('game_fx_lava_embers', v ? '1' : '0'); } catch {}
+              emitUpdate({ lavaEmbersEnabled: v });
             }}
           />
         </div>

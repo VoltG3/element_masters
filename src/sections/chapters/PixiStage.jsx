@@ -8,6 +8,8 @@ import WeatherSnow from './weatherSnow';
 import WeatherClouds from './weatherClouds';
 import WeatherFog from './weatherFog';
 import WeatherThunder from './weatherThunder';
+import WaterSplashFX from './liquids/WaterSplashFX';
+import LavaEmbers from './liquids/LavaEmbers';
 import HealthBar from '../../Pixi/ui/HealthBar';
 import LiquidRegionSystem from './LiquidRegionSystem';
 
@@ -45,6 +47,8 @@ const PixiStage = ({
   weatherThunder = 0,
   oxygenBarEnabled = true,
   lavaBarEnabled = true,
+  waterSplashesEnabled = true,
+  lavaEmbersEnabled = true,
   }) => {
   const mountRef = useRef(null);
   const appRef = useRef(null);
@@ -81,6 +85,11 @@ const PixiStage = ({
   const overlayHBRef = useRef(null);   // health bar rendered above water
   const oxygenBarRef = useRef(null);   // oxygen bar when in water
   const lavaBarRef = useRef(null);     // lava resistance bar when in lava
+  const waterFxRef = useRef(null);     // water splash FX
+  const lavaEmbersRef = useRef(null);  // lava ember FX
+  const splashesEnabledRef = useRef(waterSplashesEnabled !== false);
+  const embersEnabledRef = useRef(lavaEmbersEnabled !== false);
+  const waterStateRef = useRef({ inWater: false, headUnder: false, vy: 0 });
 
   // keep latest player state and camera scroll for ticker without re-subscribing
   useEffect(() => {
@@ -98,6 +107,12 @@ const PixiStage = ({
   useEffect(() => {
     lavaEnabledRef.current = lavaBarEnabled !== false;
   }, [lavaBarEnabled]);
+  useEffect(() => {
+    splashesEnabledRef.current = waterSplashesEnabled !== false;
+  }, [waterSplashesEnabled]);
+  useEffect(() => {
+    embersEnabledRef.current = lavaEmbersEnabled !== false;
+  }, [lavaEmbersEnabled]);
   useEffect(() => {
     cameraScrollRef.current = Number(cameraScrollX) || 0;
   }, [cameraScrollX]);
@@ -399,6 +414,12 @@ const PixiStage = ({
             liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
             liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
           } catch (e) { console.warn('LiquidRegionSystem rebuild failed after context restore:', e); }
+          // Rebuild ember surfaces after context restore
+          try {
+            if (lavaEmbersRef.current) {
+              lavaEmbersRef.current.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+            }
+          } catch {}
         });
       }
 
@@ -412,6 +433,14 @@ const PixiStage = ({
         liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
         liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
       } catch (e) { console.warn('LiquidRegionSystem init failed:', e); }
+      // FX systems
+      try {
+        waterFxRef.current = new WaterSplashFX(liquidLayerRef.current);
+      } catch {}
+      try {
+        lavaEmbersRef.current = new LavaEmbers(liquidLayerRef.current, { mapWidth, mapHeight, tileSize }, () => (embersEnabledRef.current ? 100 : 0));
+        lavaEmbersRef.current.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+      } catch {}
       // Build or rebuild parallax background
       rebuildParallax();
 
@@ -479,11 +508,16 @@ const PixiStage = ({
         // Liquids region update
         try { liquidSystemRef.current?.update(dt); } catch {}
 
-        // Underwater overlay animation (only for water)
+        // FX systems update
+        try { lavaEmbersRef.current?.update(dt); } catch {}
+        try { waterFxRef.current?.update(dt); } catch {}
+
+        // Underwater overlay animation (only for water) and water splash triggers
         try {
           const u = underwaterRef.current;
+          const sNow = playerStateRef.current || {};
           if (u && u.g) {
-            const submerged = !!(playerStateRef.current && playerStateRef.current.headUnderWater && playerStateRef.current.liquidType === 'water');
+            const submerged = !!(sNow && sNow.headUnderWater && sNow.liquidType === 'water');
             if (submerged) {
               u.time += dt;
               const pulse = 0.12 + 0.06 * Math.sin(u.time * 0.0025);
@@ -495,6 +529,28 @@ const PixiStage = ({
               if (u.g.alpha < 0.01) { u.g.alpha = 0; u.g.visible = false; }
             }
           }
+          // Splash detection: transitions air<->water
+          try {
+            const prev = waterStateRef.current || { inWater: false, headUnder: false, vy: 0 };
+            const nowInWater = !!sNow.inWater;
+            const nowLiquid = sNow.liquidType;
+            const centerX = (sNow.x || 0) + (sNow.width || tileSize) * 0.5;
+            // Enter water
+            if (splashesEnabledRef.current && nowLiquid === 'water' && nowInWater && !prev.inWater) {
+              const sy = liquidSystemRef.current?.getSurfaceY?.('water', centerX);
+              const vy = Number(sNow.vy) || 0;
+              const strength = Math.min(3, Math.max(0.2, Math.abs(vy) * 0.12));
+              waterFxRef.current?.trigger({ x: centerX, y: (Number.isFinite(sy) ? sy : (sNow.y || 0)), strength, upward: false });
+            }
+            // Exit water
+            if (splashesEnabledRef.current && prev.inWater && !nowInWater) {
+              const sy = liquidSystemRef.current?.getSurfaceY?.('water', centerX);
+              const vy = Number(sNow.vy) || 0;
+              const strength = Math.min(3, Math.max(0.2, Math.abs(vy) * 0.08));
+              waterFxRef.current?.trigger({ x: centerX, y: (Number.isFinite(sy) ? sy : (sNow.y || 0)), strength, upward: true });
+            }
+            waterStateRef.current = { inWater: nowInWater, headUnder: !!sNow.headUnderWater, vy: Number(sNow.vy) || 0 };
+          } catch {}
         } catch {}
 
         // Overlay bars update/positioning
@@ -783,6 +839,11 @@ const PixiStage = ({
       // Destroy liquid system
       try { liquidSystemRef.current?.destroy(); } catch {}
       liquidSystemRef.current = null;
+      // Destroy FX systems
+      try { waterFxRef.current?.destroy(); } catch {}
+      waterFxRef.current = null;
+      try { lavaEmbersRef.current?.destroy(); } catch {}
+      lavaEmbersRef.current = null;
       // Destroy parallax helper and texture cache (releasing references only)
       try { parallaxHelperRef.current?.destroy(); } catch {}
       parallaxHelperRef.current = null;
@@ -932,6 +993,8 @@ const PixiStage = ({
           liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
         }
       } catch (e) { console.warn('LiquidRegionSystem rebuild failed (map data change):', e); }
+      // Rebuild ember surfaces on map change
+      try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
 
       // Objects
       objBehindRef.current.removeChildren();
@@ -1077,6 +1140,9 @@ const PixiStage = ({
     // Resize fog overlay to match new world size
     try { weatherSystemsRef.current.fog?.resize(mapWidth * tileSize, mapHeight * tileSize); } catch {}
     try { weatherSystemsRef.current.thunder?.resize(mapWidth * tileSize, mapHeight * tileSize); } catch {}
+    // FX resize (no-op for current implementations)
+    try { waterFxRef.current?.resize(mapWidth * tileSize, mapHeight * tileSize); } catch {}
+    try { lavaEmbersRef.current?.resize(mapWidth * tileSize, mapHeight * tileSize); } catch {}
     // Resize underwater overlay
     try {
       const g = underwaterRef.current?.g;

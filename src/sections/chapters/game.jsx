@@ -176,6 +176,8 @@ export default function Game() {
                 healthBarEnabled: (runtimeSettings.healthBarEnabled ?? true),
                 oxygenBarEnabled: (runtimeSettings.oxygenBarEnabled ?? true),
                 lavaBarEnabled: (runtimeSettings.lavaBarEnabled ?? true),
+                waterSplashesEnabled: (runtimeSettings.waterSplashesEnabled ?? true),
+                lavaEmbersEnabled: (runtimeSettings.lavaEmbersEnabled ?? true),
                 // legacy mirror for compatibility (e.g., older UI)
                 weatherFogLegacy: fog,
             };
@@ -316,6 +318,8 @@ export default function Game() {
                             healthBarEnabled={runtimeSettings.healthBarEnabled ?? true}
                             oxygenBarEnabled={runtimeSettings.oxygenBarEnabled ?? true}
                             lavaBarEnabled={runtimeSettings.lavaBarEnabled ?? true}
+                            waterSplashesEnabled={runtimeSettings.waterSplashesEnabled ?? true}
+                            lavaEmbersEnabled={runtimeSettings.lavaEmbersEnabled ?? true}
                         />
 
                     </div>
