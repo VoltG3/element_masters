@@ -5,6 +5,12 @@ import React, { useEffect, useRef, useState } from 'react';
 // Renders above the game canvas but below the in-game terminal.
 export default function GameSettings() {
   // Runtime-linked settings (live updates)
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem('game_settings_tab') || 'Audio';
+    } catch {}
+    return 'Audio';
+  });
   const [parallax, setParallax] = useState(() => {
     try {
       const g = window.__GAME_RUNTIME_SETTINGS__;
@@ -125,6 +131,9 @@ export default function GameSettings() {
   useEffect(() => {
     try { localStorage.setItem('game_settings_min', minimized ? '1' : '0'); } catch {}
   }, [minimized]);
+  useEffect(() => {
+    try { localStorage.setItem('game_settings_tab', String(activeTab)); } catch {}
+  }, [activeTab]);
 
   // Drag logic
   useEffect(() => {
@@ -252,6 +261,129 @@ export default function GameSettings() {
     marginLeft: 6,
   };
 
+  const tabsBarStyle = {
+    display: minimized ? 'none' : 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 8px',
+    borderBottom: '1px solid #2a2a2a',
+    background: 'rgba(0,0,0,0.25)',
+    whiteSpace: 'nowrap',
+    overflowX: 'auto'
+  };
+  const tabBtnStyle = (tab) => ({
+    background: activeTab === tab ? '#1e1e1e' : 'transparent',
+    color: activeTab === tab ? '#9cdcfe' : '#ddd',
+    border: activeTab === tab ? '1px solid #3a3a3a' : '1px solid transparent',
+    padding: '4px 10px',
+    borderRadius: 4,
+    fontSize: 12,
+    cursor: 'pointer',
+  });
+
+  const renderAudio = () => (
+    <section style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Audio</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Master Volume</label>
+        <input type="range" min="0" max="1" step="0.01" defaultValue={0.7} />
+      </div>
+    </section>
+  );
+
+  const renderGraphics = () => (
+    <>
+      <section style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Graphics</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <label style={{ fontSize: 12, width: 120 }}>Parallax Factor</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={Number.isFinite(parallax) ? parallax : 0.3}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              setParallax(v);
+              emitUpdate({ backgroundParallaxFactor: v });
+            }}
+          />
+          <span style={{ fontSize: 12, width: 40, textAlign: 'right' }}>{(Number.isFinite(parallax) ? parallax : 0.3).toFixed(2)}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ fontSize: 12, width: 120 }}>VSync</label>
+          <input type="checkbox" defaultChecked />
+        </div>
+      </section>
+      {/* Keep existing Gameplay controls inside Graphics tab for now */}
+      <section>
+        <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Gameplay</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ fontSize: 12, width: 120 }}>Invert Jump (W)</label>
+          <input type="checkbox" />
+        </div>
+      </section>
+    </>
+  );
+
+  const renderWeather = () => (
+    <section style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Weather</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Lietus (Rain)</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(rain) ? rain : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setRain(v);
+            try { localStorage.setItem('game_weather_rain', String(v)); } catch {}
+            emitUpdate({ weatherRain: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(rain) ? rain : 0}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Sniegs (Snow)</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(snow) ? snow : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setSnow(v);
+            try { localStorage.setItem('game_weather_snow', String(v)); } catch {}
+            emitUpdate({ weatherSnow: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(snow) ? snow : 0}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Mākoņi (Clouds)</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(clouds) ? clouds : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setClouds(v);
+            try { localStorage.setItem('game_weather_clouds', String(v)); } catch {}
+            emitUpdate({ weatherClouds: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(clouds) ? clouds : 0}</span>
+      </div>
+    </section>
+  );
+
   return (
     <div style={panelStyle}>
       <div style={headerStyle} onMouseDown={onHeaderMouseDown}>
@@ -264,99 +396,17 @@ export default function GameSettings() {
         </div>
       </div>
 
+      {/* Tabs bar: one-line menu */}
+      <div style={tabsBarStyle}>
+        {['Audio','Graphics','Weather'].map((t) => (
+          <button key={t} style={tabBtnStyle(t)} onClick={() => setActiveTab(t)}>{t}</button>
+        ))}
+      </div>
+
       <div style={contentStyle}>
-        {/* Example settings content — extend as needed */}
-        <section style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Audio</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 12, width: 120 }}>Master Volume</label>
-            <input type="range" min="0" max="1" step="0.01" defaultValue={0.7} />
-          </div>
-        </section>
-        <section style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Graphics</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <label style={{ fontSize: 12, width: 120 }}>Parallax Factor</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={Number.isFinite(parallax) ? parallax : 0.3}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                setParallax(v);
-                emitUpdate({ backgroundParallaxFactor: v });
-              }}
-            />
-            <span style={{ fontSize: 12, width: 40, textAlign: 'right' }}>{(Number.isFinite(parallax) ? parallax : 0.3).toFixed(2)}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 12, width: 120 }}>VSync</label>
-            <input type="checkbox" defaultChecked />
-          </div>
-        </section>
-        <section style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Weather</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <label style={{ fontSize: 12, width: 120 }}>Lietus (Rain)</label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={Number.isFinite(rain) ? rain : 0}
-              onChange={(e) => {
-                const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
-                setRain(v);
-                try { localStorage.setItem('game_weather_rain', String(v)); } catch {}
-                emitUpdate({ weatherRain: v });
-              }}
-            />
-            <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(rain) ? rain : 0}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <label style={{ fontSize: 12, width: 120 }}>Sniegs (Snow)</label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={Number.isFinite(snow) ? snow : 0}
-              onChange={(e) => {
-                const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
-                setSnow(v);
-                try { localStorage.setItem('game_weather_snow', String(v)); } catch {}
-                emitUpdate({ weatherSnow: v });
-              }}
-            />
-            <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(snow) ? snow : 0}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 12, width: 120 }}>Mākoņi (Clouds)</label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={Number.isFinite(clouds) ? clouds : 0}
-              onChange={(e) => {
-                const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
-                setClouds(v);
-                try { localStorage.setItem('game_weather_clouds', String(v)); } catch {}
-                emitUpdate({ weatherClouds: v });
-              }}
-            />
-            <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(clouds) ? clouds : 0}</span>
-          </div>
-        </section>
-        <section>
-          <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Gameplay</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 12, width: 120 }}>Invert Jump (W)</label>
-            <input type="checkbox" />
-          </div>
-        </section>
+        {activeTab === 'Audio' && renderAudio()}
+        {activeTab === 'Graphics' && renderGraphics()}
+        {activeTab === 'Weather' && renderWeather()}
       </div>
 
       {/* Resize handle */}
