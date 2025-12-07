@@ -17,7 +17,7 @@ export default class LiquidRegionSystem {
     this.mapWidth = opts.mapWidth || 0;
     this.mapHeight = opts.mapHeight || 0;
     this.tileSize = opts.tileSize || 32;
-    this._regions = []; // { type, node, mask, sprite, noise1, noise2, capG, topEdges }
+    this._regions = []; // { type, node, mask, sprite, noise1, noise2, capG, topEdges, waves:[] }
     this._waterTex = null;
     this._lavaTex = null;
     this._time = 0;
@@ -109,6 +109,23 @@ export default class LiquidRegionSystem {
         r.noise2.tilePosition.y += drift.y * 0.9 * dt;
       }
 
+      // Update interactive surface waves (small ripples from impacts)
+      if (!Array.isArray(r.waves)) r.waves = [];
+      if (r.waves.length) {
+        for (let i = r.waves.length - 1; i >= 0; i--) {
+          const w = r.waves[i];
+          w.t += dt; // ms
+          // Lifetimes: water longer than lava
+          const life = r.type === 'water' ? w.lifeMsWater : w.lifeMsLava;
+          if (w.t >= life) { r.waves.splice(i, 1); continue; }
+          // expand radius over time (px)
+          w.radius = w.startRadius + w.speed * (w.t / 1000);
+          // exponential decay of amplitude
+          const decay = Math.exp(-w.t / (r.type === 'water' ? 1400 : 900));
+          w.ampNow = w.amp * decay;
+        }
+      }
+
       // Animate water surface cap (rim light) with slight sine undulation
       if (r.type === 'water' && r.capG && Array.isArray(r.topEdges) && r.topEdges.length) {
         const g = r.capG;
@@ -119,7 +136,25 @@ export default class LiquidRegionSystem {
         for (let i = 0; i < r.topEdges.length; i++) {
           const e = r.topEdges[i];
           // slight vertical offset wave
-          const dy = Math.sin((this._time * 0.002) + e.x * 0.15) * (amp * 0.5);
+          let dy = Math.sin((this._time * 0.002) + e.x * 0.15) * (amp * 0.5);
+          // Add contributions from interactive waves (Gaussian falloff)
+          if (r.waves && r.waves.length) {
+            // use span center for sampling; keeps draw perf O(spans + waves)
+            const centerX = e.x + e.w * 0.5;
+            for (let k = 0; k < r.waves.length; k++) {
+              const w = r.waves[k];
+              const dx = centerX - w.cx;
+              const dist = Math.abs(dx);
+              if (dist > w.radius + e.w * 0.6) continue; // early reject
+              const sigma = Math.max(8, w.radius * 0.6);
+              const gauss = Math.exp(-(dx * dx) / (2 * sigma * sigma));
+              dy += w.ampNow * gauss;
+            }
+            // clamp to avoid excessive displacement
+            const maxDisp = Math.max(2, this.tileSize * 0.22);
+            if (dy > maxDisp) dy = maxDisp;
+            if (dy < -maxDisp) dy = -maxDisp;
+          }
           g.drawRect(e.x, e.y - thickness + dy, e.w, thickness);
         }
         g.endFill();
@@ -249,7 +284,7 @@ export default class LiquidRegionSystem {
     }
 
     this.container.addChild(node);
-    this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges });
+    this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [] });
   }
 
   _createWaterTexture(tileSize) {
@@ -357,5 +392,40 @@ export default class LiquidRegionSystem {
       }
     }
     return spans;
+  }
+
+  // Public: add a ripple/wave on a liquid surface of given type at world x
+  // type: 'water'|'lava'
+  // x: world pixel X
+  // strength: 0.2..3 roughly; maps to amplitude and speed
+  addWave(type, x, strength = 1) {
+    const t = (type === 'lava') ? 'lava' : 'water';
+    const X = Math.max(0, Math.min(this.mapWidth * this.tileSize, Number(x) || 0));
+    // Find region and a top edge span containing x
+    for (const r of this._regions) {
+      if (r.type !== t) continue;
+      const spans = r.topEdges;
+      if (!Array.isArray(spans) || spans.length === 0) continue;
+      for (let i = 0; i < spans.length; i++) {
+        const e = spans[i];
+        if (X >= e.x && X <= e.x + e.w) {
+          if (!Array.isArray(r.waves)) r.waves = [];
+          // Cap total waves to keep perf stable
+          if (r.waves.length > 24) r.waves.shift();
+          const ts = this.tileSize;
+          const s = Math.max(0.15, Math.min(3, Number(strength) || 1));
+          const baseAmp = (t === 'water') ? ts * 0.18 : ts * 0.10; // pixels
+          const amp = baseAmp * (0.4 + 0.6 * Math.min(1.0, s));
+          const speed = (t === 'water') ? (40 + 60 * s) : (30 + 40 * s); // px/s growth
+          const startRadius = Math.max(4, ts * 0.2);
+          // lifetimes in ms
+          const lifeMsWater = 1600 + 900 * s;
+          const lifeMsLava = 900 + 600 * s;
+          r.waves.push({ cx: X, t: 0, amp, ampNow: amp, speed, radius: startRadius, startRadius, lifeMsWater, lifeMsLava });
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

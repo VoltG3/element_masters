@@ -565,6 +565,8 @@ const PixiStage = ({
               const vy = Number(sNow.vy) || 0;
               const strength = Math.min(3, Math.max(0.2, Math.abs(vy) * 0.12));
               waterFxRef.current?.trigger({ x: centerX, y: (Number.isFinite(sy) ? sy : (sNow.y || 0)), strength, upward: false });
+              // Kick water surface ripple (larger on fast entry)
+              try { liquidSystemRef.current?.addWave?.('water', centerX, Math.min(2.5, 0.6 + Math.abs(vy) * 0.08)); } catch {}
             }
             // Exit water
             if (splashesEnabledRef.current && prev.inWater && !nowInWater) {
@@ -572,6 +574,8 @@ const PixiStage = ({
               const vy = Number(sNow.vy) || 0;
               const strength = Math.min(3, Math.max(0.2, Math.abs(vy) * 0.08));
               waterFxRef.current?.trigger({ x: centerX, y: (Number.isFinite(sy) ? sy : (sNow.y || 0)), strength, upward: true });
+              // Smaller ripple on exit
+              try { liquidSystemRef.current?.addWave?.('water', centerX, Math.min(2.0, 0.4 + Math.abs(vy) * 0.05)); } catch {}
             }
             waterStateRef.current = { inWater: nowInWater, headUnder: !!sNow.headUnderWater, vy: Number(sNow.vy) || 0 };
           } catch {}
@@ -1082,6 +1086,8 @@ const PixiStage = ({
         try {
           const sy = liquidSystemRef.current?.getSurfaceY?.('water', x);
           if (Number.isFinite(sy)) waterFxRef.current?.trigger({ x, y: sy, strength: Math.max(0.2, Math.min(2, strength)), upward: false });
+          // Also deform water surface with ripples
+          try { liquidSystemRef.current?.addWave?.('water', x, Math.max(0.2, Math.min(2.2, strength))); } catch {}
         } catch {}
       },
       onLavaImpact: ({ x, y, strength = 0.6 }) => {
