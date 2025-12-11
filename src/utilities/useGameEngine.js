@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useInput } from './useInput';
 import { findItemById } from '../engine/registry';
 import { checkHazardDamage, spawnProjectile as spawnProjectileExternal, collectItem, checkInteractables, updateProjectiles } from '../engine/gameplay';
+import { checkSecretDetection } from '../engine/gameplay/secrets';
 import { playSfx } from '../engine/audio';
 import { updateFrame } from '../engine/loop/updateFrame';
 import { getLiquidAtPixel, isLiquidAtPixel as isLiquidAtPixelUtil, sampleLiquidForAABB } from '../engine/liquids/liquidUtils';
@@ -25,8 +26,8 @@ const parseBool = (v, def = false) => {
     return def;
 };
 
-// Modified arguments: added objectData
-export const useGameEngine = (mapData, tileData, objectData, registryItems, onGameOver, onStateUpdate) => {
+// Modified arguments: added objectData, secretData, revealedSecrets, onRevealSecret
+export const useGameEngine = (mapData, tileData, objectData, secretData, revealedSecrets, registryItems, onGameOver, onStateUpdate, onRevealSecret) => {
     const input = useInput();
 
     // Player state
@@ -135,6 +136,36 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                 mapWidth
             });
             return { damage: 0, damageType: null };
+        }
+    };
+
+    // Secrets detection wrapper
+    const checkSecretsWrapper = (currentX, currentY, width, height, mapWidth, mapHeight) => {
+        try {
+            if (!secretData || !onRevealSecret) return;
+
+            const indicesToReveal = checkSecretDetection({
+                currentX,
+                currentY,
+                width,
+                height,
+                secretMapData: secretData,
+                revealedSecrets,
+                mapWidth,
+                mapHeight,
+                registryItems,
+                TILE_SIZE
+            });
+
+            if (indicesToReveal && indicesToReveal.length > 0) {
+                onRevealSecret(indicesToReveal);
+            }
+        } catch (error) {
+            errorHandler.error(error, {
+                component: 'useGameEngine',
+                function: 'checkSecretsWrapper',
+                playerPosition: { x: currentX, y: currentY }
+            });
         }
     };
 
@@ -247,7 +278,8 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             tileData,
             registryItems,
             gameState.current.width,
-            gameState.current.height
+            gameState.current.height,
+            secretData
         );
     };
 
@@ -260,7 +292,8 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
             mapHeightTiles,
             TILE_SIZE,
             tileData,
-            registryItems
+            registryItems,
+            secretData
         );
     };
 
@@ -321,6 +354,8 @@ export const useGameEngine = (mapData, tileData, objectData, registryItems, onGa
                     checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState }, x, y, mapWidth, objectLayer),
                 checkHazardDamage: (x, y, mapWidth, objectLayer, deltaMs) =>
                     checkHazardDamageWrapper(x, y, mapWidth, objectLayer, deltaMs),
+                checkSecrets: (x, y, width, height, mapWidth, mapHeight) =>
+                    checkSecretsWrapper(x, y, width, height, mapWidth, mapHeight),
                 spawnProjectile: (originX, originY, direction) =>
                     spawnProjectile(originX, originY, direction),
                 updateProjectiles: (deltaMs, mapWidth, mapHeight) =>

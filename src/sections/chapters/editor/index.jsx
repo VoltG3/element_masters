@@ -14,6 +14,7 @@ export const Editor = () => {
     const [mapHeight, setMapHeight] = useState(15);
     const [tileMapData, setTileMapData] = useState([]);
     const [objectMapData, setObjectMapData] = useState([]);
+    const [secretMapData, setSecretMapData] = useState([]);
     const [selectedTile, setSelectedTile] = useState(null);
     const [showGrid, setShowGrid] = useState(true);
 
@@ -27,7 +28,7 @@ export const Editor = () => {
     const [dragStart, setDragStart] = useState(null);
     const [bucketPreviewIndices, setBucketPreviewIndices] = useState(new Set());
     const bucketTimerRef = useRef(null);
-    const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData });
+    const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData, secretMapData });
 
     // Map metadata
     const [mapName, setMapName] = useState("New Map");
@@ -38,13 +39,14 @@ export const Editor = () => {
     const [tempCreatorName, setTempCreatorName] = useState("");
 
     useEffect(() => {
-        stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData };
-    }, [mapWidth, mapHeight, tileMapData, objectMapData]);
+        stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData, secretMapData };
+    }, [mapWidth, mapHeight, tileMapData, objectMapData, secretMapData]);
 
     useEffect(() => {
         const size = 15 * 20;
         setTileMapData(Array(size).fill(null));
         setObjectMapData(Array(size).fill(null));
+        setSecretMapData(Array(size).fill(null));
     }, []);
 
     const registryItems = getRegistry() || [];
@@ -58,6 +60,7 @@ export const Editor = () => {
     const items = registryItems.filter(item => item.name && item.name.startsWith('item.'));
     const interactables = registryItems.filter(item => item.name && item.name.startsWith('interactable.'));
     const hazards = registryItems.filter(item => item.type === 'hazard');
+    const secrets = registryItems.filter(item => item.type === 'secret');
 
     const backgroundOptions = loadBackgroundOptions();
     const musicOptions = loadMusicOptions();
@@ -83,6 +86,7 @@ export const Editor = () => {
             setMapHeight(15);
             setTileMapData(Array(size).fill(null));
             setObjectMapData(Array(size).fill(null));
+            setSecretMapData(Array(size).fill(null));
 
             setMapName(tempMapName || "New Map");
             setCreatorName(tempCreatorName || "Anonymous");
@@ -96,8 +100,17 @@ export const Editor = () => {
         }
     };
 
-    const getCurrentData = () => activeLayer === 'tile' ? tileMapData : objectMapData;
-    const setCurrentData = (newData) => activeLayer === 'tile' ? setTileMapData(newData) : setObjectMapData(newData);
+    const getCurrentData = () => {
+        if (activeLayer === 'tile') return tileMapData;
+        if (activeLayer === 'object') return objectMapData;
+        if (activeLayer === 'secret') return secretMapData;
+        return tileMapData;
+    };
+    const setCurrentData = (newData) => {
+        if (activeLayer === 'tile') setTileMapData(newData);
+        else if (activeLayer === 'object') setObjectMapData(newData);
+        else if (activeLayer === 'secret') setSecretMapData(newData);
+    };
 
     const handleGridMouseDown = (index, e) => {
         e.preventDefault();
@@ -157,15 +170,17 @@ export const Editor = () => {
 
             const selTileData = [];
             const selObjectData = [];
+            const selSecretData = [];
 
             for (let py = 0; py < h; py++) {
                 for (let px = 0; px < w; px++) {
                     const idx = (y1 + py) * mapWidth + (x1 + px);
                     selTileData.push(tileMapData[idx]);
                     selObjectData.push(objectMapData[idx]);
+                    selSecretData.push(secretMapData[idx]);
                 }
             }
-            setSelection({ x: x1, y: y1, w, h, tileData: selTileData, objectData: selObjectData });
+            setSelection({ x: x1, y: y1, w, h, tileData: selTileData, objectData: selObjectData, secretData: selSecretData });
             setDragStart(null);
         }
     };
@@ -175,6 +190,7 @@ export const Editor = () => {
 
         const newTileMap = [...tileMapData];
         const newObjectMap = [...objectMapData];
+        const newSecretMap = [...secretMapData];
 
         for (let py = 0; py < selection.h; py++) {
             for (let px = 0; px < selection.w; px++) {
@@ -182,6 +198,7 @@ export const Editor = () => {
                 if (idx >= 0 && idx < newTileMap.length) {
                     newTileMap[idx] = null;
                     newObjectMap[idx] = null;
+                    newSecretMap[idx] = null;
                 }
             }
         }
@@ -198,12 +215,14 @@ export const Editor = () => {
 
                     newTileMap[destIdx] = selection.tileData[srcDataIdx];
                     newObjectMap[destIdx] = selection.objectData[srcDataIdx];
+                    newSecretMap[destIdx] = selection.secretData?.[srcDataIdx] || null;
                 }
             }
         }
 
         setTileMapData(newTileMap);
         setObjectMapData(newObjectMap);
+        setSecretMapData(newSecretMap);
         setSelection({ ...selection, x: newX, y: newY });
     };
 
@@ -226,7 +245,8 @@ export const Editor = () => {
                         setMapWidth,
                         setMapHeight,
                         setTileMapData,
-                        setObjectMapData
+                        setObjectMapData,
+                        setSecretMapData
                     });
                 }
             } else if (direction === 'height') {
@@ -239,7 +259,8 @@ export const Editor = () => {
                         setMapWidth,
                         setMapHeight,
                         setTileMapData,
-                        setObjectMapData
+                        setObjectMapData,
+                        setSecretMapData
                     });
                 }
             }
@@ -287,7 +308,7 @@ export const Editor = () => {
                     creatorName={creatorName}
                     openNewMapModal={openNewMapModal}
                     saveMap={() => saveMap({
-                        mapWidth, mapHeight, tileMapData, objectMapData,
+                        mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
                         mapName, creatorName, createdAt,
                         selectedBackgroundImage, selectedBackgroundColor,
                         backgroundParallaxFactor, selectedBackgroundMusic,
@@ -297,11 +318,11 @@ export const Editor = () => {
                         event, setMapWidth, setMapHeight, setMapName, setCreatorName,
                         setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
                         setBackgroundParallaxFactor, setSelectedBackgroundMusic,
-                        setTileMapData, setObjectMapData
+                        setTileMapData, setObjectMapData, setSecretMapData
                     })}
                     showGrid={showGrid}
                     setShowGrid={setShowGrid}
-                    clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData })}
+                    clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData })}
                     activeTool={activeTool}
                     setActiveTool={setActiveTool}
                     brushSize={brushSize}
@@ -318,6 +339,7 @@ export const Editor = () => {
                     items={items}
                     interactables={interactables}
                     hazards={hazards}
+                    secrets={secrets}
                     backgroundOptions={backgroundOptions}
                     selectedBackgroundImage={selectedBackgroundImage}
                     setSelectedBackgroundImage={setSelectedBackgroundImage}
@@ -345,6 +367,7 @@ export const Editor = () => {
                     activeTool={activeTool}
                     tileMapData={tileMapData}
                     objectMapData={objectMapData}
+                    secretMapData={secretMapData}
                     registryItems={registryItems}
                     hoverIndex={hoverIndex}
                     brushSize={brushSize}

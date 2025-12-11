@@ -7,7 +7,8 @@
 // - TILE_SIZE: tile size in pixels
 // - tileData: tile layer array (ids)
 // - registryItems: registry to resolve tile definitions (with `collision` flag)
-export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems) {
+// - secretData: secret layer array (ids) - tiles with secrets are passable
+export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, secretData) {
   // Allow movement above the map
   if (wy < 0) return false;
   const gx = Math.floor(wx / TILE_SIZE);
@@ -15,6 +16,12 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
   // Out of world is not solid (projectile/later logic will clamp by bounds)
   if (gx < 0 || gy < 0 || gx >= mapWidthTiles || gy >= mapHeightTiles) return false;
   const index = gy * mapWidthTiles + gx;
+
+  // Check if this tile has a secret - secrets make tiles passable
+  if (secretData && secretData[index]) {
+    return false;
+  }
+
   const tileId = tileData[index];
   if (!tileId) return false;
   const tileDef = registryItems.find(r => r.id === tileId);
@@ -37,7 +44,8 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
 // - mapWidthTiles, mapHeightTiles: map size in tiles
 // - TILE_SIZE, tileData, registryItems: see above
 // - width, height: player size in pixels
-export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, width, height) {
+// - secretData: secret layer array (ids) - tiles with secrets are passable
+export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, width, height, secretData) {
   const points = [
     { x: newX, y: newY }, // Top Left
     { x: newX + width - 0.01, y: newY }, // Top Right
@@ -54,6 +62,11 @@ export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_S
     if (gridX < 0 || gridX >= mapWidthTiles || gridY < 0) return true;
     // Below the map is not a collision — allows falling off the world
     if (gridY >= mapHeightTiles) continue;
+
+    // Check if this tile has a secret - secrets make tiles passable
+    if (secretData && secretData[index]) {
+      continue;
+    }
 
     const tileId = tileData[index];
     if (tileId) {

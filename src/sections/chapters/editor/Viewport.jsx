@@ -13,6 +13,7 @@ export const Viewport = ({
     activeTool,
     tileMapData,
     objectMapData,
+    secretMapData,
     registryItems,
     hoverIndex,
     brushSize,
@@ -66,8 +67,10 @@ export const Viewport = ({
                     {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
                         const tileId = tileMapData[index];
                         const objectId = objectMapData[index];
+                        const secretId = secretMapData?.[index];
                         const tileObj = tileId ? registryItems.find(r => r.id === tileId) : null;
                         const objObj = objectId ? registryItems.find(r => r.id === objectId) : null;
+                        const secretObj = secretId ? registryItems.find(r => r.id === secretId) : null;
 
                         const x = index % mapWidth;
                         const y = Math.floor(index / mapWidth);
@@ -163,6 +166,26 @@ export const Viewport = ({
                                     speed={objObj.animationSpeed}
                                     style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 3 }}
                                 />}
+
+                                {/* Secret Layer (Dark Filter) */}
+                                {secretObj && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        width: '100%',
+                                        height: '100%',
+                                        background: secretObj.filterColor || 'rgba(0, 0, 0, 0.5)',
+                                        zIndex: 4,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '8px',
+                                        color: 'rgba(255, 255, 255, 0.6)',
+                                        fontWeight: 'bold',
+                                        pointerEvents: 'none'
+                                    }}>
+                                        {secretObj.subtype === 'above' ? 'A' : 'B'}
+                                    </div>
+                                )}
 
                                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }} />
                             </div>

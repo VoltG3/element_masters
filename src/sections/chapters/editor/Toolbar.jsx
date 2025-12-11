@@ -29,6 +29,7 @@ export const Toolbar = ({
     items,
     interactables,
     hazards,
+    secrets,
     backgroundOptions,
     selectedBackgroundImage,
     setSelectedBackgroundImage,
@@ -49,6 +50,7 @@ export const Toolbar = ({
         const isLiquid = !!(item.flags && item.flags.liquid);
         const isWater = !!(item.flags && item.flags.water);
         const isLava = !!(item.flags && item.flags.lava);
+        const isSecret = item.type === 'secret';
         const swatchStyle = isWater
             ? { background: 'linear-gradient(180deg,#2a5d8f,#174369)' }
             : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' } : { background: '#eee' });
@@ -65,7 +67,16 @@ export const Toolbar = ({
                     position: 'relative'
                 }}
             >
-                {hasImage ? (
+                {isSecret ? (
+                    <div style={{
+                        width: '100%', height: '100%', borderRadius: 2,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: item.filterColor || 'rgba(0, 0, 0, 0.5)',
+                        color: '#fff', fontSize: 8, textAlign: 'center', lineHeight: 1.1, fontWeight: 'bold'
+                    }}>
+                        {item.subtype === 'above' ? 'ABOVE' : 'BELOW'}
+                    </div>
+                ) : hasImage ? (
                     <AnimatedItem
                         textures={item.textures}
                         texture={item.texture}
@@ -111,6 +122,18 @@ export const Toolbar = ({
         </div>
     );
 
+    const SecretEraser = () => (
+        <div onClick={() => { handlePaletteSelect(null, 'secret'); }} title="Erase Secrets"
+            style={{
+                border: (selectedTile === null && activeLayer === 'secret') ? `2px solid purple` : '1px solid #ccc',
+                cursor: 'pointer', padding: '2px', width: '36px', height: '36px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: '#f8f0ff', fontSize: '16px', color: 'purple'
+            }}>
+            ⌫S
+        </div>
+    );
+
     return (
         <div className="toolbar" style={{ width: '280px', padding: '15px', borderRight: '1px solid #ccc', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f8f8' }}>
             <div style={{ marginBottom: '15px' }}>
@@ -145,8 +168,8 @@ export const Toolbar = ({
                         </div>
                     )}
 
-                    <div style={{ marginTop: '10px', padding: '5px', backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : '#fff1f0', borderRadius: '4px', border: '1px solid #ccc' }}>
-                        <span style={{ fontSize: '11px' }}>Active: <strong>{activeLayer === 'tile' ? '🟦 Background' : '🟥 Objects'}</strong></span>
+                    <div style={{ marginTop: '10px', padding: '5px', backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : (activeLayer === 'object' ? '#fff1f0' : '#f8f0ff'), borderRadius: '4px', border: '1px solid #ccc' }}>
+                        <span style={{ fontSize: '11px' }}>Active: <strong>{activeLayer === 'tile' ? '🟦 Background' : (activeLayer === 'object' ? '🟥 Objects' : '🟪 Secrets')}</strong></span>
                     </div>
 
                     {activeTool === 'move' && selection && (
@@ -169,6 +192,7 @@ export const Toolbar = ({
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                         <BlockEraser />
                         <ObjectEraser />
+                        <SecretEraser />
                     </div>
                 </PaletteSection>
 
@@ -205,6 +229,12 @@ export const Toolbar = ({
                 <PaletteSection title="Hazards (Objects)">
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                         {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
+                    </div>
+                </PaletteSection>
+
+                <PaletteSection title="Secrets">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
                     </div>
                 </PaletteSection>
 

@@ -9,6 +9,8 @@ const initialState = {
   activeMapData: null,
   tileMapData: [],
   objectMapData: [],
+  secretMapData: [],
+  revealedSecrets: [], // Track which secret zones have been revealed (array of indices)
   objectTextureIndices: {}, // Track texture index per object position { index: textureIndex }
   mapWidth: 20,
   mapHeight: 15,
@@ -23,10 +25,12 @@ const gameSlice = createSlice({
   initialState,
   reducers: {
     setActiveMap: (state, action) => {
-      const { mapData, tileMapData, objectMapData, mapWidth, mapHeight } = action.payload;
+      const { mapData, tileMapData, objectMapData, secretMapData, mapWidth, mapHeight } = action.payload;
       state.activeMapData = mapData;
       state.tileMapData = tileMapData;
       state.objectMapData = objectMapData;
+      state.secretMapData = secretMapData || [];
+      state.revealedSecrets = []; // Reset revealed secrets on new map
       state.objectTextureIndices = {}; // Reset texture indices on new map
       state.mapWidth = mapWidth;
       state.mapHeight = mapHeight;
@@ -50,6 +54,15 @@ const gameSlice = createSlice({
     setObjectTextureIndex: (state, action) => {
       const { index, textureIndex } = action.payload;
       state.objectTextureIndices[index] = textureIndex;
+    },
+    revealSecretZone: (state, action) => {
+      const indices = action.payload; // Array of tile indices to reveal
+      // Add new indices to revealed array (avoid duplicates)
+      indices.forEach(idx => {
+        if (!state.revealedSecrets.includes(idx)) {
+          state.revealedSecrets.push(idx);
+        }
+      });
     },
     setLoading: (state, action) => {
       state.isLoading = action.payload;
@@ -75,6 +88,7 @@ export const {
   removeObjectAtIndex,
   updateObjectAtIndex,
   setObjectTextureIndex,
+  revealSecretZone,
   setLoading,
   setError,
   setPaused,

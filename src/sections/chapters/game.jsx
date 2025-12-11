@@ -7,7 +7,7 @@ import GameHeader from './game/GameHeader';
 import GameTerminal from './game/GameTerminal';
 import GameSettings from './game/GameSettings';
 import BackgroundMusicPlayer from '../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, setObjectTextureIndex, resetGame } from '../../store/slices/gameSlice';
+import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, setObjectTextureIndex, revealSecretZone, resetGame } from '../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../store/slices/uiSlice';
 import { setSoundEnabled } from '../../store/slices/settingsSlice';
 import errorHandler from '../../services/errorHandler';
@@ -21,9 +21,9 @@ import map4 from '../../assets/maps/Temp_04.json';
 import map5 from '../../assets/maps/Temp_05.json';
 import map6 from '../../assets/maps/Temp_06.json';
 import map7 from '../../assets/maps/Temp_07.json';
-
+import map8 from '../../assets/maps/Temp_08.json';
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6, map7];
+const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6, map7, map8];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -161,7 +161,7 @@ export default function Game() {
     const viewportRef = useRef(null);
 
     // Redux state
-    const { activeMapData, tileMapData, objectMapData, objectTextureIndices, mapWidth, mapHeight } = useSelector(state => state.game);
+    const { activeMapData, tileMapData, objectMapData, secretMapData, revealedSecrets, objectTextureIndices, mapWidth, mapHeight } = useSelector(state => state.game);
     const { isMapModalOpen, cameraScrollX, shouldCenterMap } = useSelector(state => state.ui);
     const { sound } = useSelector(state => state.settings);
     const soundEnabled = sound.enabled;
@@ -200,10 +200,25 @@ export default function Game() {
     // So we pass the original 'activeMapData' as first argument (for initialization to work correctly and not reset),
     // and 'objectMapData' as third argument for item checking.
 
+    // Callback for revealing secret zones
+    const handleRevealSecret = (indices) => {
+        dispatch(revealSecretZone(indices));
+    };
+
     // --- START ENGINE ---
     // Engine returns player coordinates and state
     // objectMapData contains dynamic data (removed items)
-    const playerState = useGameEngine(activeMapData, tileMapData, objectMapData, registryItems, handleGameOver, handleStateUpdate);
+    const playerState = useGameEngine(
+        activeMapData,
+        tileMapData,
+        objectMapData,
+        secretMapData,
+        revealedSecrets,
+        registryItems,
+        handleGameOver,
+        handleStateUpdate,
+        handleRevealSecret
+    );
 
     // Iegūstam spēlētāja vizuālo izskatu (Texture)
     const playerVisuals = useMemo(() => {
@@ -320,6 +335,7 @@ export default function Game() {
 
             let tileData = [];
             let objData = [];
+            let secretData = [];
 
             if (mapData.layers) {
                 const bgLayer = mapData.layers.find(l => l.name === 'background');
@@ -327,16 +343,29 @@ export default function Game() {
 
                 const objLayer = mapData.layers.find(l => l.name === 'entities');
                 objData = objLayer ? objLayer.data : Array(w * h).fill(null);
+
+                const secretLayer = mapData.layers.find(l => l.name === 'secrets');
+                secretData = secretLayer ? secretLayer.data : Array(w * h).fill(null);
             } else {
                 tileData = mapData.tiles || Array(w * h).fill(null);
                 objData = Array(w * h).fill(null);
+                secretData = Array(w * h).fill(null);
             }
+
+            // Debug logging
+            console.log('[DEBUG] Loading map with secrets:', {
+                hasSecretsLayer: !!mapData.layers?.find(l => l.name === 'secrets'),
+                secretDataLength: secretData?.length,
+                secretDataNonNull: secretData?.filter(s => s !== null).length,
+                secretDataSample: secretData?.filter(s => s !== null).slice(0, 5)
+            });
 
             // Update Redux store
             dispatch(setActiveMap({
                 mapData,
                 tileMapData: tileData,
                 objectMapData: objData,
+                secretMapData: secretData,
                 mapWidth: w,
                 mapHeight: h
             }));
@@ -450,6 +479,8 @@ export default function Game() {
                             tileSize={32}
                             tileMapData={tileMapData}
                             objectMapData={objectMapData}
+                            secretMapData={secretMapData}
+                            revealedSecrets={revealedSecrets}
                             objectTextureIndices={objectTextureIndices}
                             registryItems={registryItems}
                             playerState={playerState}

@@ -32,7 +32,7 @@ export function updateFrame(ctx, timestamp) {
   const { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
   const { checkCollision, isWaterAt, getLiquidSample } = helpers;
-  const { collectItem, checkInteractables, checkHazardDamage, spawnProjectile, updateProjectiles, setPlayer, onGameOver } = actions;
+  const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, updateProjectiles, setPlayer, onGameOver } = actions;
 
   // Keep RAF alive even if init not finished yet
   if (!isInitialized.current || !mapData) {
@@ -232,6 +232,9 @@ export function updateFrame(ctx, timestamp) {
 
   // 4) Hazard damage check (bushes etc.)
   try { checkHazardDamage(x, y, mapWidth, objectData, deltaMs); } catch {}
+
+  // 4.5) Secrets detection and reveal
+  try { if (checkSecrets) checkSecrets(x, y, width, height, mapWidth, mapHeight); } catch {}
 
   // 5) Shooting & projectiles
   // Cooldown update

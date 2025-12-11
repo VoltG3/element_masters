@@ -27,6 +27,8 @@ const PixiStage = ({
   tileSize = 32,
   tileMapData = [],
   objectMapData = [],
+  secretMapData = [],
+  revealedSecrets = [],
   objectTextureIndices = {},
   registryItems = [],
   playerState,
@@ -59,6 +61,7 @@ const PixiStage = ({
   const bgChunkLayerRef = useRef(null); // TileChunkLayer instance
   const objBehindRef = useRef(null); // objects behind player
   const objFrontRef = useRef(null);  // objects above player
+  const secretLayerRef = useRef(null); // secrets overlay layer
   const playerRef = useRef(null); // container holding default/target sprites
   const playerSpriteRefs = useRef({ def: null, hit: null });
   const playerHealthBarRef = useRef(null);
@@ -242,6 +245,7 @@ const PixiStage = ({
       const bgAnim = new Container();
       const objBehind = new Container();
       const objFront = new Container();
+      const secretLayer = new Container();
       const playerLayer = new Container();
       const weatherLayer = new Container();
       const liquidLayer = new Container();
@@ -256,6 +260,7 @@ const PixiStage = ({
         bgAnim.zIndex = LAYERS.tilesAnim;
         objBehind.zIndex = LAYERS.objBehind;
         objFront.zIndex = LAYERS.objFront;
+        secretLayer.zIndex = LAYERS.secrets;
         playerLayer.zIndex = LAYERS.player;
         weatherLayer.zIndex = LAYERS.weather;
         fogLayer.zIndex = LAYERS.fog;
@@ -269,6 +274,7 @@ const PixiStage = ({
       bgAnimRef.current = bgAnim;
       objBehindRef.current = objBehind;
       objFrontRef.current = objFront;
+      secretLayerRef.current = secretLayer;
 
       // Parallax layer (behind everything)
       const parallaxLayer = new Container();
@@ -280,6 +286,7 @@ const PixiStage = ({
       app.stage.addChild(playerLayer);
       app.stage.addChild(projLayer); // projectiles above player
       app.stage.addChild(objFront); // objects above player
+      app.stage.addChild(secretLayer); // secrets overlay
       // Weather renders below fog
       app.stage.addChild(weatherLayer);
       // Fog overlays objects and weather (Variant 1)
@@ -1084,6 +1091,71 @@ const PixiStage = ({
       }
     }
   }, [tileMapData, objectMapData, objectTextureIndices, registryItems, mapWidth, mapHeight, tileSize]);
+
+  // ===== SECRETS RENDERING (separate useEffect - triggers on secretMapData/revealedSecrets change) =====
+  useEffect(() => {
+    const app = appRef.current;
+    const secretLayer = secretLayerRef.current;
+
+    const secretsInData = secretMapData?.filter(s => s !== null).length || 0;
+    console.log('[DEBUG] Secrets render START (INDEPENDENT):', {
+      hasApp: !!app,
+      hasSecretLayer: !!secretLayer,
+      secretsInData,
+      mapSize: mapWidth * mapHeight,
+      revealedCount: revealedSecrets?.length
+    });
+
+    if (!app || !secretLayer || !secretMapData || secretMapData.length === 0) {
+      console.log('[DEBUG] Secrets render SKIPPED - waiting for init or no data');
+      return;
+    }
+
+    secretLayer.removeChildren();
+
+    let overlaysCreated = 0;
+    for (let i = 0; i < mapWidth * mapHeight; i++) {
+      const secretId = secretMapData[i];
+      if (!secretId) continue;
+
+      const def = registryItems.find((r) => r.id === secretId);
+      if (!def || def.type !== 'secret') {
+        if (overlaysCreated < 3) {
+          console.log('[DEBUG] Secret def issue:', { secretId, foundDef: !!def, defType: def?.type });
+        }
+        continue;
+      }
+
+      // Check if this secret has been revealed
+      const isRevealed = revealedSecrets && revealedSecrets.includes(i);
+      const isAboveSecret = def.subtype === 'above';
+
+      // AboveSecret: hide filter when revealed
+      // BelowSecret: always show filter (never hide)
+      if (isAboveSecret && isRevealed) continue;
+
+      // Create dark overlay sprite using Graphics (PixiJS v8 API with proper chaining)
+      // Using dark semi-transparent overlay
+      const overlay = new Graphics()
+        .rect(0, 0, tileSize, tileSize)
+        .fill({ color: 0x000000, alpha: 0.65 });
+
+      const x = (i % mapWidth) * tileSize;
+      const y = Math.floor(i / mapWidth) * tileSize;
+      overlay.x = x;
+      overlay.y = y;
+
+      secretLayer.addChild(overlay);
+      overlaysCreated++;
+    }
+
+    console.log('[DEBUG] Secrets render COMPLETE (INDEPENDENT):', {
+      overlaysCreated,
+      layerZIndex: secretLayer.zIndex,
+      layerChildrenCount: secretLayer.children.length
+    });
+  }, [secretMapData, revealedSecrets, registryItems, mapWidth, mapHeight, tileSize]);
+
 
   // Weather systems lifecycle and intensity updates
   useEffect(() => {

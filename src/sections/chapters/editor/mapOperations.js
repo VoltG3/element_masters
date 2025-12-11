@@ -6,6 +6,7 @@ export const saveMap = async ({
     mapHeight,
     tileMapData,
     objectMapData,
+    secretMapData,
     mapName,
     creatorName,
     createdAt,
@@ -51,7 +52,8 @@ export const saveMap = async ({
         },
         layers: [
             { type: "tile", name: "background", data: tileMapData },
-            { type: "object", name: "entities", data: objectMapData }
+            { type: "object", name: "entities", data: objectMapData },
+            { type: "secret", name: "secrets", data: secretMapData || Array(mapWidth * mapHeight).fill(null) }
         ]
     };
 
@@ -92,7 +94,8 @@ export const loadMap = ({
     setBackgroundParallaxFactor,
     setSelectedBackgroundMusic,
     setTileMapData,
-    setObjectMapData
+    setObjectMapData,
+    setSecretMapData
 }) => {
     const fileReader = new FileReader();
     const file = event.target.files[0];
@@ -132,8 +135,14 @@ export const loadMap = ({
 
                     const bgLayer = loaded.layers.find(l => l.name === 'background');
                     const objLayer = loaded.layers.find(l => l.name === 'entities');
+                    const secretLayer = loaded.layers.find(l => l.name === 'secrets');
                     if (bgLayer) setTileMapData(bgLayer.data);
                     if (objLayer) setObjectMapData(objLayer.data);
+                    if (secretLayer) {
+                        setSecretMapData(secretLayer.data);
+                    } else {
+                        setSecretMapData(Array(loaded.meta.width * loaded.meta.height).fill(null));
+                    }
 
                     errorHandler.info('Map loaded successfully', {
                         component: 'Editor',
@@ -173,16 +182,17 @@ export const loadMap = ({
     }
 };
 
-export const clearMap = ({ mapWidth, mapHeight, setTileMapData, setObjectMapData }) => {
+export const clearMap = ({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData }) => {
     if (window.confirm("Are you sure you want to clear the map?")) {
         const size = mapWidth * mapHeight;
         setTileMapData(Array(size).fill(null));
         setObjectMapData(Array(size).fill(null));
+        setSecretMapData(Array(size).fill(null));
     }
 };
 
-export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setMapHeight, setTileMapData, setObjectMapData }) => {
-    const { mapWidth: oldW, mapHeight: oldH, tileMapData: oldTiles, objectMapData: oldObjs } = stateRef.current;
+export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setMapHeight, setTileMapData, setObjectMapData, setSecretMapData }) => {
+    const { mapWidth: oldW, mapHeight: oldH, tileMapData: oldTiles, objectMapData: oldObjs, secretMapData: oldSecrets } = stateRef.current;
     if (newWidth < 1 || newHeight < 1) return;
     if (newWidth === oldW && newHeight === oldH) return;
 
@@ -200,4 +210,5 @@ export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setM
     setMapHeight(newHeight);
     setTileMapData(resizeArray(oldTiles));
     setObjectMapData(resizeArray(oldObjs));
+    setSecretMapData(resizeArray(oldSecrets || []));
 };

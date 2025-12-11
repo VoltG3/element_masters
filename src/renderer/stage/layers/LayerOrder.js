@@ -12,6 +12,7 @@ export const LAYERS = Object.freeze({
   liquidFx: 90,
   tiles: 100,
   tilesAnim: 110,
+  secrets: 115,
   overlay: 120,
 });
 
