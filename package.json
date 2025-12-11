@@ -1,4 +1,5 @@
 {
+  "homepage": "https://VoltG3.github.io/element_master",
   "name": "element_masters",
   "version": "0.1.0",
   "private": true,
@@ -26,7 +27,9 @@
     "start:cra": "react-scripts start",
     "build:cra": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "yarn build",
+    "deploy": "gh-pages -d build"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
