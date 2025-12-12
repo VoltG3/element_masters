@@ -139,10 +139,19 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         }
     };
 
+    // Track revealed secrets locally to prevent duplicate reveals before state updates
+    const localRevealedRef = useRef(new Set());
+
     // Secrets detection wrapper
     const checkSecretsWrapper = (currentX, currentY, width, height, mapWidth, mapHeight) => {
         try {
             if (!secretData || !onRevealSecret) return;
+
+            // Merge prop revealedSecrets with local tracking
+            const mergedRevealed = [
+                ...(revealedSecrets || []),
+                ...Array.from(localRevealedRef.current)
+            ];
 
             const indicesToReveal = checkSecretDetection({
                 currentX,
@@ -150,7 +159,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                 width,
                 height,
                 secretMapData: secretData,
-                revealedSecrets,
+                revealedSecrets: mergedRevealed,
                 mapWidth,
                 mapHeight,
                 registryItems,
@@ -158,6 +167,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             });
 
             if (indicesToReveal && indicesToReveal.length > 0) {
+                // Add to local tracking immediately (before state updates)
+                indicesToReveal.forEach(idx => localRevealedRef.current.add(idx));
                 onRevealSecret(indicesToReveal);
             }
         } catch (error) {

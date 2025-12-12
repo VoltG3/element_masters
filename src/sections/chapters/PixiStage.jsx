@@ -811,6 +811,8 @@ const PixiStage = ({
       };
 
       // Background tiles (skip liquids here; they will be rendered by LiquidRegionSystem)
+      let secretLayerCount = 0;
+      let normalLayerCount = 0;
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
         if (!id) continue;
@@ -830,9 +832,13 @@ const PixiStage = ({
         if (isInOpenArea) {
           // open.area: always render on secret layer with filter
           renderOnSecretLayer = true;
+          secretLayerCount++;
         } else if (isInSecretArea && isSecretRevealed) {
           // secret.area: only render on secret layer with filter AFTER revealed
           renderOnSecretLayer = true;
+          secretLayerCount++;
+        } else {
+          normalLayerCount++;
         }
 
         let sprite;
@@ -876,6 +882,12 @@ const PixiStage = ({
           bgRef.current.addChild(sprite);
         }
       }
+
+      console.log('[RENDER] Tiles rendering complete:', {
+        secretLayerTiles: secretLayerCount,
+        normalLayerTiles: normalLayerCount,
+        revealedSecretsCount: revealedSecrets?.length || 0
+      });
 
       // Objects (non-player)
       for (let i = 0; i < mapWidth * mapHeight; i++) {
@@ -961,6 +973,7 @@ const PixiStage = ({
 
   // Rebuild layers when map data changes
   useEffect(() => {
+    console.log('[REBUILD] Layers rebuilding triggered, revealedSecrets:', revealedSecrets?.length || 0, revealedSecrets);
     const app = appRef.current;
     if (!app) return;
     // Rebuild background and object layers
@@ -1041,12 +1054,38 @@ const PixiStage = ({
       };
 
       // Background tiles (skip liquids; handled by LiquidRegionSystem)
+      const secretLayers = secretLayerRef.current;
+      secretLayers?.below?.removeChildren();
+      secretLayers?.above?.removeChildren();
+
+      let secretLayerCount = 0;
+      let normalLayerCount = 0;
       for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
         if (!id) continue;
         const def = registryItems.find((r) => r.id === id);
         if (!def) continue;
         if (isWaterDef(def) || isLavaDef(def)) continue;
+
+        // Check if this tile is in a secret zone
+        const secretId = secretMapData?.[i];
+        const secretDef = secretId ? registryItems.find((r) => r.id === secretId) : null;
+        const secretSubtype = secretDef?.subtype;
+        const isInOpenArea = secretSubtype === 'open' || secretSubtype === 'below';
+        const isInSecretArea = secretSubtype === 'secret' || secretSubtype === 'above';
+        const isSecretRevealed = revealedSecrets && revealedSecrets.includes(i);
+
+        // Determine if this tile should be rendered with filter on secret layer
+        let renderOnSecretLayer = false;
+        if (isInOpenArea) {
+          renderOnSecretLayer = true;
+          secretLayerCount++;
+        } else if (isInSecretArea && isSecretRevealed) {
+          renderOnSecretLayer = true;
+          secretLayerCount++;
+        } else {
+          normalLayerCount++;
+        }
 
         let sprite;
         let frames = null;
@@ -1068,8 +1107,25 @@ const PixiStage = ({
         sprite.y = y;
         sprite.width = tileSize;
         sprite.height = tileSize;
-        bgRef.current.addChild(sprite);
+
+        // Apply filter if rendering on secret layer
+        if (renderOnSecretLayer) {
+          sprite.alpha = 0.4;
+          if (secretLayers?.below) {
+            secretLayers.below.addChild(sprite);
+          } else {
+            bgRef.current.addChild(sprite);
+          }
+        } else {
+          bgRef.current.addChild(sprite);
+        }
       }
+
+      console.log('[RENDER-USEEFFECT] Tiles rendering complete:', {
+        secretLayerTiles: secretLayerCount,
+        normalLayerTiles: normalLayerCount,
+        revealedSecretsCount: revealedSecrets?.length || 0
+      });
 
       // Rebuild liquid regions for new tile data
       try {
