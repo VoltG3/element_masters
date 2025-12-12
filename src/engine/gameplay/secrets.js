@@ -98,10 +98,11 @@ export function checkSecretDetection({
       const def = registryItems.find(r => r.id === secretId);
       if (!def || def.type !== 'secret') continue;
 
-      // Only AboveSecret can be revealed
-      if (def.subtype !== 'above' || !def.revealOnEnter) continue;
+      // Only secret.area (subtype: 'secret' or old name 'above') can be revealed
+      const isSecretArea = def.subtype === 'secret' || def.subtype === 'above';
+      if (!isSecretArea || !def.revealOnEnter) continue;
 
-      // Found an unrevealed AboveSecret that player is touching!
+      // Found an unrevealed secret.area that player is touching!
       // Flood fill to find all connected tiles
       const connectedIndices = floodFillSecretZone(idx, secretMapData, mapWidth, mapHeight, registryItems);
 

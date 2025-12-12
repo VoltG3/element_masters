@@ -245,7 +245,8 @@ const PixiStage = ({
       const bgAnim = new Container();
       const objBehind = new Container();
       const objFront = new Container();
-      const secretLayer = new Container();
+      const secretBelowLayer = new Container();
+      const secretAboveLayer = new Container();
       const playerLayer = new Container();
       const weatherLayer = new Container();
       const liquidLayer = new Container();
@@ -260,7 +261,8 @@ const PixiStage = ({
         bgAnim.zIndex = LAYERS.tilesAnim;
         objBehind.zIndex = LAYERS.objBehind;
         objFront.zIndex = LAYERS.objFront;
-        secretLayer.zIndex = LAYERS.secrets;
+        secretBelowLayer.zIndex = LAYERS.secretsBelow;
+        secretAboveLayer.zIndex = LAYERS.secretsAbove;
         playerLayer.zIndex = LAYERS.player;
         weatherLayer.zIndex = LAYERS.weather;
         fogLayer.zIndex = LAYERS.fog;
@@ -274,7 +276,7 @@ const PixiStage = ({
       bgAnimRef.current = bgAnim;
       objBehindRef.current = objBehind;
       objFrontRef.current = objFront;
-      secretLayerRef.current = secretLayer;
+      secretLayerRef.current = { below: secretBelowLayer, above: secretAboveLayer };
 
       // Parallax layer (behind everything)
       const parallaxLayer = new Container();
@@ -283,10 +285,11 @@ const PixiStage = ({
       app.stage.addChild(parallaxLayer);
       // Objects and weather first
       app.stage.addChild(objBehind); // objects behind player
+      app.stage.addChild(secretBelowLayer); // secret overlays below player
       app.stage.addChild(playerLayer);
       app.stage.addChild(projLayer); // projectiles above player
       app.stage.addChild(objFront); // objects above player
-      app.stage.addChild(secretLayer); // secrets overlay
+      app.stage.addChild(secretAboveLayer); // secret overlays above player
       // Weather renders below fog
       app.stage.addChild(weatherLayer);
       // Fog overlays objects and weather (Variant 1)
@@ -714,12 +717,15 @@ const PixiStage = ({
 
     const rebuildLayers = () => {
       const app = appRef.current;
+      const secretLayers = secretLayerRef.current;
       if (!app || !bgRef.current || !objBehindRef.current || !objFrontRef.current) return;
 
       // Clear previous
       bgRef.current.removeChildren();
       objBehindRef.current.removeChildren();
       objFrontRef.current.removeChildren();
+      secretLayers?.below?.removeChildren();
+      secretLayers?.above?.removeChildren();
 
       // Helper: resolve registry item by id
       const getDef = (id) => registryItems.find((r) => r.id === id);
@@ -811,6 +817,24 @@ const PixiStage = ({
         const def = getRegItem(id);
         if (!def) continue;
 
+        // Check if this tile is in a secret zone
+        const secretId = secretMapData?.[i];
+        const secretDef = secretId ? getDef(secretId) : null;
+        const secretSubtype = secretDef?.subtype;
+        const isInOpenArea = secretSubtype === 'open' || secretSubtype === 'below';
+        const isInSecretArea = secretSubtype === 'secret' || secretSubtype === 'above';
+        const isSecretRevealed = revealedSecrets && revealedSecrets.includes(i);
+
+        // Determine if this tile should be rendered with filter on secret layer
+        let renderOnSecretLayer = false;
+        if (isInOpenArea) {
+          // open.area: always render on secret layer with filter
+          renderOnSecretLayer = true;
+        } else if (isInSecretArea && isSecretRevealed) {
+          // secret.area: only render on secret layer with filter AFTER revealed
+          renderOnSecretLayer = true;
+        }
+
         let sprite;
         let frames = null;
         if (isWaterDef(def) || isLavaDef(def)) {
@@ -837,7 +861,20 @@ const PixiStage = ({
         sprite.y = y;
         sprite.width = tileSize;
         sprite.height = tileSize;
-        bgRef.current.addChild(sprite);
+
+        // Apply filter if rendering on secret layer
+        if (renderOnSecretLayer) {
+          sprite.alpha = 0.4; // darken the tile
+          // Add to secret layer (below player always for tiles)
+          if (secretLayers?.below) {
+            secretLayers.below.addChild(sprite);
+          } else {
+            bgRef.current.addChild(sprite);
+          }
+        } else {
+          // Normal rendering on tiles layer
+          bgRef.current.addChild(sprite);
+        }
       }
 
       // Objects (non-player)
@@ -1090,71 +1127,10 @@ const PixiStage = ({
         }
       }
     }
-  }, [tileMapData, objectMapData, objectTextureIndices, registryItems, mapWidth, mapHeight, tileSize]);
+  }, [tileMapData, objectMapData, objectTextureIndices, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets]);
 
-  // ===== SECRETS RENDERING (separate useEffect - triggers on secretMapData/revealedSecrets change) =====
-  useEffect(() => {
-    const app = appRef.current;
-    const secretLayer = secretLayerRef.current;
-
-    const secretsInData = secretMapData?.filter(s => s !== null).length || 0;
-    console.log('[DEBUG] Secrets render START (INDEPENDENT):', {
-      hasApp: !!app,
-      hasSecretLayer: !!secretLayer,
-      secretsInData,
-      mapSize: mapWidth * mapHeight,
-      revealedCount: revealedSecrets?.length
-    });
-
-    if (!app || !secretLayer || !secretMapData || secretMapData.length === 0) {
-      console.log('[DEBUG] Secrets render SKIPPED - waiting for init or no data');
-      return;
-    }
-
-    secretLayer.removeChildren();
-
-    let overlaysCreated = 0;
-    for (let i = 0; i < mapWidth * mapHeight; i++) {
-      const secretId = secretMapData[i];
-      if (!secretId) continue;
-
-      const def = registryItems.find((r) => r.id === secretId);
-      if (!def || def.type !== 'secret') {
-        if (overlaysCreated < 3) {
-          console.log('[DEBUG] Secret def issue:', { secretId, foundDef: !!def, defType: def?.type });
-        }
-        continue;
-      }
-
-      // Check if this secret has been revealed
-      const isRevealed = revealedSecrets && revealedSecrets.includes(i);
-      const isAboveSecret = def.subtype === 'above';
-
-      // AboveSecret: hide filter when revealed
-      // BelowSecret: always show filter (never hide)
-      if (isAboveSecret && isRevealed) continue;
-
-      // Create dark overlay sprite using Graphics (PixiJS v8 API with proper chaining)
-      // Using dark semi-transparent overlay
-      const overlay = new Graphics()
-        .rect(0, 0, tileSize, tileSize)
-        .fill({ color: 0x000000, alpha: 0.65 });
-
-      const x = (i % mapWidth) * tileSize;
-      const y = Math.floor(i / mapWidth) * tileSize;
-      overlay.x = x;
-      overlay.y = y;
-
-      secretLayer.addChild(overlay);
-      overlaysCreated++;
-    }
-
-    console.log('[DEBUG] Secrets render COMPLETE (INDEPENDENT):', {
-      overlaysCreated,
-      layerZIndex: secretLayer.zIndex,
-      layerChildrenCount: secretLayer.children.length
-    });
-  }, [secretMapData, revealedSecrets, registryItems, mapWidth, mapHeight, tileSize]);
+  // Note: Secrets rendering is now handled directly in rebuildLayers
+  // Tiles in secret zones are rendered with alpha filter on secretsBelow layer
 
 
   // Weather systems lifecycle and intensity updates
