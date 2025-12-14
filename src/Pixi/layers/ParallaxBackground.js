@@ -25,24 +25,35 @@ export class ParallaxBackground {
 
     if (url) {
       const tex = this.cache?.get(url) || Texture.from(url);
-      if (tex?.baseTexture) tex.baseTexture.wrapMode = WRAP_MODES.REPEAT;
 
-      const sprite = new TilingSprite({ texture: tex, width: worldWidth, height: worldHeight });
-      // Fit the height exactly, preserve horizontal scale (tileScale.x = 1)
-      const texH = (tex.height || tex.baseTexture?.height || 1);
-      const scaleY = worldHeight / texH;
-      sprite.tileScale.set(1, scaleY);
-      sprite.x = 0;
-      sprite.y = 0;
-      sprite.alpha = 0.9;
-      try {
-        sprite.filters = [new BlurFilter({ strength: 1.2, quality: 2 })];
-      } catch {}
-      layer.addChild(sprite);
-      this.sprite = sprite;
-      // initial scroll
-      this.setScroll(0, factor);
-    } else {
+      // Validate texture is loaded and has dimensions
+      if (!tex || (!tex.height && !tex.baseTexture?.height)) {
+        console.warn('ParallaxBackground: invalid texture, falling back to solid color');
+        // Fall through to solid color rendering below
+      } else {
+        if (tex?.baseTexture) tex.baseTexture.wrapMode = WRAP_MODES.REPEAT;
+
+        const sprite = new TilingSprite({ texture: tex, width: worldWidth, height: worldHeight });
+        // Fit the height exactly, preserve horizontal scale (tileScale.x = 1)
+        const texH = (tex.height || tex.baseTexture?.height || 1);
+        const scaleY = worldHeight / texH;
+        sprite.tileScale.set(1, scaleY);
+        sprite.x = 0;
+        sprite.y = 0;
+        sprite.alpha = 0.9;
+        try {
+          sprite.filters = [new BlurFilter({ strength: 1.2, quality: 2 })];
+        } catch {}
+        layer.addChild(sprite);
+        this.sprite = sprite;
+        // initial scroll
+        this.setScroll(0, factor);
+        return; // Exit early on success
+      }
+    }
+
+    // Fallback: render solid color (if no url or texture invalid)
+    {
       const hex = (typeof color === 'string' && color.startsWith('#'))
         ? parseInt(color.slice(1), 16)
         : (Number(color) || 0x87CEEB);

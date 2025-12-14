@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getRegistry, findItemById } from '../../engine/registry';
+import { getRegistry, findItemById } from '../../../engine/registry';
 import PixiStage from './PixiStage';
-import { useGameEngine } from '../../utilities/useGameEngine';
-import GameHeader from './game/GameHeader';
-import GameTerminal from './game/GameTerminal';
-import GameSettings from './game/GameSettings';
-import BackgroundMusicPlayer from '../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, setObjectTextureIndex, revealSecretZone, resetGame } from '../../store/slices/gameSlice';
-import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../store/slices/uiSlice';
-import { setSoundEnabled } from '../../store/slices/settingsSlice';
-import errorHandler from '../../services/errorHandler';
+import { useGameEngine } from '../../../utilities/useGameEngine';
+import GameHeader from './GameHeader';
+import GameTerminal from './GameTerminal';
+import GameSettings from './GameSettings';
+import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
+import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, setObjectTextureIndex, revealSecretZone, resetGame } from '../../../store/slices/gameSlice';
+import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
+import { setSoundEnabled } from '../../../store/slices/settingsSlice';
+import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
 
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
-import map1 from '../../assets/maps/Temp_01.json';
-import map2 from '../../assets/maps/Temp_02.json';
-import map3 from '../../assets/maps/Temp_03.json';
-import map4 from '../../assets/maps/Temp_04.json';
-import map5 from '../../assets/maps/Temp_05.json';
-import map6 from '../../assets/maps/Temp_06.json';
-import map7 from '../../assets/maps/Temp_07.json';
-import map8 from '../../assets/maps/Temp_08.json';
+import map1 from '../../../assets/maps/Temp_01.json';
+import map2 from '../../../assets/maps/Temp_02.json';
+import map3 from '../../../assets/maps/Temp_03.json';
+import map4 from '../../../assets/maps/Temp_04.json';
+import map5 from '../../../assets/maps/Temp_05.json';
+import map6 from '../../../assets/maps/Temp_06.json';
+import map7 from '../../../assets/maps/Temp_07.json';
+import map8 from '../../../assets/maps/Temp_08.json';
 // Simulate file list from folder
 const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6, map7, map8];
 

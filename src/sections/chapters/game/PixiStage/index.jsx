@@ -1,0 +1,607 @@
+import React, { useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
+import { Application, Container, Graphics, Assets } from 'pixi.js';
+import { TextureCache } from '../../../../Pixi/TextureCache';
+import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder } from '../../../../Pixi/effects/weather';
+import { WaterSplashFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
+import HealthBar from '../../../../Pixi/ui/HealthBar';
+import LAYERS from '../../../../renderer/stage/layers/LayerOrder';
+import { clearTextureCache, createBackgroundResolver, createSolidChecker } from './helpers';
+import { createWaterFrames, createLavaFrames } from './liquidRendering';
+import { createParallaxManager } from './parallaxManager';
+import { createPlayerContainer, updatePlayerSprite } from './playerManager';
+import { syncProjectiles, cleanupProjectiles } from './projectileManager';
+import { rebuildLayers } from './layerBuilder';
+
+// Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
+Assets.setPreferences?.({ skipCacheIdWarning: true });
+
+const PixiStage = ({
+  mapWidth,
+  mapHeight,
+  tileSize = 32,
+  tileMapData = [],
+  objectMapData = [],
+  secretMapData = [],
+  revealedSecrets = [],
+  objectTextureIndices = {},
+  registryItems = [],
+  playerState,
+  playerVisuals,
+  backgroundImage,
+  backgroundColor,
+  backgroundParallaxFactor = 0.3,
+  cameraScrollX = 0,
+  weatherRain = 0,
+  weatherSnow = 0,
+  weatherClouds = 0,
+  projectiles = [],
+  healthBarEnabled = true,
+  weatherFog = 0,
+  weatherThunder = 0,
+  oxygenBarEnabled = true,
+  lavaBarEnabled = true,
+  waterSplashesEnabled = true,
+  lavaEmbersEnabled = true,
+}) => {
+  const mountRef = useRef(null);
+  const appRef = useRef(null);
+  const parallaxRef = useRef(null);
+  const parallaxManagerRef = useRef(null);
+  const cameraScrollRef = useRef(0);
+  const parallaxFactorRef = useRef(Number(backgroundParallaxFactor) || 0.3);
+  const bgRef = useRef(null);
+  const bgAnimRef = useRef(null);
+  const objBehindRef = useRef(null);
+  const objFrontRef = useRef(null);
+  const secretLayerRef = useRef(null);
+  const playerRef = useRef(null);
+  const playerSpriteRefs = useRef({ def: null, hit: null });
+  const playerHealthBarRef = useRef(null);
+  const playerStateRef = useRef(null);
+  const weatherLayerRef = useRef(null);
+  const liquidLayerRef = useRef(null);
+  const liquidSystemRef = useRef(null);
+  const fogLayerRef = useRef(null);
+  const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null });
+  const projectilesLayerRef = useRef(null);
+  const projectileSpritesRef = useRef(new Map());
+  const projectilesPropRef = useRef([]);
+  const pixiTextureCacheRef = useRef(null);
+  const hbEnabledRef = useRef(healthBarEnabled !== false);
+  const oxyEnabledRef = useRef(oxygenBarEnabled !== false);
+  const lavaEnabledRef = useRef(lavaBarEnabled !== false);
+  const overlayLayerRef = useRef(null);
+  const underwaterRef = useRef({ g: null, time: 0 });
+  const waterFramesRef = useRef(null);
+  const lavaFramesRef = useRef(null);
+  const overlayHBRef = useRef(null);
+  const oxygenBarRef = useRef(null);
+  const lavaBarRef = useRef(null);
+  const waterFxRef = useRef(null);
+  const lavaEmbersRef = useRef(null);
+  const lavaSteamRef = useRef(null);
+  const splashesEnabledRef = useRef(waterSplashesEnabled !== false);
+  const embersEnabledRef = useRef(lavaEmbersEnabled !== false);
+  const waterStateRef = useRef({ inWater: false, headUnder: false, vy: 0 });
+
+  // Keep latest state in refs for ticker
+  useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
+  useEffect(() => { projectilesPropRef.current = Array.isArray(projectiles) ? projectiles : []; }, [projectiles]);
+  useEffect(() => { hbEnabledRef.current = healthBarEnabled !== false; }, [healthBarEnabled]);
+  useEffect(() => { oxyEnabledRef.current = oxygenBarEnabled !== false; }, [oxygenBarEnabled]);
+  useEffect(() => { lavaEnabledRef.current = lavaBarEnabled !== false; }, [lavaBarEnabled]);
+  useEffect(() => { splashesEnabledRef.current = waterSplashesEnabled !== false; }, [waterSplashesEnabled]);
+  useEffect(() => { embersEnabledRef.current = lavaEmbersEnabled !== false; }, [lavaEmbersEnabled]);
+  useEffect(() => { cameraScrollRef.current = Number(cameraScrollX) || 0; }, [cameraScrollX]);
+  useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
+
+  // Background resolver and solid checker (memoized per map)
+  const resolveBackgroundUrl = useRef(createBackgroundResolver()).current;
+  const isSolidAt = useRef(createSolidChecker(mapWidth, mapHeight, tileSize, tileMapData, registryItems)).current;
+
+  // Rebuild parallax helper
+  const rebuildParallax = () => {
+    const layer = parallaxRef.current;
+    if (!layer) return;
+    if (!pixiTextureCacheRef.current) pixiTextureCacheRef.current = new TextureCache();
+    if (!parallaxManagerRef.current) {
+      parallaxManagerRef.current = createParallaxManager(layer, pixiTextureCacheRef.current);
+    }
+    parallaxManagerRef.current.build({
+      worldWidth: mapWidth * tileSize,
+      worldHeight: mapHeight * tileSize,
+      url: backgroundImage,
+      color: backgroundColor,
+      factor: parallaxFactorRef.current || 0.3,
+      resolveBackgroundUrl
+    });
+  };
+
+  // Initialize Application
+  useEffect(() => {
+    let destroyed = false;
+
+    const init = async () => {
+      const app = new Application();
+      await app.init({
+        width: mapWidth * tileSize,
+        height: mapHeight * tileSize,
+        backgroundAlpha: 0,
+        antialias: false,
+        autoDensity: true,
+      });
+      if (destroyed) { app.destroy(true); return; }
+
+      appRef.current = app;
+      app.stage.sortableChildren = true;
+
+      // Create layers
+      const bg = new Container();
+      const bgAnim = new Container();
+      const objBehind = new Container();
+      const objFront = new Container();
+      const secretBelowLayer = new Container();
+      const secretAboveLayer = new Container();
+      const playerLayer = new Container();
+      const weatherLayer = new Container();
+      const liquidLayer = new Container();
+      const liquidFxLayer = new Container();
+      const fogLayer = new Container();
+      const projLayer = new Container();
+      const overlayLayer = new Container();
+
+      // Assign zIndex
+      const parallaxLayer = new Container();
+      parallaxLayer.zIndex = LAYERS.parallax;
+      bg.zIndex = LAYERS.tiles;
+      bgAnim.zIndex = LAYERS.tilesAnim;
+      objBehind.zIndex = LAYERS.objBehind;
+      objFront.zIndex = LAYERS.objFront;
+      secretBelowLayer.zIndex = LAYERS.secretsBelow;
+      secretAboveLayer.zIndex = LAYERS.secretsAbove;
+      playerLayer.zIndex = LAYERS.player;
+      weatherLayer.zIndex = LAYERS.weather;
+      fogLayer.zIndex = LAYERS.fog;
+      liquidLayer.zIndex = LAYERS.liquids;
+      liquidFxLayer.zIndex = LAYERS.liquidFx;
+      projLayer.zIndex = LAYERS.projectiles;
+      overlayLayer.zIndex = LAYERS.overlay;
+
+      bgRef.current = bg;
+      bgAnimRef.current = bgAnim;
+      objBehindRef.current = objBehind;
+      objFrontRef.current = objFront;
+      secretLayerRef.current = { below: secretBelowLayer, above: secretAboveLayer };
+      weatherLayerRef.current = weatherLayer;
+      liquidLayerRef.current = liquidLayer;
+      fogLayerRef.current = fogLayer;
+      projectilesLayerRef.current = projLayer;
+      overlayLayerRef.current = overlayLayer;
+      parallaxRef.current = parallaxLayer;
+
+      // Add all layers to stage
+      app.stage.addChild(parallaxLayer, objBehind, secretBelowLayer, playerLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, bg, bgAnim, overlayLayer);
+
+      // Preload textures to avoid Assets cache warnings and ensure textures are ready
+      try {
+        const urlSet = new Set();
+        const addUrl = (u) => { if (typeof u === 'string' && u.length) urlSet.add(u); };
+        registryItems.forEach((def) => {
+          addUrl(def?.texture);
+          if (Array.isArray(def?.textures)) def.textures.forEach(addUrl);
+        });
+        if (playerVisuals) {
+          addUrl(playerVisuals.texture);
+          if (Array.isArray(playerVisuals.textures)) playerVisuals.textures.forEach(addUrl);
+        }
+        const bgUrl = resolveBackgroundUrl(backgroundImage);
+        if (bgUrl) addUrl(bgUrl);
+        const urls = Array.from(urlSet);
+        if (urls.length) {
+          console.log('[PixiStage] Preloading', urls.length, 'textures...');
+          await Assets.load(urls);
+          console.log('[PixiStage] Textures preloaded successfully');
+        }
+      } catch (e) {
+        console.warn('Pixi Assets preload encountered an issue (continuing):', e);
+      }
+
+      // Create player
+      const playerComponents = createPlayerContainer(playerVisuals, registryItems, playerState, tileSize);
+      playerLayer.addChild(playerComponents.container);
+      playerRef.current = playerComponents.container;
+      playerSpriteRefs.current = playerComponents.sprites;
+      playerHealthBarRef.current = playerComponents.healthBar;
+
+      // Mount canvas
+      if (mountRef.current) {
+        mountRef.current.innerHTML = '';
+        mountRef.current.appendChild(app.canvas);
+      }
+
+      // Build underwater overlay
+      const g = new Graphics();
+      overlayLayer.addChild(g);
+      underwaterRef.current.g = g;
+      const W = mapWidth * tileSize;
+      const H = mapHeight * tileSize;
+      g.clear();
+      g.beginFill(0x1d4875, 1);
+      g.drawRect(0, 0, W, H);
+      g.endFill();
+      g.alpha = 0;
+      g.visible = false;
+
+      // Build overlay bars
+      const hbOverlay = new HealthBar({ width: (playerState?.width) || tileSize, height: 4, offsetX: 0, offsetY: 0 });
+      hbOverlay.visible = false;
+      overlayLayer.addChild(hbOverlay);
+      overlayHBRef.current = hbOverlay;
+
+      const oxyColors = { ok: 0x2ecdf1, warn: 0x3498db, danger: 0x1f6fb2 };
+      const oxyBar = new HealthBar({ width: (playerState?.width) || tileSize, height: 4, offsetX: 0, offsetY: 0, colors: oxyColors });
+      oxyBar.visible = false;
+      overlayLayer.addChild(oxyBar);
+      oxygenBarRef.current = oxyBar;
+
+      const lavaColors = { ok: 0xffa229, warn: 0xff7b00, danger: 0xff3b1a };
+      const lvBar = new HealthBar({ width: (playerState?.width) || tileSize, height: 4, offsetX: 0, offsetY: 0, colors: lavaColors });
+      lvBar.visible = false;
+      overlayLayer.addChild(lvBar);
+      lavaBarRef.current = lvBar;
+
+      // WebGL context loss/restore handlers
+      if (app.canvas) {
+        app.canvas.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault();
+          console.warn('WebGL context lost');
+        });
+        app.canvas.addEventListener('webglcontextrestored', () => {
+          console.info('WebGL context restored');
+          rebuildLayers(
+            { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
+            { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems }
+          );
+          rebuildParallax();
+          try {
+            if (liquidSystemRef.current) liquidSystemRef.current.destroy();
+            liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+            liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+          } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
+          try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
+        });
+      }
+
+      // First draw
+      rebuildLayers(
+        { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
+        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems }
+      );
+
+      // Initialize liquid system
+      try {
+        if (liquidSystemRef.current) liquidSystemRef.current.destroy();
+        liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+        liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+      } catch (e) { console.warn('LiquidRegionSystem init failed:', e); }
+
+      // FX systems
+      try { waterFxRef.current = new WaterSplashFX(liquidFxLayer); } catch {}
+      try { lavaSteamRef.current = new LavaSteamFX(liquidFxLayer); } catch {}
+      try {
+        lavaEmbersRef.current = new LavaEmbers(liquidLayerRef.current, { mapWidth, mapHeight, tileSize }, () => (embersEnabledRef.current ? 100 : 0));
+        lavaEmbersRef.current.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+      } catch {}
+
+      rebuildParallax();
+
+      // Ticker
+      app.ticker.add(() => {
+        const s = playerStateRef.current;
+        if (s && playerRef.current) {
+          updatePlayerSprite(
+            { container: playerRef.current, sprites: playerSpriteRefs.current, healthBar: playerHealthBarRef.current },
+            s,
+            tileSize,
+            hbEnabledRef.current
+          );
+        }
+
+        // Parallax
+        const f = parallaxFactorRef.current;
+        const camX = cameraScrollRef.current || 0;
+        if (parallaxManagerRef.current) {
+          parallaxManagerRef.current.setScroll(camX, f);
+        }
+
+        // Weather
+        const dt = app.ticker?.deltaMS || 16.67;
+        const systems = weatherSystemsRef.current;
+        if (systems.rain) systems.rain.update(dt);
+        if (systems.snow) systems.snow.update(dt);
+        if (systems.clouds) systems.clouds.update(dt);
+        if (systems.fog) systems.fog.update(dt);
+        if (systems.thunder) systems.thunder.update(dt);
+
+        // Liquids
+        try {
+          if (liquidSystemRef.current && s) {
+            liquidSystemRef.current.setPlayerState(s);
+          }
+          liquidSystemRef.current?.update(dt);
+        } catch {}
+
+        // FX
+        try { lavaEmbersRef.current?.update(dt); } catch {}
+        try { waterFxRef.current?.update(dt); } catch {}
+        try { lavaSteamRef.current?.update(dt); } catch {}
+
+        // Underwater overlay
+        try {
+          const u = underwaterRef.current;
+          const sNow = playerStateRef.current || {};
+          if (u && u.g) {
+            const submerged = !!(sNow && sNow.headUnderWater && sNow.liquidType === 'water');
+            if (submerged) {
+              u.time += dt;
+              const pulse = 0.12 + 0.06 * Math.sin(u.time * 0.0025);
+              u.g.visible = true;
+              u.g.alpha = pulse;
+            } else if (u.g.visible) {
+              u.g.alpha *= 0.85;
+              if (u.g.alpha < 0.01) { u.g.alpha = 0; u.g.visible = false; }
+            }
+          }
+
+          // Water splash detection
+          try {
+            const prev = waterStateRef.current || { inWater: false, headUnder: false, vy: 0 };
+            const nowInWater = !!sNow.inWater;
+            const nowLiquid = sNow.liquidType;
+            const centerX = (sNow.x || 0) + (sNow.width || tileSize) * 0.5;
+
+            if (splashesEnabledRef.current && nowLiquid === 'water' && nowInWater && !prev.inWater) {
+              const sy = liquidSystemRef.current?.getSurfaceY?.('water', centerX);
+              const vy = Number(sNow.vy) || 0;
+              const strength = Math.min(3, Math.max(0.2, Math.abs(vy) * 0.12));
+              waterFxRef.current?.trigger({ x: centerX, y: (Number.isFinite(sy) ? sy : (sNow.y || 0)), strength, upward: false });
+              try { liquidSystemRef.current?.addWave?.('water', centerX, Math.min(2.5, 0.6 + Math.abs(vy) * 0.08)); } catch {}
+            }
+            if (splashesEnabledRef.current && prev.inWater && !nowInWater) {
+              const sy = liquidSystemRef.current?.getSurfaceY?.('water', centerX);
+              const vy = Number(sNow.vy) || 0;
+              const strength = Math.min(3, Math.max(0.2, Math.abs(vy) * 0.08));
+              waterFxRef.current?.trigger({ x: centerX, y: (Number.isFinite(sy) ? sy : (sNow.y || 0)), strength, upward: true });
+              try { liquidSystemRef.current?.addWave?.('water', centerX, Math.min(2.0, 0.4 + Math.abs(vy) * 0.05)); } catch {}
+            }
+            waterStateRef.current = { inWater: nowInWater, headUnder: !!sNow.headUnderWater, vy: Number(sNow.vy) || 0 };
+          } catch {}
+        } catch {}
+
+        // Overlay bars
+        try {
+          const s2 = playerStateRef.current || {};
+          const effW = (s2.width || tileSize);
+          const effH = (s2.height || tileSize);
+          const baseYOffset = Math.max(4, Math.floor(effH * 0.12));
+          const baseX = (s2.x || 0);
+          const baseY = (s2.y || 0) - baseYOffset;
+
+          const hbO = overlayHBRef.current;
+          if (hbO) {
+            const enabled = hbEnabledRef.current !== false;
+            const show = enabled && (!!s2.inWater || s2.liquidType === 'lava');
+            hbO.visible = !!show;
+            if (show) {
+              hbO.x = baseX;
+              hbO.y = baseY;
+              hbO.resize(effW, 4);
+              hbO.update(s2.health, (Number(s2.maxHealth) || 100));
+            }
+          }
+
+          let nextBarY = baseY;
+          if (hbO && hbO.visible) nextBarY += 6;
+
+          const oxyBar = oxygenBarRef.current;
+          if (oxyBar) {
+            const enabled = oxyEnabledRef.current !== false;
+            const maxOxy = Math.max(1, Number(s2.maxOxygen) || 100);
+            const curOxy = Math.max(0, Number(s2.oxygen));
+            const show = enabled && ((s2.liquidType === 'water' || s2.inWater) || (curOxy < maxOxy));
+            oxyBar.visible = !!show;
+            if (show) {
+              oxyBar.x = baseX;
+              oxyBar.y = nextBarY;
+              oxyBar.resize(effW, 4);
+              oxyBar.update((Number.isFinite(curOxy) ? curOxy : maxOxy), maxOxy);
+              nextBarY += 6;
+            }
+          }
+
+          const lvBar = lavaBarRef.current;
+          if (lvBar) {
+            const enabled = lavaEnabledRef.current !== false;
+            const maxLv = Math.max(1, Number(s2.maxLavaResist) || 100);
+            const curLv = Math.max(0, Number(s2.lavaResist));
+            const show = enabled && (s2.liquidType === 'lava' || (curLv < maxLv));
+            lvBar.visible = !!show;
+            if (show) {
+              lvBar.x = baseX;
+              lvBar.y = nextBarY;
+              lvBar.resize(effW, 4);
+              lvBar.update((Number.isFinite(curLv) ? curLv : maxLv), maxLv);
+            }
+          }
+        } catch {}
+
+        // Projectiles
+        syncProjectiles(projectilesLayerRef.current, projectileSpritesRef.current, projectilesPropRef.current, registryItems, tileSize);
+      });
+    };
+
+    init();
+
+    return () => {
+      destroyed = true;
+      if (appRef.current) {
+        appRef.current.destroy(true);
+        appRef.current = null;
+      }
+      try { liquidSystemRef.current?.destroy(); } catch {}
+      try { waterFxRef.current?.destroy(); } catch {}
+      try { lavaEmbersRef.current?.destroy(); } catch {}
+      try { lavaSteamRef.current?.destroy(); } catch {}
+      try { parallaxManagerRef.current?.destroy(); } catch {}
+      try { pixiTextureCacheRef.current?.clear?.(); } catch {}
+      try {
+        weatherSystemsRef.current.rain?.destroy();
+        weatherSystemsRef.current.snow?.destroy();
+        weatherSystemsRef.current.fog?.destroy();
+      } catch {}
+      cleanupProjectiles(projectileSpritesRef.current);
+      clearTextureCache();
+    };
+  }, [mapWidth, mapHeight, tileSize, playerVisuals]);
+
+  // Rebuild layers when map data changes
+  useEffect(() => {
+    console.log('[REBUILD] Layers rebuilding triggered, revealedSecrets:', revealedSecrets?.length || 0, revealedSecrets);
+    const app = appRef.current;
+    if (!app) return;
+    if (bgRef.current && objBehindRef.current && objFrontRef.current) {
+      rebuildLayers(
+        { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
+        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems }
+      );
+
+      // Rebuild liquid regions
+      try {
+        if (liquidSystemRef.current) liquidSystemRef.current.destroy();
+        if (liquidLayerRef.current) {
+          liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+          liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+        }
+      } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
+      try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
+    }
+  }, [tileMapData, objectMapData, objectTextureIndices, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets]);
+
+  // Weather systems lifecycle
+  useEffect(() => {
+    const app = appRef.current;
+    const weatherLayer = weatherLayerRef.current;
+    const fogLayer = fogLayerRef.current;
+    if (!app || !weatherLayer || !fogLayer) return;
+
+    const api = {
+      isSolidAt,
+      mapWidth,
+      mapHeight,
+      tileSize,
+      getLiquidSurfaceY: (type, x) => {
+        try { return liquidSystemRef.current?.getSurfaceY?.(type, x); } catch { return null; }
+      },
+      onWaterImpact: ({ x, strength = 0.8 }) => {
+        try {
+          const sy = liquidSystemRef.current?.getSurfaceY?.('water', x);
+          if (Number.isFinite(sy)) waterFxRef.current?.trigger({ x, y: sy, strength: Math.max(0.2, Math.min(2, strength)), upward: false });
+          try { liquidSystemRef.current?.addWave?.('water', x, Math.max(0.2, Math.min(2.2, strength))); } catch {}
+        } catch {}
+      },
+      onLavaImpact: ({ x, y, strength = 0.6 }) => {
+        try {
+          const sy = liquidSystemRef.current?.getSurfaceY?.('lava', x);
+          const yy = Number.isFinite(y) ? y : (Number.isFinite(sy) ? sy : null);
+          if (yy != null) lavaSteamRef.current?.trigger({ x, y: yy, strength });
+        } catch {}
+      }
+    };
+
+    const getRainIntensity = () => Math.max(0, Math.min(100, Number(weatherRain) || 0));
+    const getSnowIntensity = () => Math.max(0, Math.min(100, Number(weatherSnow) || 0));
+    const getCloudsIntensity = () => Math.max(0, Math.min(100, Number(weatherClouds) || 0));
+    const getThunderIntensity = () => Math.max(0, Math.min(100, Number(weatherThunder) || 0));
+
+    // Reset systems
+    try { weatherSystemsRef.current.rain?.destroy(); } catch {}
+    try { weatherSystemsRef.current.snow?.destroy(); } catch {}
+    try { weatherSystemsRef.current.clouds?.destroy(); } catch {}
+    try { weatherSystemsRef.current.fog?.destroy(); } catch {}
+    try { weatherSystemsRef.current.thunder?.destroy(); } catch {}
+    weatherSystemsRef.current.rain = null;
+    weatherSystemsRef.current.snow = null;
+    weatherSystemsRef.current.clouds = null;
+    weatherSystemsRef.current.fog = null;
+    weatherSystemsRef.current.thunder = null;
+
+    // Rain
+    if (getRainIntensity() > 0) {
+      weatherSystemsRef.current.rain = new WeatherRain(weatherLayer, api, getRainIntensity);
+      weatherSystemsRef.current.rain.setIntensity(getRainIntensity());
+    }
+
+    // Snow
+    if (getSnowIntensity() > 0) {
+      weatherSystemsRef.current.snow = new WeatherSnow(weatherLayer, api, getSnowIntensity);
+      weatherSystemsRef.current.snow.setIntensity(getSnowIntensity());
+    }
+
+    // Clouds
+    if (getCloudsIntensity() > 0) {
+      weatherSystemsRef.current.clouds = new WeatherClouds(fogLayer, api, getCloudsIntensity);
+      weatherSystemsRef.current.clouds.setIntensity(getCloudsIntensity());
+    }
+
+    // Fog
+    if (Number(weatherFog) > 0) {
+      weatherSystemsRef.current.fog = new WeatherFog(fogLayer, api, () => Number(weatherFog) || 0);
+      weatherSystemsRef.current.fog.setIntensity(Number(weatherFog) || 0);
+    }
+
+    // Thunder
+    if (getThunderIntensity() > 0) {
+      weatherSystemsRef.current.thunder = new WeatherThunder(fogLayer, api, getThunderIntensity);
+      weatherSystemsRef.current.thunder.setIntensity(getThunderIntensity());
+    }
+  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, mapWidth, mapHeight, tileSize]);
+
+  // Rebuild parallax when props change
+  useEffect(() => {
+    rebuildParallax();
+  }, [backgroundImage, backgroundColor]);
+
+  return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
+};
+
+PixiStage.propTypes = {
+  mapWidth: PropTypes.number.isRequired,
+  mapHeight: PropTypes.number.isRequired,
+  tileSize: PropTypes.number,
+  tileMapData: PropTypes.array,
+  objectMapData: PropTypes.array,
+  secretMapData: PropTypes.array,
+  revealedSecrets: PropTypes.array,
+  objectTextureIndices: PropTypes.object,
+  registryItems: PropTypes.array,
+  playerState: PropTypes.object,
+  playerVisuals: PropTypes.object,
+  backgroundImage: PropTypes.string,
+  backgroundColor: PropTypes.string,
+  backgroundParallaxFactor: PropTypes.number,
+  cameraScrollX: PropTypes.number,
+  weatherRain: PropTypes.number,
+  weatherSnow: PropTypes.number,
+  weatherClouds: PropTypes.number,
+  projectiles: PropTypes.array,
+  healthBarEnabled: PropTypes.bool,
+  weatherFog: PropTypes.number,
+  weatherThunder: PropTypes.number,
+  oxygenBarEnabled: PropTypes.bool,
+  lavaBarEnabled: PropTypes.bool,
+  waterSplashesEnabled: PropTypes.bool,
+  lavaEmbersEnabled: PropTypes.bool,
+};
+
+export default PixiStage;
