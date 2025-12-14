@@ -22,6 +22,23 @@ export default class LiquidRegionSystem {
     this._lavaTex = null;
     this._time = 0;
     this._noiseTex = null;
+    this._playerState = null; // Will be set from PixiStage
+  }
+
+  setPlayerState(playerState) {
+    this._playerState = playerState;
+  }
+
+  _checkPlayerInRegion(region) {
+    if (!this._playerState || !region || !region.node) return false;
+    const p = this._playerState;
+    const px = p.x || 0;
+    const py = p.y || 0;
+    const pw = p.width || 32;
+    const ph = p.height || 32;
+    // Simple AABB check against region bounds
+    const b = region.node.getBounds();
+    return (px + pw > b.x && px < b.x + b.width && py + ph > b.y && py < b.y + b.height);
   }
 
   // Query approximate surface Y (pixel) for a given X within liquid regions of type ('water'|'lava')
@@ -91,12 +108,24 @@ export default class LiquidRegionSystem {
       const drift = r.type === 'lava' ? lavaDrift : waterDrift;
       sprite.tilePosition.x += drift.x * dt;
       sprite.tilePosition.y += drift.y * dt;
-      // Subtle alpha breathing for water
+      // Alpha: normally opaque, but becomes transparent when player is inside!
+      // (We'll detect player position and adjust alpha accordingly)
       if (r.type === 'water') {
-        const pulse = 0.96 + 0.04 * Math.sin(this._time * 0.0012);
-        sprite.alpha = 0.9 * pulse; // around ~0.86..0.94
+        // Check if player is in this water region (simplified check)
+        const playerInRegion = this._checkPlayerInRegion(r);
+        if (playerInRegion) {
+          sprite.alpha = 0.50; // Transparent when player is inside - can see player/items!
+        } else {
+          sprite.alpha = 0.95; // Opaque when player is outside
+        }
       } else {
-        sprite.alpha = 0.98;
+        // Lava
+        const playerInRegion = this._checkPlayerInRegion(r);
+        if (playerInRegion) {
+          sprite.alpha = 0.60; // Transparent when player is inside
+        } else {
+          sprite.alpha = 0.95; // Opaque when player is outside
+        }
       }
 
       // Animate noise overlays to break repetition
@@ -289,58 +318,106 @@ export default class LiquidRegionSystem {
 
   _createWaterTexture(tileSize) {
     const canvas = document.createElement('canvas');
-    canvas.width = tileSize; canvas.height = tileSize;
+    const size = tileSize * 2;
+    canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
-    // base gradient
-    const g = ctx.createLinearGradient(0, 0, 0, tileSize);
-    g.addColorStop(0, '#2a5d8f');
-    g.addColorStop(1, '#174369');
+
+    // Solid BLUE gradient base
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#5ba3d9');     // bright blue top
+    g.addColorStop(0.5, '#3a7fb8');   // medium blue
+    g.addColorStop(1, '#2a5d8f');     // darker blue bottom
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, tileSize, tileSize);
-    // ripples
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = '#8fc0ff';
-    const bands = 3;
-    for (let b = 0; b < bands; b++) {
-      const y = Math.floor((tileSize / bands) * b + (tileSize / bands) * 0.5);
-      ctx.fillRect(0, y, tileSize, Math.max(1, Math.floor(tileSize * 0.06)));
+    ctx.fillRect(0, 0, size, size);
+
+    // Simple noise function for organic look
+    const noise = (x, y, scale) => {
+      const val = Math.sin(x * scale) * Math.cos(y * scale * 1.3) +
+                  Math.sin(x * scale * 2.1 + 1.7) * Math.cos(y * scale * 1.7 + 2.3);
+      return (val + 2) / 4; // 0..1
+    };
+
+    // Add subtle organic pattern with noise (no obvious horizontal lines)
+    const imageData = ctx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const idx = (y * size + x) * 4;
+        const n = noise(x, y, 0.05);
+        // Subtle brightness variation
+        const brightness = 0.95 + n * 0.1;
+        data[idx] = Math.min(255, data[idx] * brightness);     // R
+        data[idx + 1] = Math.min(255, data[idx + 1] * brightness); // G
+        data[idx + 2] = Math.min(255, data[idx + 2] * brightness); // B
+      }
     }
-    // top highlight
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#c9ecff';
-    ctx.fillRect(0, 0, tileSize, Math.max(1, Math.floor(tileSize * 0.12)));
+    ctx.putImageData(imageData, 0, 0);
+
+    // Top shimmer - very subtle
+    ctx.globalAlpha = 0.15;
+    const shimmer = ctx.createLinearGradient(0, 0, 0, size * 0.2);
+    shimmer.addColorStop(0, '#a8d8f0');
+    shimmer.addColorStop(1, 'rgba(168, 216, 240, 0)');
+    ctx.fillStyle = shimmer;
+    ctx.fillRect(0, 0, size, size * 0.2);
+
     return Texture.from(canvas);
   }
 
   _createLavaTexture(tileSize) {
     const canvas = document.createElement('canvas');
-    canvas.width = tileSize; canvas.height = tileSize;
+    const size = tileSize * 2;
+    canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
-    const g = ctx.createLinearGradient(0, 0, 0, tileSize);
-    g.addColorStop(0, '#6b1a07');
-    g.addColorStop(1, '#c43f0f');
+
+    // Solid ORANGE gradient - ember color (#ffa229)!
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#ffb84d');     // bright orange top
+    g.addColorStop(0.5, '#ffa229');   // EMBER ORANGE - main color
+    g.addColorStop(1, '#d94f14');     // darker orange bottom
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, tileSize, tileSize);
-    // veins
-    ctx.globalAlpha = 0.3;
-    for (let b = 0; b < 3; b++) {
-      const y = Math.floor((tileSize / 3) * b + (tileSize / 3) * 0.5);
-      const h = Math.max(1, Math.floor(tileSize * 0.07));
-      const grad = ctx.createLinearGradient(0, y, 0, y + h);
-      grad.addColorStop(0, '#ffed8a');
-      grad.addColorStop(1, '#ff7b00');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, y, tileSize, h);
+    ctx.fillRect(0, 0, size, size);
+
+    // Simple noise function for organic flow
+    const noise = (x, y, scale) => {
+      const val = Math.sin(x * scale * 0.8) * Math.cos(y * scale * 1.5) +
+                  Math.sin(x * scale * 1.9 + 2.1) * Math.cos(y * scale * 1.3 + 1.7);
+      return (val + 2) / 4; // 0..1
+    };
+
+    // Add organic pattern with noise - no horizontal lines!
+    const imageData = ctx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const idx = (y * size + x) * 4;
+        const n1 = noise(x, y, 0.06);
+        const n2 = noise(x * 1.3, y * 0.7, 0.04);
+        // Combine noise for flowing veins effect
+        const brightness = 0.9 + n1 * 0.15 + n2 * 0.1;
+        data[idx] = Math.min(255, data[idx] * brightness);     // R
+        data[idx + 1] = Math.min(255, data[idx + 1] * brightness); // G
+        data[idx + 2] = Math.min(255, data[idx + 2] * brightness); // B
+
+        // Add bright spots where noise peaks
+        if (n1 > 0.7 && n2 > 0.6) {
+          const glow = (n1 + n2 - 1.3) * 80;
+          data[idx] = Math.min(255, data[idx] + glow);
+          data[idx + 1] = Math.min(255, data[idx + 1] + glow * 0.7);
+          data[idx + 2] = Math.min(255, data[idx + 2] + glow * 0.3);
+        }
+      }
     }
-    // bubbles
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = '#ffd36e';
-    const count = Math.max(2, Math.floor(tileSize * 0.12));
-    for (let k = 0; k < count; k++) {
-      const rx = Math.floor((k * 37) % tileSize);
-      const ry = Math.floor((k * 53) % tileSize);
-      ctx.fillRect(rx, ry, 1, 1);
-    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Top surface glow - very subtle
+    ctx.globalAlpha = 0.2;
+    const surfaceGlow = ctx.createLinearGradient(0, 0, 0, size * 0.25);
+    surfaceGlow.addColorStop(0, '#ffed8a');
+    surfaceGlow.addColorStop(1, 'rgba(255, 237, 138, 0)');
+    ctx.fillStyle = surfaceGlow;
+    ctx.fillRect(0, 0, size, size * 0.25);
+
     return Texture.from(canvas);
   }
 

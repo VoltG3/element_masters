@@ -553,7 +553,14 @@ const PixiStage = ({
         if (systems.fog) systems.fog.update(dt);
         if (systems.thunder) systems.thunder.update(dt);
         // Liquids region update
-        try { liquidSystemRef.current?.update(dt); } catch {}
+        try {
+          // Pass player state to liquid system for dynamic transparency
+          const s = playerStateRef.current;
+          if (liquidSystemRef.current && s) {
+            liquidSystemRef.current.setPlayerState(s);
+          }
+          liquidSystemRef.current?.update(dt);
+        } catch {}
 
         // FX systems update
         try { lavaEmbersRef.current?.update(dt); } catch {}
