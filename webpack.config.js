@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
@@ -6,25 +7,26 @@ const TerserPlugin = require('terser-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const isProduction = process.env.NODE_ENV === 'production';
+module.exports = (env, argv) => {
+  const isProduction = argv.mode === 'production' || process.env.NODE_ENV === 'production';
 
-module.exports = {
-  mode: isProduction ? 'production' : 'development',
-  entry: './src/index.js',
-  output: {
-    path: path.resolve(__dirname, 'build'),
-    filename: isProduction ? 'static/js/[name].[contenthash:8].js' : 'static/js/[name].bundle.js',
-    chunkFilename: isProduction ? 'static/js/[name].[contenthash:8].chunk.js' : 'static/js/[name].chunk.js',
-    assetModuleFilename: 'static/media/[name].[hash][ext]',
-    publicPath: isProduction ? '/element_master/' : '/',
-  },
+  return {
+    mode: isProduction ? 'production' : 'development',
+    entry: './src/index.js',
+    output: {
+      path: path.resolve(__dirname, 'build'),
+      filename: isProduction ? 'static/js/[name].[contenthash:8].js' : 'static/js/[name].bundle.js',
+      chunkFilename: isProduction ? 'static/js/[name].[contenthash:8].chunk.js' : 'static/js/[name].chunk.js',
+      assetModuleFilename: 'static/media/[name].[hash][ext]',
+      publicPath: isProduction ? '/element_masters/' : '/',
+    },
   devtool: isProduction ? 'source-map' : 'cheap-module-source-map',
   devServer: {
     static: {
       directory: path.join(__dirname, 'public'),
     },
     compress: true,
-    port: 3000,
+    port: 'auto',
     hot: true,
     open: true,
     historyApiFallback: true,
@@ -88,8 +90,15 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new webpack.DefinePlugin({
+      'process.env.PUBLIC_URL': JSON.stringify(isProduction ? '/element_masters' : ''),
+      'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+    }),
     new HtmlWebpackPlugin({
       template: './public/index.html',
+      templateParameters: {
+        PUBLIC_URL: isProduction ? '/element_masters' : '',
+      },
       inject: true,
       ...(isProduction && {
         minify: {
@@ -171,4 +180,5 @@ module.exports = {
     maxEntrypointSize: 512000,
     maxAssetSize: 512000,
   },
+};
 };

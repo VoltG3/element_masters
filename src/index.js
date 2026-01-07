@@ -20,7 +20,7 @@ root.render(
     <Provider store={store}>
         <ThemeProvider theme={theme}>
             <GlobalStyles />
-            <BrowserRouter>
+            <BrowserRouter basename={process.env.PUBLIC_URL}>
                 <Routes>
 
                 <Route path="/" element={<App />}>

@@ -1,4 +1,4 @@
-[]/**
+/**
  * Game Registry Module
  * Loads all JSON files and creates a registry array.
  * Executed only once during initialization.
