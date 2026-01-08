@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DraggableWindow } from './DraggableWindow';
 import { PaletteSection } from './PaletteSection';
 import { Minimap } from './Minimap';
+import { MapResizer } from './MapResizer';
 import AnimatedItem from '../../../utilities/AnimatedItem';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
 import { buttonStyle, activeButtonStyle } from './constants';
@@ -23,6 +24,10 @@ export const ToolbarWindows = ({
     selection,
     moveSelection,
     setSelection,
+    selectionMode,
+    setSelectionMode,
+    commitSelection,
+    cancelSelection,
     selectedTile,
     handlePaletteSelect,
     blocks,
@@ -50,8 +55,10 @@ export const ToolbarWindows = ({
     mapHeight,
     tileMapData,
     objectMapData,
-    registryItems
+    registryItems,
+    onMapResize
 }) => {
+    const [isResizeWindowOpen, setIsResizeWindowOpen] = useState(false);
     const renderPaletteItem = (item, color, layer) => {
         const hasImage = !!(item.texture || (Array.isArray(item.textures) && item.textures.length > 0));
         const isLiquid = !!(item.flags && item.flags.liquid);
@@ -175,6 +182,7 @@ export const ToolbarWindows = ({
                         <button onClick={openNewMapModal} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C' }}>New</button>
                         <button onClick={saveMap} style={buttonStyle}>Save</button>
                         <label style={buttonStyle}>Load <input type="file" accept=".json,.txt" onChange={loadMap} style={{ display: 'none' }} /></label>
+                        <button onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} style={isResizeWindowOpen ? activeButtonStyle : buttonStyle} title="Resize Map">📐</button>
                         <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>#</button>
                         <button onClick={clearMap} style={{ ...buttonStyle, color: 'red' }} title="Clear Map">✕</button>
                     </div>
@@ -216,16 +224,46 @@ export const ToolbarWindows = ({
                             <span style={{ fontSize: '11px' }}>Active: <strong>{activeLayer === 'tile' ? '🟦 Background' : (activeLayer === 'object' ? '🟥 Objects' : '🟪 Secrets')}</strong></span>
                         </div>
 
+                        {activeTool === 'move' && (
+                            <div style={{ marginTop: '10px' }}>
+                                <span style={{ fontSize: '11px', display: 'block', marginBottom: '5px' }}>Selection Mode:</span>
+                                <button
+                                    onClick={() => setSelectionMode('cut')}
+                                    style={selectionMode === 'cut' ? activeButtonStyle : buttonStyle}
+                                    title="Cut (move)"
+                                >
+                                    ✂️ Cut
+                                </button>
+                                <button
+                                    onClick={() => setSelectionMode('copy')}
+                                    style={selectionMode === 'copy' ? activeButtonStyle : buttonStyle}
+                                    title="Copy (duplicate)"
+                                >
+                                    📋 Copy
+                                </button>
+                            </div>
+                        )}
+
                         {activeTool === 'move' && selection && (
-                            <div style={{ marginTop: '5px' }}>
-                                <span style={{ fontSize: '11px', display: 'block' }}>Move Selection:</span>
-                                <button onClick={() => moveSelection(0, -1)} style={buttonStyle}>▲</button>
-                                <div style={{ display: 'inline-block' }}>
-                                    <button onClick={() => moveSelection(-1, 0)} style={buttonStyle}>◀</button>
-                                    <button onClick={() => moveSelection(1, 0)} style={buttonStyle}>▶</button>
+                            <div style={{ marginTop: '10px', padding: '8px', backgroundColor: '#fff3cd', borderRadius: '4px', border: '1px solid #ffc107' }}>
+                                <span style={{ fontSize: '11px', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Selection Active</span>
+                                <div style={{ fontSize: '10px', marginBottom: '5px' }}>
+                                    • Drag with mouse or use arrows<br/>
+                                    • Press <strong>Enter</strong> to confirm<br/>
+                                    • Press <strong>Esc</strong> to cancel
                                 </div>
-                                <button onClick={() => moveSelection(0, 1)} style={buttonStyle}>▼</button>
-                                <button onClick={() => setSelection(null)} style={{ ...buttonStyle, color: 'red', marginLeft: '5px' }}>✕</button>
+                                <div style={{ marginTop: '5px' }}>
+                                    <button onClick={() => moveSelection(0, -1)} style={buttonStyle}>▲</button>
+                                    <div style={{ display: 'inline-block' }}>
+                                        <button onClick={() => moveSelection(-1, 0)} style={buttonStyle}>◀</button>
+                                        <button onClick={() => moveSelection(1, 0)} style={buttonStyle}>▶</button>
+                                    </div>
+                                    <button onClick={() => moveSelection(0, 1)} style={buttonStyle}>▼</button>
+                                </div>
+                                <div style={{ marginTop: '5px' }}>
+                                    <button onClick={commitSelection} style={{ ...buttonStyle, backgroundColor: '#28a745', color: '#fff' }}>✓ Confirm</button>
+                                    <button onClick={cancelSelection} style={{ ...buttonStyle, backgroundColor: '#dc3545', color: '#fff' }}>✕ Cancel</button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -402,6 +440,22 @@ export const ToolbarWindows = ({
                     registryItems={registryItems}
                 />
             </DraggableWindow>
+
+            {/* Window 7: Map Resizer - Right side, only when open */}
+            {isResizeWindowOpen && (
+                <DraggableWindow
+                    title="Resize Map"
+                    defaultPosition={{ x: window.innerWidth - 320, y: 280 }}
+                    defaultWidth={300}
+                    isOpenDefault={true}
+                >
+                    <MapResizer
+                        mapWidth={mapWidth}
+                        mapHeight={mapHeight}
+                        onResize={onMapResize}
+                    />
+                </DraggableWindow>
+            )}
         </>
     );
 };

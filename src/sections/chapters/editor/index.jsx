@@ -27,6 +27,10 @@ export const Editor = () => {
     const [activeLayer, setActiveLayer] = useState('tile');
     const [dragStart, setDragStart] = useState(null);
     const [bucketPreviewIndices, setBucketPreviewIndices] = useState(new Set());
+    const [selectionMode, setSelectionMode] = useState('cut'); // 'cut' or 'copy'
+    const [isMovingSelection, setIsMovingSelection] = useState(false);
+    const [previewPosition, setPreviewPosition] = useState(null);
+    const [originalMapData, setOriginalMapData] = useState(null);
     const bucketTimerRef = useRef(null);
     const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData, secretMapData });
 
@@ -48,6 +52,24 @@ export const Editor = () => {
         setObjectMapData(Array(size).fill(null));
         setSecretMapData(Array(size).fill(null));
     }, []);
+
+    // Keyboard handler for Enter (commit) and Escape (cancel)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (selection) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitSelection();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelSelection();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selection, previewPosition, originalMapData, selectionMode]);
 
     const registryItems = getRegistry() || [];
     const blocks = registryItems.filter(item => item.name && item.name.startsWith('block.') && !(item.flags && item.flags.liquid));
@@ -114,6 +136,21 @@ export const Editor = () => {
 
     const handleGridMouseDown = (index, e) => {
         e.preventDefault();
+
+        // Check if clicking on existing selection to move it
+        if (selection && previewPosition) {
+            const x = index % mapWidth;
+            const y = Math.floor(index / mapWidth);
+
+            // Check if click is inside selection
+            if (x >= previewPosition.x && x < previewPosition.x + selection.w &&
+                y >= previewPosition.y && y < previewPosition.y + selection.h) {
+                setIsMovingSelection(true);
+                setIsDragging(true);
+                return;
+            }
+        }
+
         if (activeTool === 'brush') {
             setIsDragging(true);
             paintTile(index, selectedTile, brushSize, mapWidth, mapHeight, getCurrentData, setCurrentData);
@@ -127,12 +164,23 @@ export const Editor = () => {
             const y = Math.floor(index / mapWidth);
             setDragStart({ x, y });
             setSelection(null);
+            setPreviewPosition(null);
+            setOriginalMapData(null);
             setIsDragging(true);
         }
     };
 
     const handleGridMouseEnter = (index) => {
         setHoverIndex(index);
+
+        // If moving selection, update preview position
+        if (isMovingSelection && isDragging && previewPosition) {
+            const x = index % mapWidth;
+            const y = Math.floor(index / mapWidth);
+            setPreviewPosition({ x, y });
+            return;
+        }
+
         if (bucketTimerRef.current) {
             clearTimeout(bucketTimerRef.current);
             bucketTimerRef.current = null;
@@ -157,6 +205,12 @@ export const Editor = () => {
     };
 
     const handleGridMouseUp = (index) => {
+        if (isMovingSelection) {
+            // Just stop moving, don't commit yet (wait for Enter)
+            setIsMovingSelection(false);
+            return;
+        }
+
         setIsDragging(false);
         if (activeTool === 'move' && dragStart) {
             const endX = index % mapWidth;
@@ -180,35 +234,56 @@ export const Editor = () => {
                     selSecretData.push(secretMapData[idx]);
                 }
             }
-            setSelection({ x: x1, y: y1, w, h, tileData: selTileData, objectData: selObjectData, secretData: selSecretData });
+
+            // Save original map state
+            setOriginalMapData({
+                tileMap: [...tileMapData],
+                objectMap: [...objectMapData],
+                secretMap: [...secretMapData]
+            });
+
+            setSelection({ x: x1, y: y1, w, h, tileData: selTileData, objectData: selObjectData, secretData: selSecretData, originalX: x1, originalY: y1 });
+            setPreviewPosition({ x: x1, y: y1 });
             setDragStart(null);
         }
     };
 
     const moveSelection = (dx, dy) => {
-        if (!selection) return;
+        if (!selection || !previewPosition) return;
 
-        const newTileMap = [...tileMapData];
-        const newObjectMap = [...objectMapData];
-        const newSecretMap = [...secretMapData];
+        const newX = previewPosition.x + dx;
+        const newY = previewPosition.y + dy;
 
-        for (let py = 0; py < selection.h; py++) {
-            for (let px = 0; px < selection.w; px++) {
-                const idx = (selection.y + py) * mapWidth + (selection.x + px);
-                if (idx >= 0 && idx < newTileMap.length) {
-                    newTileMap[idx] = null;
-                    newObjectMap[idx] = null;
-                    newSecretMap[idx] = null;
+        // Just update preview position
+        setPreviewPosition({ x: newX, y: newY });
+    };
+
+    const commitSelection = () => {
+        if (!selection || !previewPosition || !originalMapData) return;
+
+        const newTileMap = [...originalMapData.tileMap];
+        const newObjectMap = [...originalMapData.objectMap];
+        const newSecretMap = [...originalMapData.secretMap];
+
+        // If cut mode, clear original position
+        if (selectionMode === 'cut') {
+            for (let py = 0; py < selection.h; py++) {
+                for (let px = 0; px < selection.w; px++) {
+                    const idx = (selection.originalY + py) * mapWidth + (selection.originalX + px);
+                    if (idx >= 0 && idx < newTileMap.length) {
+                        newTileMap[idx] = null;
+                        newObjectMap[idx] = null;
+                        newSecretMap[idx] = null;
+                    }
                 }
             }
         }
 
-        const newX = selection.x + dx;
-        const newY = selection.y + dy;
+        // Place selection at new position
         for (let py = 0; py < selection.h; py++) {
             for (let px = 0; px < selection.w; px++) {
-                const destX = newX + px;
-                const destY = newY + py;
+                const destX = previewPosition.x + px;
+                const destY = previewPosition.y + py;
                 if (destX >= 0 && destX < mapWidth && destY >= 0 && destY < mapHeight) {
                     const destIdx = destY * mapWidth + destX;
                     const srcDataIdx = py * selection.w + px;
@@ -223,54 +298,31 @@ export const Editor = () => {
         setTileMapData(newTileMap);
         setObjectMapData(newObjectMap);
         setSecretMapData(newSecretMap);
-        setSelection({ ...selection, x: newX, y: newY });
+        setSelection(null);
+        setPreviewPosition(null);
+        setOriginalMapData(null);
     };
 
-    const handleResizeMouseDown = (direction) => (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const { mapWidth: startW, mapHeight: startH } = stateRef.current;
-        const onMouseMove = (moveEvent) => {
-            const dx = moveEvent.clientX - startX;
-            const dy = moveEvent.clientY - startY;
-            if (direction === 'width') {
-                const colsDiff = Math.round(dx / TILE_SIZE);
-                if (startW + colsDiff !== stateRef.current.mapWidth) {
-                    resizeMapData({
-                        newWidth: startW + colsDiff,
-                        newHeight: stateRef.current.mapHeight,
-                        stateRef,
-                        setMapWidth,
-                        setMapHeight,
-                        setTileMapData,
-                        setObjectMapData,
-                        setSecretMapData
-                    });
-                }
-            } else if (direction === 'height') {
-                const rowsDiff = Math.round(dy / TILE_SIZE);
-                if (startH + rowsDiff !== stateRef.current.mapHeight) {
-                    resizeMapData({
-                        newWidth: stateRef.current.mapWidth,
-                        newHeight: startH + rowsDiff,
-                        stateRef,
-                        setMapWidth,
-                        setMapHeight,
-                        setTileMapData,
-                        setObjectMapData,
-                        setSecretMapData
-                    });
-                }
-            }
-        };
-        const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-        };
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
+    const cancelSelection = () => {
+        setSelection(null);
+        setPreviewPosition(null);
+        setOriginalMapData(null);
+        setIsMovingSelection(false);
+    };
+
+    const handleMapResize = (newWidth, newHeight) => {
+        if (newWidth === mapWidth && newHeight === mapHeight) return;
+
+        resizeMapData({
+            newWidth,
+            newHeight,
+            stateRef,
+            setMapWidth,
+            setMapHeight,
+            setTileMapData,
+            setObjectMapData,
+            setSecretMapData
+        });
     };
 
     const handlePaletteSelect = (item, layer) => {
@@ -331,6 +383,10 @@ export const Editor = () => {
                     selection={selection}
                     moveSelection={moveSelection}
                     setSelection={setSelection}
+                    selectionMode={selectionMode}
+                    setSelectionMode={setSelectionMode}
+                    commitSelection={commitSelection}
+                    cancelSelection={cancelSelection}
                     selectedTile={selectedTile}
                     handlePaletteSelect={handlePaletteSelect}
                     blocks={blocks}
@@ -359,6 +415,7 @@ export const Editor = () => {
                     tileMapData={tileMapData}
                     objectMapData={objectMapData}
                     registryItems={registryItems}
+                    onMapResize={handleMapResize}
                 />
 
                 <Viewport
@@ -378,6 +435,7 @@ export const Editor = () => {
                     brushSize={brushSize}
                     bucketPreviewIndices={bucketPreviewIndices}
                     selection={selection}
+                    previewPosition={previewPosition}
                     dragStart={dragStart}
                     isDragging={isDragging}
                     handleGridMouseDown={handleGridMouseDown}
@@ -385,7 +443,6 @@ export const Editor = () => {
                     handleGridMouseUp={handleGridMouseUp}
                     handleGridMouseLeave={handleGridMouseLeave}
                     setIsDragging={setIsDragging}
-                    handleResizeMouseDown={handleResizeMouseDown}
                 />
             </div>
         </div>

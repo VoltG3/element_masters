@@ -19,14 +19,14 @@ export const Viewport = ({
     brushSize,
     bucketPreviewIndices,
     selection,
+    previewPosition,
     dragStart,
     isDragging,
     handleGridMouseDown,
     handleGridMouseEnter,
     handleGridMouseUp,
     handleGridMouseLeave,
-    setIsDragging,
-    handleResizeMouseDown
+    setIsDragging
 }) => {
     return (
         <div className="viewport"
@@ -65,19 +65,47 @@ export const Viewport = ({
                         zIndex: 1
                     }}>
                     {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
-                        const tileId = tileMapData[index];
-                        const objectId = objectMapData[index];
-                        const secretId = secretMapData?.[index];
-                        const tileObj = tileId ? registryItems.find(r => r.id === tileId) : null;
-                        const objObj = objectId ? registryItems.find(r => r.id === objectId) : null;
-                        const secretObj = secretId ? registryItems.find(r => r.id === secretId) : null;
-
                         const x = index % mapWidth;
                         const y = Math.floor(index / mapWidth);
 
+                        // Check if this tile is in preview selection area
+                        let displayTileId = tileMapData[index];
+                        let displayObjectId = objectMapData[index];
+                        let displaySecretId = secretMapData?.[index];
+
+                        // If we have a preview position, check if this tile should show selection content
+                        if (selection && previewPosition) {
+                            const selX = previewPosition.x;
+                            const selY = previewPosition.y;
+
+                            if (x >= selX && x < selX + selection.w && y >= selY && y < selY + selection.h) {
+                                // This tile is in the preview selection area
+                                const offsetX = x - selX;
+                                const offsetY = y - selY;
+                                const selectionIndex = offsetY * selection.w + offsetX;
+
+                                displayTileId = selection.tileData[selectionIndex];
+                                displayObjectId = selection.objectData[selectionIndex];
+                                displaySecretId = selection.secretData?.[selectionIndex];
+                            }
+                        }
+
+                        const tileObj = displayTileId ? registryItems.find(r => r.id === displayTileId) : null;
+                        const objObj = displayObjectId ? registryItems.find(r => r.id === displayObjectId) : null;
+                        const secretObj = displaySecretId ? registryItems.find(r => r.id === displaySecretId) : null;
+
                         let isSelected = false;
-                        if (selection && x >= selection.x && x < selection.x + selection.w && y >= selection.y && y < selection.y + selection.h) {
+                        let isPreviewSelection = false;
+
+                        // Use previewPosition if available, otherwise use selection.x/y
+                        const selX = previewPosition ? previewPosition.x : (selection ? selection.x : 0);
+                        const selY = previewPosition ? previewPosition.y : (selection ? selection.y : 0);
+
+                        if (selection && x >= selX && x < selX + selection.w && y >= selY && y < selY + selection.h) {
                             isSelected = true;
+                            if (previewPosition && (previewPosition.x !== selection.originalX || previewPosition.y !== selection.originalY)) {
+                                isPreviewSelection = true;
+                            }
                         }
 
                         let isMoveSelecting = false;
@@ -124,7 +152,15 @@ export const Viewport = ({
                         else if (isBucketTarget) borderStyle = '2px solid orange';
                         else if (isMoveHover) borderStyle = '2px solid blue';
                         else if (isMoveSelecting) { borderStyle = '1px dashed blue'; bgStyle = 'rgba(0, 0, 255, 0.1)'; }
-                        else if (isSelected) { borderStyle = '1px dashed red'; bgStyle = 'rgba(255, 255, 0, 0.3)'; }
+                        else if (isSelected) {
+                            if (isPreviewSelection) {
+                                borderStyle = '2px solid cyan';
+                                bgStyle = 'rgba(0, 255, 255, 0.2)';
+                            } else {
+                                borderStyle = '1px dashed red';
+                                bgStyle = 'rgba(255, 255, 0, 0.3)';
+                            }
+                        }
                         else if (!showGrid) borderStyle = 'none';
 
                         let backgroundStyleObj = {};
@@ -191,22 +227,6 @@ export const Viewport = ({
                             </div>
                         );
                     })}
-                </div>
-                <div onMouseDown={handleResizeMouseDown('width')}
-                    style={{
-                        position: 'absolute', top: 0, right: -15, width: '15px', height: '100%',
-                        backgroundColor: '#777', cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderTopRightRadius: '5px', borderBottomRightRadius: '5px'
-                    }}>
-                    <span style={{ color: '#ccc', fontSize: '20px' }}>⋮</span>
-                </div>
-                <div onMouseDown={handleResizeMouseDown('height')}
-                    style={{
-                        position: 'absolute', bottom: -15, left: 0, width: '100%', height: '15px',
-                        backgroundColor: '#777', cursor: 'row-resize', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderBottomLeftRadius: '5px', borderBottomRightRadius: '5px'
-                    }}>
-                    <span style={{ color: '#ccc', fontSize: '20px' }}>⋯</span>
                 </div>
             </div>
         </div>
