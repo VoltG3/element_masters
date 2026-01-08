@@ -4,9 +4,9 @@ import { TILE_SIZE } from '../../../constants/gameConstants';
 import { saveMap, loadMap, clearMap, resizeMapData } from './mapOperations';
 import { getFloodFillIndices, floodFill, paintTile } from './paintingTools';
 import { loadBackgroundOptions, loadMusicOptions } from './assetLoaders';
-import { Toolbar } from './Toolbar';
 import { Viewport } from './Viewport';
 import { NewMapModal } from './NewMapModal';
+import { ToolbarWindows } from './ToolbarWindows';
 
 export const Editor = () => {
     // Editor state: map dimensions, tile/object data, selected tile, tools
@@ -303,7 +303,7 @@ export const Editor = () => {
                 transition: 'filter 0.2s ease',
                 pointerEvents: isNewMapModalOpen ? 'none' : 'auto'
             }}>
-                <Toolbar
+                <ToolbarWindows
                     mapName={mapName}
                     creatorName={creatorName}
                     openNewMapModal={openNewMapModal}
@@ -354,6 +354,11 @@ export const Editor = () => {
                     filledBlocks={filledBlocks}
                     emptyBlocks={emptyBlocks}
                     objectsCount={objectsCount}
+                    mapWidth={mapWidth}
+                    mapHeight={mapHeight}
+                    tileMapData={tileMapData}
+                    objectMapData={objectMapData}
+                    registryItems={registryItems}
                 />
 
                 <Viewport
