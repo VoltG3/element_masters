@@ -43,7 +43,10 @@ export const createBackgroundResolver = () => {
   }
 
   return (metaPath) => {
-    if (!bgContext) return null;
+    if (!bgContext) {
+      console.warn('[BackgroundResolver] No bgContext available');
+      return null;
+    }
     if (!metaPath) {
       const keys = bgContext.keys();
       if (keys && keys.length) {

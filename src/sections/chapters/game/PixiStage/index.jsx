@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Application, Container, Graphics, Assets } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
@@ -52,6 +52,8 @@ const PixiStage = ({
   const parallaxFactorRef = useRef(Number(backgroundParallaxFactor) || 0.3);
   const bgRef = useRef(null);
   const bgAnimRef = useRef(null);
+  const bgImageRef = useRef(backgroundImage);
+  const bgColorRef = useRef(backgroundColor);
   const objBehindRef = useRef(null);
   const objFrontRef = useRef(null);
   const secretLayerRef = useRef(null);
@@ -95,28 +97,35 @@ const PixiStage = ({
   useEffect(() => { embersEnabledRef.current = lavaEmbersEnabled !== false; }, [lavaEmbersEnabled]);
   useEffect(() => { cameraScrollRef.current = Number(cameraScrollX) || 0; }, [cameraScrollX]);
   useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
+  useEffect(() => { bgImageRef.current = backgroundImage; }, [backgroundImage]);
+  useEffect(() => { bgColorRef.current = backgroundColor; }, [backgroundColor]);
 
   // Background resolver and solid checker (memoized per map)
-  const resolveBackgroundUrl = useRef(createBackgroundResolver()).current;
-  const isSolidAt = useRef(createSolidChecker(mapWidth, mapHeight, tileSize, tileMapData, registryItems)).current;
+  const resolveBackgroundUrl = useMemo(() => createBackgroundResolver(), []);
+  const isSolidAt = useMemo(() => createSolidChecker(mapWidth, mapHeight, tileSize, tileMapData, registryItems), [mapWidth, mapHeight, tileSize, tileMapData, registryItems]);
 
   // Rebuild parallax helper
-  const rebuildParallax = () => {
+  const rebuildParallax = useCallback(() => {
     const layer = parallaxRef.current;
     if (!layer) return;
     if (!pixiTextureCacheRef.current) pixiTextureCacheRef.current = new TextureCache();
     if (!parallaxManagerRef.current) {
       parallaxManagerRef.current = createParallaxManager(layer, pixiTextureCacheRef.current);
     }
+    
+    const bgUrl = bgImageRef.current;
+    const bgColor = bgColorRef.current;
+    const factor = parallaxFactorRef.current || 0.3;
+
     parallaxManagerRef.current.build({
       worldWidth: mapWidth * tileSize,
       worldHeight: mapHeight * tileSize,
-      url: backgroundImage,
-      color: backgroundColor,
-      factor: parallaxFactorRef.current || 0.3,
+      url: bgUrl,
+      color: bgColor,
+      factor,
       resolveBackgroundUrl
     });
-  };
+  }, [mapWidth, mapHeight, tileSize, resolveBackgroundUrl]);
 
   // Initialize Application
   useEffect(() => {
@@ -195,7 +204,7 @@ const PixiStage = ({
           addUrl(playerVisuals.texture);
           if (Array.isArray(playerVisuals.textures)) playerVisuals.textures.forEach(addUrl);
         }
-        const bgUrl = resolveBackgroundUrl(backgroundImage);
+        const bgUrl = resolveBackgroundUrl(bgImageRef.current);
         if (bgUrl) addUrl(bgUrl);
         const urls = Array.from(urlSet);
         if (urls.length) {
@@ -454,6 +463,7 @@ const PixiStage = ({
       try { lavaEmbersRef.current?.destroy(); } catch {}
       try { lavaSteamRef.current?.destroy(); } catch {}
       try { parallaxManagerRef.current?.destroy(); } catch {}
+      parallaxManagerRef.current = null;
       try { pixiTextureCacheRef.current?.clear?.(); } catch {}
       try {
         weatherSystemsRef.current.rain?.destroy();
@@ -467,7 +477,6 @@ const PixiStage = ({
 
   // Rebuild layers when map data changes
   useEffect(() => {
-    console.log('[REBUILD] Layers rebuilding triggered, revealedSecrets:', revealedSecrets?.length || 0, revealedSecrets);
     const app = appRef.current;
     if (!app) return;
     if (bgRef.current && objBehindRef.current && objFrontRef.current) {
@@ -570,7 +579,7 @@ const PixiStage = ({
   // Rebuild parallax when props change
   useEffect(() => {
     rebuildParallax();
-  }, [backgroundImage, backgroundColor]);
+  }, [backgroundImage, backgroundColor, rebuildParallax]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 };

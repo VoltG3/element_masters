@@ -27,7 +27,7 @@ export const createParallaxManager = (parallaxLayer, textureCacheRef) => {
       factor: factor || 0.3,
     });
 
-    parallaxSprite = parallaxHelper.sprite;
+    parallaxSprite = parallaxHelper.imgSprite || parallaxHelper.bgSprite;
   };
 
   const setScroll = (cameraX, factor) => {
@@ -53,7 +53,7 @@ export const createParallaxManager = (parallaxLayer, textureCacheRef) => {
     setScroll,
     destroy,
     get sprite() {
-      return parallaxSprite;
+      return parallaxHelper?.imgSprite || parallaxHelper?.bgSprite;
     },
     get helper() {
       return parallaxHelper;

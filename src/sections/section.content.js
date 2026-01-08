@@ -8,10 +8,10 @@ const StyledSectionContent = styled.div`
     border: solid 1px lightgray;
 `
 
-function SectionContent({ children }) {
+function SectionContent({ children, style }) {
 
     return (
-        <StyledSectionContent>
+        <StyledSectionContent style={style}>
             { children }
         </StyledSectionContent>
     )
