@@ -81,7 +81,7 @@ export const DraggableWindow = ({
                 border: '1px solid #ccc',
                 borderRadius: '4px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                zIndex: 1000,
+                zIndex: 10,
                 display: 'flex',
                 flexDirection: 'column',
                 maxHeight: '80vh'
