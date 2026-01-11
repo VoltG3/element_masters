@@ -34,6 +34,7 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
     const isEntity = objDef && (
       objDef.type === 'entity' || 
       objDef.subtype === 'tank' || 
+      objDef.subtype === 'platform' ||
       (objDef.name && objDef.name.toLowerCase().includes('entities.'))
     );
 
@@ -77,13 +78,14 @@ export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_S
   ];
 
   for (let p of points) {
+    const gx = Math.floor(p.x / TILE_SIZE);
+    const gy = Math.floor(p.y / TILE_SIZE);
+    
+    // Boundary checks: block left, right, and top edges of the world.
+    // Allow falling off the bottom (gy >= mapHeightTiles).
+    if (gx < 0 || gx >= mapWidthTiles || gy < 0) return true;
+
     if (isSolidAtPixel(p.x, p.y, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata)) {
-      // gridX < 0 || gridX >= mapWidthTiles || gridY < 0 return true logic is now inside isSolidAtPixel (partially)
-      // but checkCollision had special logic for gridX < 0 || gridY < 0
-      const gx = Math.floor(p.x / TILE_SIZE);
-      const gy = Math.floor(p.y / TILE_SIZE);
-      if (gx < 0 || gx >= mapWidthTiles || gy < 0) return true;
-      
       return true;
     }
   }

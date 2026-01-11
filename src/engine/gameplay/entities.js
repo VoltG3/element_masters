@@ -154,6 +154,13 @@ export function updateEntities(ctx, deltaMs) {
         player.y = entity.y - player.height;
         player.vy = 0;
         player.isGrounded = true;
+        
+        // Atjauninam animāciju, lai nebūtu "fall" uz platformas
+        if (Math.abs(player.vx) > 0.1) {
+          player.animation = 'run';
+        } else {
+          player.animation = 'idle';
+        }
       }
 
       return entity;
@@ -219,13 +226,41 @@ export function updateEntities(ctx, deltaMs) {
       if (entity.direction > 0) keys.d = true;
       else keys.a = true;
 
-      // Sienas pārbaude, lai grieztos atpakaļ
-      const nextX = entity.x + entity.direction * 10;
-      if (checkCollision(nextX, entity.y, mapWidth, mapHeight, entity.width, entity.height)) {
-        entity.direction *= -1;
+    // Sienas un šķēršļu pārbaude, lai grieztos atpakaļ
+    const nextX = entity.x + entity.direction * 10;
+    let hitSomething = checkCollision(nextX, entity.y, mapWidth, mapHeight, entity.width, entity.height);
+
+    // Tanku specifiskā kolīzija (ar spēlētāju un citiem tankiem)
+    if (!hitSomething && entity.subtype === 'tank') {
+      // 1. Pārbaude ar spēlētāju
+      const p = gameState.current;
+      if (nextX < p.x + p.width && nextX + entity.width > p.x && entity.y < p.y + p.height && entity.y + entity.height > p.y) {
+        hitSomething = true;
       }
-      
-      // Platformas malas pārbaude
+
+      // 2. Pārbaude ar citiem tankiem
+      if (!hitSomething) {
+        for (const other of entitiesRef.current) {
+          if (other === entity || other.health <= 0 || other.isExploding) continue;
+          if (other.subtype !== 'tank') continue;
+
+          if (nextX < other.x + other.width && nextX + entity.width > other.x && entity.y < other.y + other.height && entity.y + entity.height > other.y) {
+            hitSomething = true;
+            // Liekam arī otram tankam mainīt virzienu, ja tie brauc viens otram virsū
+            if ((entity.direction > 0 && other.direction < 0) || (entity.direction < 0 && other.direction > 0)) {
+               other.direction *= -1;
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    if (hitSomething) {
+      entity.direction *= -1;
+    }
+    
+    // Platformas malas pārbaude
       if (ai.stayOnPlatform && entity.isGrounded) {
           const groundX = entity.x + (entity.direction > 0 ? entity.width : 0) + entity.direction * 5;
           const groundY = entity.y + entity.height + 5;
@@ -247,6 +282,24 @@ export function updateEntities(ctx, deltaMs) {
     // 3. Fizika un kustība
     const frameSpeed = speed * (deltaMs / 16.67);
     
+    const checkEntityCollision = (nx, ny) => {
+        // Statiskā pasaule
+        if (checkCollision(nx, ny, mapWidth, mapHeight, entity.width, entity.height)) return true;
+        
+        // Tankiem bloķējam ceļu, ja priekšā ir spēlētājs vai cits tanks
+        if (entity.subtype === 'tank') {
+            const p = gameState.current;
+            if (nx < p.x + p.width && nx + entity.width > p.x && ny < p.y + p.height && ny + entity.height > p.y) return true;
+            
+            for (const other of entitiesRef.current) {
+                if (other === entity || other.health <= 0 || other.isExploding) continue;
+                if (other.subtype !== 'tank') continue;
+                if (nx < other.x + other.width && nx + entity.width > other.x && ny < other.y + other.height && ny + entity.height > other.y) return true;
+            }
+        }
+        return false;
+    };
+
     const mh = moveHorizontal({
       keys,
       state: { 
@@ -260,7 +313,7 @@ export function updateEntities(ctx, deltaMs) {
       TILE_SIZE,
       mapWidth,
       mapHeight,
-      checkCollision: (nx, ny) => checkCollision(nx, ny, mapWidth, mapHeight, entity.width, entity.height)
+      checkCollision: checkEntityCollision
     });
     entity.x = mh.x;
     entity.vx = mh.vx;
@@ -281,7 +334,7 @@ export function updateEntities(ctx, deltaMs) {
       height: entity.height,
       mapWidth,
       mapHeight,
-      checkCollision: (nx, ny) => checkCollision(nx, ny, mapWidth, mapHeight, entity.width, entity.height),
+      checkCollision: checkEntityCollision,
       isWaterAt: ctx.isWaterAt,
       vx: entity.vx
     });

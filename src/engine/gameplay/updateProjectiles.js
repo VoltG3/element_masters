@@ -120,6 +120,9 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       
       const hitPlayerX = checkPlayerHit(nextX, cy, hw, hh, p);
       if (hitPlayerX) {
+        if (playerState) {
+          playerState.health = Math.max(0, (Number(playerState.health) || 0) - (p.dmg || 10));
+        }
         if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
         removed = true;
         break;
@@ -160,6 +163,9 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       
       const hitPlayerY = checkPlayerHit(cx, nextY, hw, hh, p);
       if (hitPlayerY) {
+        if (playerState) {
+          playerState.health = Math.max(0, (Number(playerState.health) || 0) - (p.dmg || 10));
+        }
         if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
         removed = true;
         break;
