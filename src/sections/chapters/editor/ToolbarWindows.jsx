@@ -62,7 +62,81 @@ export const ToolbarWindows = ({
     registryItems,
     onMapResize
 }) => {
+    const [activePanel, setActivePanel] = useState(null); // 'map', 'tools', 'palette', 'bg', 'stats'
+    const [isMinimapOpen, setIsMinimapOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isResizeWindowOpen, setIsResizeWindowOpen] = useState(false);
+
+    const togglePanel = (panel) => {
+        setActivePanel(prev => prev === panel ? null : panel);
+    };
+
+    const sidebarButtonStyle = {
+        width: '40px',
+        height: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        backgroundColor: '#333',
+        color: '#fff',
+        border: '1px solid #444',
+        borderRadius: '4px',
+        marginBottom: '10px',
+        fontSize: '20px',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+    };
+
+    const activeSidebarButtonStyle = {
+        ...sidebarButtonStyle,
+        backgroundColor: '#2196F3',
+        borderColor: '#1E88E5',
+        transform: 'scale(1.05)'
+    };
+
+    const panelStyle = {
+        position: 'absolute',
+        top: 0,
+        left: '60px',
+        width: '320px',
+        height: '100%',
+        backgroundColor: '#fff',
+        boxShadow: '2px 0 10px rgba(0,0,0,0.2)',
+        zIndex: 100,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRight: '1px solid #ddd',
+        overflowY: 'auto',
+        padding: '20px',
+        boxSizing: 'border-box'
+    };
+
+    const rightSidebarStyle = {
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        zIndex: 101
+    };
+
+    const panelHeaderStyle = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '15px',
+        borderBottom: '2px solid #eee',
+        paddingBottom: '10px'
+    };
+
+    const panelTitleStyle = {
+        margin: 0,
+        fontSize: '18px',
+        fontWeight: 'bold',
+        color: '#333'
+    };
     const renderPaletteItem = (item, color, layer) => {
         const hasImage = !!(item.texture || (Array.isArray(item.textures) && item.textures.length > 0));
         const isLiquid = !!(item.flags && item.flags.liquid);
@@ -152,322 +226,382 @@ export const ToolbarWindows = ({
         </div>
     );
 
-    // State to track window heights
-    const [heights, setHeights] = useState([37, 37, 37, 37, 37]); // Default header height
-    const baseY = 60;
-    const startX = 20;
-
-    const handleHeightChange = useCallback((index, h) => {
-        setHeights(prev => {
-            if (prev[index] === h) return prev;
-            const newHeights = [...prev];
-            newHeights[index] = h;
-            return newHeights;
-        });
-    }, []);
-
-    // Calculate Y positions based on accumulated heights
-    const positions = useMemo(() => {
-        return heights.reduce((acc, height, index) => {
-            const y = index === 0 ? baseY : acc[index - 1].y + heights[index - 1];
-            acc.push({ x: startX, y });
-            return acc;
-        }, []);
-    }, [heights]);
 
     return (
-        <>
-            {/* Window 1: Map Controls */}
-            <DraggableWindow
-                title="Map Controls"
-                defaultPosition={positions[0]}
-                defaultWidth={300}
-                isOpenDefault={false}
-                onHeightChange={(h) => handleHeightChange(0, h)}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ fontSize: '12px' }}>Map Name: <strong>{mapName}</strong></div>
-                    <div style={{ fontSize: '12px' }}>Creator: <strong>{creatorName}</strong></div>
+        <div style={{ display: 'contents' }}>
+            {/* Sidebar Left */}
+            <div style={{
+                width: '60px',
+                height: '100%',
+                backgroundColor: '#222',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                paddingTop: '20px',
+                zIndex: 102,
+                borderRight: '1px solid #000',
+                flexShrink: 0
+            }}>
+                <div onClick={() => togglePanel('map')} style={activePanel === 'map' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Map Controls">⚙️</div>
+                <div onClick={() => togglePanel('tools')} style={activePanel === 'tools' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Tools">🖌️</div>
+                <div onClick={() => togglePanel('palette')} style={activePanel === 'palette' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Palette">🧱</div>
+                <div onClick={() => togglePanel('bg')} style={activePanel === 'bg' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Background & Music">🖼️</div>
+                <div onClick={() => togglePanel('stats')} style={activePanel === 'stats' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Statistics">📊</div>
+            </div>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                        <button onClick={openNewMapModal} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C' }}>New</button>
-                        <button onClick={saveMap} style={buttonStyle}>Save</button>
-                        <label style={buttonStyle}>Load <input type="file" accept=".json,.txt" onChange={loadMap} style={{ display: 'none' }} /></label>
-                        <button onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} style={isResizeWindowOpen ? activeButtonStyle : buttonStyle} title="Resize Map">📐</button>
-                        <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>#</button>
-                        <button onClick={clearMap} style={{ ...buttonStyle, color: 'red' }} title="Clear Map">✕</button>
+            {/* Panels */}
+            {activePanel === 'map' && (
+                <div style={panelStyle}>
+                    <div style={panelHeaderStyle}>
+                        <h3 style={panelTitleStyle}>Map Controls</h3>
+                        <button onClick={() => setActivePanel(null)} style={{ ...buttonStyle, margin: 0 }}>✕</button>
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <div style={{ padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px', border: '1px solid #ddd' }}>
+                            <div style={{ fontSize: '13px', marginBottom: '5px' }}>Map: <strong>{mapName}</strong></div>
+                            <div style={{ fontSize: '13px' }}>Author: <strong>{creatorName}</strong></div>
+                        </div>
 
-                    <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '5px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>PLAY MODE</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                            {!isPlayMode ? (
-                                <button onClick={handlePlay} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C' }} title="Play from current position">▶ Play</button>
-                            ) : (
-                                <>
-                                    <button onClick={handlePause} style={{ ...buttonStyle, backgroundColor: '#FF9800', color: '#fff', borderColor: '#F57C00' }} title="Pause and return to editor">⏸ Pause</button>
-                                    <button onClick={handleReset} style={{ ...buttonStyle, backgroundColor: '#2196F3', color: '#fff', borderColor: '#1976D2' }} title="Reset collected objects">↻ Reset</button>
-                                </>
-                            )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            <button onClick={openNewMapModal} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C', flex: '1' }}>New</button>
+                            <button onClick={saveMap} style={{ ...buttonStyle, flex: '1' }}>Save</button>
+                            <label style={{ ...buttonStyle, flex: '1' }}>Load <input type="file" accept=".json,.txt" onChange={loadMap} style={{ display: 'none' }} /></label>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            <button onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} style={{ ...(isResizeWindowOpen ? activeButtonStyle : buttonStyle), flex: '1' }} title="Resize Map">📐 Resize</button>
+                            <button onClick={() => setShowGrid(!showGrid)} style={{ ...(showGrid ? activeButtonStyle : buttonStyle), flex: '1' }}>{showGrid ? 'Hide Grid' : 'Show Grid'} #</button>
+                            <button onClick={clearMap} style={{ ...buttonStyle, color: 'red', flex: '1' }} title="Clear Map">✕ Clear</button>
+                        </div>
+
+                        <div style={{ borderTop: '2px solid #eee', paddingTop: '15px', marginTop: '5px' }}>
+                            <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>PLAY MODE</div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                {!isPlayMode ? (
+                                    <button onClick={handlePlay} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C', flex: '1', height: '40px', fontSize: '16px' }} title="Play from current position">▶ Play</button>
+                                ) : (
+                                    <>
+                                        <button onClick={handlePause} style={{ ...buttonStyle, backgroundColor: '#FF9800', color: '#fff', borderColor: '#F57C00', flex: '1', height: '40px' }} title="Pause and return to editor">⏸ Pause</button>
+                                        <button onClick={handleReset} style={{ ...buttonStyle, backgroundColor: '#2196F3', color: '#fff', borderColor: '#1976D2', flex: '1', height: '40px' }} title="Reset collected objects">↻ Reset</button>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </DraggableWindow>
+            )}
 
-            {/* Window 2: Tools */}
-            <DraggableWindow
-                title="Tools & Erase"
-                defaultPosition={positions[1]}
-                defaultWidth={300}
-                isOpenDefault={false}
-                onHeightChange={(h) => handleHeightChange(1, h)}
-            >
-                {isPlayMode ? (
-                    <div style={{ padding: '10px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
-                        Tools disabled during Play mode
+            {activePanel === 'tools' && (
+                <div style={panelStyle}>
+                    <div style={panelHeaderStyle}>
+                        <h3 style={panelTitleStyle}>Tools & Erase</h3>
+                        <button onClick={() => setActivePanel(null)} style={{ ...buttonStyle, margin: 0 }}>✕</button>
                     </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div>
-                            <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>TOOLS</span>
-                            <button onClick={() => setActiveTool('brush')} style={activeTool === 'brush' ? activeButtonStyle : buttonStyle}>🖌️</button>
-                            <button onClick={() => setActiveTool('bucket')} style={activeTool === 'bucket' ? activeButtonStyle : buttonStyle}>🪣</button>
-                            <button onClick={() => setActiveTool('move')} style={activeTool === 'move' ? activeButtonStyle : buttonStyle}>✋</button>
+                    {isPlayMode ? (
+                        <div style={{ padding: '20px', fontSize: '14px', color: '#666', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                            Tools disabled during Play mode
                         </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <section>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '10px', color: '#555' }}>DRAWING TOOLS</span>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button onClick={() => setActiveTool('brush')} style={{ ...(activeTool === 'brush' ? activeButtonStyle : buttonStyle), width: '40px', height: '40px', fontSize: '20px', margin: 0 }}>🖌️</button>
+                                    <button onClick={() => setActiveTool('bucket')} style={{ ...(activeTool === 'bucket' ? activeButtonStyle : buttonStyle), width: '40px', height: '40px', fontSize: '20px', margin: 0 }}>🪣</button>
+                                    <button onClick={() => setActiveTool('move')} style={{ ...(activeTool === 'move' ? activeButtonStyle : buttonStyle), width: '40px', height: '40px', fontSize: '20px', margin: 0 }}>✋</button>
+                                </div>
+                            </section>
 
-                        {(activeTool === 'brush') && (
-                            <div style={{ marginTop: '5px' }}>
-                                <span style={{ fontSize: '11px', marginRight: '5px' }}>Size:</span>
-                                {[1, 2, 3, 4, 5].map(size => (
-                                    <button key={size} onClick={() => setBrushSize(size)}
-                                        style={{ ...(brushSize === size ? activeButtonStyle : buttonStyle), padding: '0 6px', minWidth: '20px' }}>
-                                        {size}
-                                    </button>
+                            {activeTool === 'brush' && (
+                                <section style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '10px' }}>BRUSH SIZE</span>
+                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                        {[1, 2, 3, 4, 5].map(size => (
+                                            <button key={size} onClick={() => setBrushSize(size)}
+                                                style={{ ...(brushSize === size ? activeButtonStyle : buttonStyle), padding: '0 10px', minWidth: '35px', height: '35px' }}>
+                                                {size}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+
+                            <section style={{ padding: '10px', backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : (activeLayer === 'object' ? '#fff1f0' : '#f8f0ff'), borderRadius: '6px', border: '1px solid #ccc' }}>
+                                <span style={{ fontSize: '13px' }}>Active Layer: <strong>{activeLayer === 'tile' ? '🟦 Background' : (activeLayer === 'object' ? '🟥 Objects' : '🟪 Secrets')}</strong></span>
+                            </section>
+
+                            {activeTool === 'move' && (
+                                <section style={{ backgroundColor: '#fffbe6', padding: '10px', borderRadius: '6px', border: '1px solid #ffe58f' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '10px' }}>SELECTION MODE</span>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button onClick={() => setSelectionMode('cut')} style={{ ...(selectionMode === 'cut' ? activeButtonStyle : buttonStyle), flex: 1 }}>✂️ Cut</button>
+                                        <button onClick={() => setSelectionMode('copy')} style={{ ...(selectionMode === 'copy' ? activeButtonStyle : buttonStyle), flex: 1 }}>📋 Copy</button>
+                                    </div>
+                                </section>
+                            )}
+
+                            {activeTool === 'move' && selection && (
+                                <section style={{ padding: '12px', backgroundColor: '#fff3cd', borderRadius: '6px', border: '1px solid #ffc107' }}>
+                                    <span style={{ fontSize: '13px', display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Selection Active</span>
+                                    <div style={{ fontSize: '11px', marginBottom: '10px', lineHeight: '1.4' }}>
+                                        • Drag with mouse or use arrows<br/>
+                                        • Press <strong>Enter</strong> to confirm<br/>
+                                        • Press <strong>Esc</strong> to cancel
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                                        <button onClick={() => moveSelection(0, -1)} style={{ ...buttonStyle, margin: 0 }}>▲</button>
+                                        <div style={{ display: 'flex', gap: '5px' }}>
+                                            <button onClick={() => moveSelection(-1, 0)} style={{ ...buttonStyle, margin: 0 }}>◀</button>
+                                            <button onClick={() => moveSelection(1, 0)} style={{ ...buttonStyle, margin: 0 }}>▶</button>
+                                        </div>
+                                        <button onClick={() => moveSelection(0, 1)} style={{ ...buttonStyle, margin: 0 }}>▼</button>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '15px' }}>
+                                        <button onClick={commitSelection} style={{ ...buttonStyle, backgroundColor: '#28a745', color: '#fff', flex: 1, height: '35px' }}>✓ Confirm</button>
+                                        <button onClick={cancelSelection} style={{ ...buttonStyle, backgroundColor: '#dc3545', color: '#fff', flex: 1, height: '35px' }}>✕ Cancel</button>
+                                    </div>
+                                </section>
+                            )}
+
+                            <section>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '10px', color: '#555' }}>ERASERS</span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <BlockEraser />
+                                    <ObjectEraser />
+                                    <SecretEraser />
+                                </div>
+                            </section>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activePanel === 'palette' && (
+                <div style={panelStyle}>
+                    <div style={panelHeaderStyle}>
+                        <h3 style={panelTitleStyle}>Palette</h3>
+                        <button onClick={() => setActivePanel(null)} style={{ ...buttonStyle, margin: 0 }}>✕</button>
+                    </div>
+                    {isPlayMode ? (
+                        <div style={{ padding: '20px', fontSize: '14px', color: '#666', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                            Palette disabled during Play mode
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <PaletteSection title="Blocks (Background)" isOpenDefault={true}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Liquids (Blocks)" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Entities (Objects)" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Items (Objects)" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {items.map(i => renderPaletteItem(i, 'green', 'object'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Interactables" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Hazards" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Secrets" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                                </div>
+                            </PaletteSection>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activePanel === 'bg' && (
+                <div style={panelStyle}>
+                    <div style={panelHeaderStyle}>
+                        <h3 style={panelTitleStyle}>Background & Music</h3>
+                        <button onClick={() => setActivePanel(null)} style={{ ...buttonStyle, margin: 0 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <section>
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '12px' }}>Background Image</span>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                                <div onClick={() => setSelectedBackgroundImage(null)}
+                                    style={{
+                                        border: selectedBackgroundImage ? '1px solid #ccc' : '2px solid #2196F3',
+                                        borderRadius: '6px', padding: '4px', cursor: 'pointer', background: '#fff',
+                                        boxShadow: !selectedBackgroundImage ? '0 0 8px rgba(33, 150, 243, 0.3)' : 'none'
+                                    }}
+                                    title="Solid Color">
+                                    <div style={{ width: '100%', height: '60px', background: selectedBackgroundColor, display: 'block', borderRadius: '4px' }} />
+                                    <div style={{ fontSize: '11px', textAlign: 'center', paddingTop: '5px', fontWeight: !selectedBackgroundImage ? 'bold' : 'normal' }}>Solid Color</div>
+                                </div>
+                                {backgroundOptions.map((bg) => (
+                                    <div key={bg.name} onClick={() => setSelectedBackgroundImage(bg.metaPath)}
+                                        style={{
+                                            border: selectedBackgroundImage === bg.metaPath ? '2px solid #2196F3' : '1px solid #ccc',
+                                            borderRadius: '6px', padding: '4px', cursor: 'pointer', background: '#fff',
+                                            boxShadow: selectedBackgroundImage === bg.metaPath ? '0 0 8px rgba(33, 150, 243, 0.3)' : 'none'
+                                        }}
+                                        title={bg.name}>
+                                        <img src={bg.src} alt={bg.name} style={{ width: '100%', height: '60px', objectFit: 'cover', display: 'block', borderRadius: '4px' }} />
+                                        <div style={{ fontSize: '11px', textAlign: 'center', paddingTop: '5px', fontWeight: selectedBackgroundImage === bg.metaPath ? 'bold' : 'normal' }}>{bg.name}</div>
+                                    </div>
                                 ))}
                             </div>
-                        )}
+                        </section>
 
-                        <div style={{ marginTop: '10px', padding: '5px', backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : (activeLayer === 'object' ? '#fff1f0' : '#f8f0ff'), borderRadius: '4px', border: '1px solid #ccc' }}>
-                            <span style={{ fontSize: '11px' }}>Active: <strong>{activeLayer === 'tile' ? '🟦 Background' : (activeLayer === 'object' ? '🟥 Objects' : '🟪 Secrets')}</strong></span>
+                        <section style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Parallax Effect:</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <input type="range" min="0" max="1" step="0.05" value={backgroundParallaxFactor}
+                                        onChange={(e) => setBackgroundParallaxFactor(parseFloat(e.target.value))}
+                                        style={{ flex: 1 }} />
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold', minWidth: '35px' }}>{backgroundParallaxFactor.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Background Color:</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <input type="color" value={selectedBackgroundColor}
+                                        onChange={(e) => setSelectedBackgroundColor(e.target.value)}
+                                        style={{ width: '40px', height: '40px', border: 'none', padding: 0, cursor: 'pointer' }} />
+                                    <span style={{ fontSize: '13px', fontFamily: 'monospace' }}>{selectedBackgroundColor.toUpperCase()}</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section style={{ borderTop: '2px solid #eee', paddingTop: '15px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '10px' }}>Background Music</span>
+                            <select
+                                value={selectedBackgroundMusic || ''}
+                                onChange={(e) => setSelectedBackgroundMusic(e.target.value || null)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '13px', marginBottom: '10px' }}>
+                                <option value="">— No Music —</option>
+                                {musicOptions.map(m => (
+                                    <option key={m.name} value={m.metaPath}>{m.name}</option>
+                                ))}
+                            </select>
+                            <BackgroundMusicPlayer metaPath={selectedBackgroundMusic} enabled={true} volume={0.4} />
+                            <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                                Status: {selectedBackgroundMusic ? 'Music selected' : 'Silence'}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            )}
+
+            {activePanel === 'stats' && (
+                <div style={panelStyle}>
+                    <div style={panelHeaderStyle}>
+                        <h3 style={panelTitleStyle}>Statistics</h3>
+                        <button onClick={() => setActivePanel(null)} style={{ ...buttonStyle, margin: 0 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ padding: '15px', backgroundColor: '#e6f7ff', borderRadius: '8px', border: '1px solid #91d5ff' }}>
+                            <div style={{ fontSize: '14px', marginBottom: '8px' }}>Total Map Area: <strong>{totalTiles}</strong> tiles</div>
+                            <div style={{ fontSize: '13px', color: '#0050b3' }}>Dimensions: {mapWidth} x {mapHeight}</div>
                         </div>
-
-                        {activeTool === 'move' && (
-                            <div style={{ marginTop: '10px' }}>
-                                <span style={{ fontSize: '11px', display: 'block', marginBottom: '5px' }}>Selection Mode:</span>
-                                <button
-                                    onClick={() => setSelectionMode('cut')}
-                                    style={selectionMode === 'cut' ? activeButtonStyle : buttonStyle}
-                                    title="Cut (move)"
-                                >
-                                    ✂️ Cut
-                                </button>
-                                <button
-                                    onClick={() => setSelectionMode('copy')}
-                                    style={selectionMode === 'copy' ? activeButtonStyle : buttonStyle}
-                                    title="Copy (duplicate)"
-                                >
-                                    📋 Copy
-                                </button>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div style={{ padding: '12px', backgroundColor: '#f6ffed', borderRadius: '8px', border: '1px solid #b7eb8f', textAlign: 'center' }}>
+                                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#389e0d' }}>{filledBlocks}</div>
+                                <div style={{ fontSize: '11px', color: '#555' }}>FILLED BLOCKS</div>
                             </div>
-                        )}
-
-                        {activeTool === 'move' && selection && (
-                            <div style={{ marginTop: '10px', padding: '8px', backgroundColor: '#fff3cd', borderRadius: '4px', border: '1px solid #ffc107' }}>
-                                <span style={{ fontSize: '11px', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Selection Active</span>
-                                <div style={{ fontSize: '10px', marginBottom: '5px' }}>
-                                    • Drag with mouse or use arrows<br/>
-                                    • Press <strong>Enter</strong> to confirm<br/>
-                                    • Press <strong>Esc</strong> to cancel
-                                </div>
-                                <div style={{ marginTop: '5px' }}>
-                                    <button onClick={() => moveSelection(0, -1)} style={buttonStyle}>▲</button>
-                                    <div style={{ display: 'inline-block' }}>
-                                        <button onClick={() => moveSelection(-1, 0)} style={buttonStyle}>◀</button>
-                                        <button onClick={() => moveSelection(1, 0)} style={buttonStyle}>▶</button>
-                                    </div>
-                                    <button onClick={() => moveSelection(0, 1)} style={buttonStyle}>▼</button>
-                                </div>
-                                <div style={{ marginTop: '5px' }}>
-                                    <button onClick={commitSelection} style={{ ...buttonStyle, backgroundColor: '#28a745', color: '#fff' }}>✓ Confirm</button>
-                                    <button onClick={cancelSelection} style={{ ...buttonStyle, backgroundColor: '#dc3545', color: '#fff' }}>✕ Cancel</button>
-                                </div>
+                            <div style={{ padding: '12px', backgroundColor: '#fff7e6', borderRadius: '8px', border: '1px solid #ffd591', textAlign: 'center' }}>
+                                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#d46b08' }}>{objectsCount}</div>
+                                <div style={{ fontSize: '11px', color: '#555' }}>OBJECTS</div>
                             </div>
-                        )}
-                    <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>ERASERS</span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            <BlockEraser />
-                            <ObjectEraser />
-                            <SecretEraser />
+                        </div>
+                        <div style={{ padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#666' }}>{emptyBlocks}</div>
+                                <div style={{ fontSize: '11px', color: '#555' }}>EMPTY SPACE</div>
                         </div>
                     </div>
                 </div>
-                )}
-            </DraggableWindow>
+            )}
 
-            {/* Window 3: Blocks/Liquids/Entities */}
-            <DraggableWindow
-                title="Blocks / Liquids / Entities"
-                defaultPosition={positions[2]}
-                defaultWidth={300}
-                isOpenDefault={false}
-                onHeightChange={(h) => handleHeightChange(2, h)}
-            >
-                {isPlayMode ? (
-                    <div style={{ padding: '10px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
-                        Palette disabled during Play mode
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <PaletteSection title="Blocks (Background)" isOpenDefault={true}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
-                            </div>
-                        </PaletteSection>
+            {/* Right side buttons */}
+            <div style={rightSidebarStyle}>
+                <div onClick={() => setIsMinimapOpen(!isMinimapOpen)} style={isMinimapOpen ? activeSidebarButtonStyle : sidebarButtonStyle} title="Minimap">🗺️</div>
+                <div onClick={() => setIsSettingsOpen(!isSettingsOpen)} style={isSettingsOpen ? activeSidebarButtonStyle : sidebarButtonStyle} title="Settings">🛠️</div>
+            </div>
 
-                        <PaletteSection title="Liquids (Blocks)" isOpenDefault={true}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
-                            </div>
-                        </PaletteSection>
+            {/* Floating Windows (Minimap / Settings) */}
+            {isMinimapOpen && (
+                <DraggableWindow
+                    title="Minimap"
+                    defaultPosition={{ x: window.innerWidth - 340, y: 80 }}
+                    defaultWidth={300}
+                    isOpenDefault={true}
+                    onClose={() => setIsMinimapOpen(false)}
+                >
+                    <Minimap
+                        mapWidth={mapWidth}
+                        mapHeight={mapHeight}
+                        tileMapData={tileMapData}
+                        objectMapData={objectMapData}
+                        registryItems={registryItems}
+                    />
+                </DraggableWindow>
+            )}
 
-                        <PaletteSection title="Entities (Objects)">
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
-                            </div>
-                        </PaletteSection>
-
-                        <PaletteSection title="Items (Objects)">
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {items.map(i => renderPaletteItem(i, 'green', 'object'))}
-                            </div>
-                        </PaletteSection>
-
-                        <PaletteSection title="interactables (Objects)">
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
-                            </div>
-                        </PaletteSection>
-
-                        <PaletteSection title="Hazards (Objects)">
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
-                            </div>
-                        </PaletteSection>
-
-                        <PaletteSection title="Secrets">
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
-                            </div>
-                        </PaletteSection>
-                    </div>
-                )}
-            </DraggableWindow>
-
-            {/* Window 4: Background & Music */}
-            <DraggableWindow
-                title="Background & Music"
-                defaultPosition={positions[3]}
-                defaultWidth={300}
-                isOpenDefault={false}
-                onHeightChange={(h) => handleHeightChange(3, h)}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Background Image</span>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                            <div onClick={() => setSelectedBackgroundImage(null)}
-                                style={{
-                                    border: selectedBackgroundImage ? '1px solid #ccc' : '2px solid #4CAF50',
-                                    borderRadius: '4px', padding: '2px', cursor: 'pointer', background: '#fff'
-                                }}
-                                title="Solid Color">
-                                <div style={{ width: '100%', height: '48px', background: selectedBackgroundColor, display: 'block', borderRadius: '2px' }} />
-                                <div style={{ fontSize: '10px', textAlign: 'center', paddingTop: '2px' }}>Solid Color</div>
-                            </div>
-                            {backgroundOptions.map((bg) => (
-                                <div key={bg.name} onClick={() => setSelectedBackgroundImage(bg.metaPath)}
-                                    style={{
-                                        border: selectedBackgroundImage === bg.metaPath ? '2px solid #4CAF50' : '1px solid #ccc',
-                                        borderRadius: '4px', padding: '2px', cursor: 'pointer', background: '#fff'
-                                    }}
-                                    title={bg.name}>
-                                    <img src={bg.src} alt={bg.name} style={{ width: '100%', height: '48px', objectFit: 'cover', display: 'block' }} />
-                                    <div style={{ fontSize: '10px', textAlign: 'center', paddingTop: '2px' }}>{bg.name}</div>
-                                </div>
-                            ))}
+            {isSettingsOpen && (
+                <DraggableWindow
+                    title="Editor Settings"
+                    defaultPosition={{ x: window.innerWidth - 340, y: 400 }}
+                    defaultWidth={300}
+                    isOpenDefault={true}
+                    onClose={() => setIsSettingsOpen(false)}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '13px' }}>Show Grid:</span>
+                            <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>
+                                {showGrid ? 'ON' : 'OFF'}
+                            </button>
                         </div>
-                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <label style={{ fontSize: '12px' }}>Parallax: </label>
-                            <input type="range" min="0" max="1" step="0.05" value={backgroundParallaxFactor}
-                                onChange={(e) => setBackgroundParallaxFactor(parseFloat(e.target.value))} />
-                            <span style={{ fontSize: '12px' }}>{backgroundParallaxFactor.toFixed(2)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '13px' }}>Brush Size:</span>
+                            <div style={{ display: 'flex', gap: '2px' }}>
+                                {[1, 2, 3, 4, 5].map(s => (
+                                    <button key={s} onClick={() => setBrushSize(s)} style={{ ...(brushSize === s ? activeButtonStyle : buttonStyle), minWidth: '25px', padding: 0 }}>{s}</button>
+                                ))}
+                            </div>
                         </div>
-                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <label style={{ fontSize: '12px' }}>Background Color:</label>
-                            <input type="color" value={selectedBackgroundColor}
-                                onChange={(e) => setSelectedBackgroundColor(e.target.value)} />
+                        <div style={{ borderTop: '1px solid #eee', paddingTop: '10px', marginTop: '5px' }}>
+                            <button onClick={clearMap} style={{ ...buttonStyle, color: 'red', width: '100%' }}>✕ Clear Entire Map</button>
                         </div>
                     </div>
+                </DraggableWindow>
+            )}
 
-                    <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Background Music</span>
-                        <select
-                            value={selectedBackgroundMusic || ''}
-                            onChange={(e) => setSelectedBackgroundMusic(e.target.value || null)}
-                            style={{ width: '100%', padding: '6px', fontSize: '12px', marginBottom: '8px' }}>
-                            <option value="">— None —</option>
-                            {musicOptions.map(m => (
-                                <option key={m.name} value={m.metaPath}>{m.name}</option>
-                            ))}
-                        </select>
-                        <BackgroundMusicPlayer metaPath={selectedBackgroundMusic} enabled={true} volume={0.4} />
-                        <div style={{ fontSize: '11px', color: '#555', marginTop: '5px' }}>
-                            Selected: {selectedBackgroundMusic ? selectedBackgroundMusic.split('/').pop() : 'None'}
-                        </div>
-                    </div>
-                </div>
-            </DraggableWindow>
-
-            {/* Window 5: Statistics */}
-            <DraggableWindow
-                title="Statistics"
-                defaultPosition={positions[4]}
-                defaultWidth={300}
-                isOpenDefault={false}
-                onHeightChange={(h) => handleHeightChange(4, h)}
-            >
-                <div style={{ fontSize: '11px' }}>
-                    <div style={{ marginBottom: '4px' }}>Size: <strong>{totalTiles}</strong> tiles</div>
-                    <div style={{ marginBottom: '4px', color: 'blue' }}>🟦 Filled Blocks: <strong>{filledBlocks}</strong></div>
-                    <div style={{ marginBottom: '4px', color: '#666' }}>⬜ Empty Blocks: <strong>{emptyBlocks}</strong></div>
-                    <div style={{ marginBottom: '4px', color: 'red' }}>🟥 Objects Count: <strong>{objectsCount}</strong></div>
-                </div>
-            </DraggableWindow>
-
-            {/* Window 6: Minimap - Right side */}
-            <DraggableWindow
-                title="Minimap"
-                defaultPosition={{ x: window.innerWidth - 320, y: 60 }}
-                defaultWidth={300}
-                isOpenDefault={false}
-            >
-                <Minimap
-                    mapWidth={mapWidth}
-                    mapHeight={mapHeight}
-                    tileMapData={tileMapData}
-                    objectMapData={objectMapData}
-                    registryItems={registryItems}
-                />
-            </DraggableWindow>
-
-            {/* Window 7: Map Resizer - Right side, only when open */}
+            {/* Resize Map Popup */}
             {isResizeWindowOpen && (
                 <DraggableWindow
                     title="Resize Map"
-                    defaultPosition={{ x: window.innerWidth - 320, y: 280 }}
+                    defaultPosition={{ x: 400, y: 100 }}
                     defaultWidth={300}
                     isOpenDefault={true}
+                    onClose={() => setIsResizeWindowOpen(false)}
                 >
                     <MapResizer
                         mapWidth={mapWidth}
@@ -476,6 +610,6 @@ export const ToolbarWindows = ({
                     />
                 </DraggableWindow>
             )}
-        </>
+        </div>
     );
 };
