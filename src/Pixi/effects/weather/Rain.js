@@ -23,11 +23,8 @@ export default class WeatherRain {
     const g = new Graphics();
     g.clear();
     // Draw a thin slanted line to mimic a raindrop motion blur
-    g.lineStyle(0);
-    g.beginFill(0x4aa3ff, 0.92);
-    // Slightly longer/brighter to be more visible
-    g.drawRect(0, 0, 1.3, 9);
-    g.endFill();
+    g.rect(0, 0, 1.3, 9);
+    g.fill({ color: 0x4aa3ff, alpha: 0.92 });
     const x = Math.random() * this.width;
     const y = -10 - Math.random() * 30;
     const speed = 520 + Math.random() * 520; // px/s, different speeds for depth

@@ -236,9 +236,8 @@ const PixiStage = ({
       const W = mapWidth * tileSize;
       const H = mapHeight * tileSize;
       g.clear();
-      g.beginFill(0x1d4875, 1);
-      g.drawRect(0, 0, W, H);
-      g.endFill();
+      g.rect(0, 0, W, H);
+      g.fill({ color: 0x1d4875, alpha: 1 });
       g.alpha = 0;
       g.visible = false;
 

@@ -161,7 +161,6 @@ export default class LiquidRegionSystem {
         const amp = Math.max(1, Math.floor(this.tileSize * 0.06));
         const thickness = Math.max(1, Math.floor(this.tileSize * 0.08));
         g.clear();
-        g.beginFill(0xc9ecff, 0.35);
         for (let i = 0; i < r.topEdges.length; i++) {
           const e = r.topEdges[i];
           // slight vertical offset wave
@@ -184,9 +183,9 @@ export default class LiquidRegionSystem {
             if (dy > maxDisp) dy = maxDisp;
             if (dy < -maxDisp) dy = -maxDisp;
           }
-          g.drawRect(e.x, e.y - thickness + dy, e.w, thickness);
+          g.rect(e.x, e.y - thickness + dy, e.w, thickness);
         }
-        g.endFill();
+        g.fill({ color: 0xc9ecff, alpha: 0.35 });
       }
     }
   }
@@ -258,20 +257,19 @@ export default class LiquidRegionSystem {
     // To avoid hairline gaps between rows/columns due to AA/subpixel sampling,
     // slightly expand each rect by a small bleed so neighbors overlap.
     mask.clear();
-    mask.beginFill(0xffffff, 1);
     const bleed = 0.5; // px
     for (let k = 0; k < tileIndices.length; k++) {
       const idx = tileIndices[k];
       const gx = (idx % mapWidth);
       const gy = Math.floor(idx / mapWidth);
-      mask.drawRect(
+      mask.rect(
         gx * tileSize - bleed,
         gy * tileSize - bleed,
         tileSize + bleed * 2,
         tileSize + bleed * 2
       );
     }
-    mask.endFill();
+    mask.fill({ color: 0xffffff, alpha: 1 });
 
     const tex = type === 'lava' ? (this._lavaTex || (this._lavaTex = this._createLavaTexture(tileSize)))
                                  : (this._waterTex || (this._waterTex = this._createWaterTexture(tileSize)));

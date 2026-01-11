@@ -62,9 +62,8 @@ export default class WaterSplashFX {
       const alpha = 1 - t;
       const size = 1 + 1.5 * (1 - t);
       const g = d.g; g.clear();
-      g.beginFill(0xc9ecff, Math.max(0, alpha));
-      g.drawCircle(d.x, d.y, size);
-      g.endFill();
+      g.circle(d.x, d.y, size);
+      g.fill({ color: 0xc9ecff, alpha: Math.max(0, alpha) });
       if (d.life >= d.max) {
         try { g.parent && g.parent.removeChild(g); } catch {}
         try { g.destroy(); } catch {}
@@ -79,8 +78,8 @@ export default class WaterSplashFX {
       const t = Math.min(1, r.life / r.max);
       const alpha = 0.6 * (1 - t);
       const g = r.g; g.clear();
-      g.lineStyle({ width: 1.5, color: 0xc9ecff, alpha: Math.max(0, alpha) });
-      g.drawCircle(r.x, r.y, r.r);
+      g.circle(r.x, r.y, r.r);
+      g.stroke({ width: 1.5, color: 0xc9ecff, alpha: Math.max(0, alpha) });
       if (r.life >= r.max) {
         try { g.parent && g.parent.removeChild(g); } catch {}
         try { g.destroy(); } catch {}

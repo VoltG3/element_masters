@@ -78,9 +78,8 @@ export class HealthBar extends Container {
     // Track (no border)
     const w = this._w, h = this._h;
     this._track.clear();
-    this._track.beginFill(this._trackColor, 0.85);
-    this._track.drawRoundedRect(0, 0, w, h, Math.min(3, h * 0.5));
-    this._track.endFill();
+    this._track.roundRect(0, 0, w, h, Math.min(3, h * 0.5));
+    this._track.fill({ color: this._trackColor, alpha: 0.85 });
     // Redraw fill with current state
     this._redrawFill();
   }
@@ -91,10 +90,8 @@ export class HealthBar extends Container {
     const radius = Math.min(2, Math.floor(h / 2));
     this._fill.clear();
     if (innerW <= 0) return;
-    this._fill.beginFill(this._color, 1);
-    // Draw flush with track (no border/padding)
-    this._fill.drawRoundedRect(0, 0, innerW, h, radius);
-    this._fill.endFill();
+    this._fill.roundRect(0, 0, innerW, h, radius);
+    this._fill.fill({ color: this._color, alpha: 1 });
   }
 }
 

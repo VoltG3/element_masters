@@ -137,9 +137,8 @@ export default class WeatherThunder {
     const g = this.flashG;
     g.clear();
     if (this.flashAlpha <= 0) return;
-    g.beginFill(0xffffff, this.flashAlpha);
-    g.drawRect(0, 0, this.width, this.height);
-    g.endFill();
+    g.rect(0, 0, this.width, this.height);
+    g.fill({ color: 0xffffff, alpha: this.flashAlpha });
   }
 
   _createBolt() {
@@ -169,9 +168,9 @@ export default class WeatherThunder {
     g.clear();
     const thickness = this._lerp(2, 5, Math.max(0, Math.min(1, this.intensity / 100)));
     const color = 0xCCEEFF;
-    g.lineStyle({ width: thickness, color, alpha: 1, alignment: 0.5, cap: 'round', join: 'round' });
     g.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y);
+    g.stroke({ width: thickness, color, alpha: 1, alignment: 0.5, cap: 'round', join: 'round' });
 
     // Branches: some short forks from random mid points
     const branchCount = Math.floor(this._lerp(1, 3, Math.max(0, Math.min(1, this.intensity / 100))));
@@ -182,9 +181,9 @@ export default class WeatherThunder {
       const ang = this._rand(-Math.PI * 0.5, Math.PI * 0.5);
       const bx = p.x + Math.cos(ang) * len;
       const by = p.y + Math.sin(ang) * len;
-      g.lineStyle({ width: Math.max(1, thickness * 0.55), color, alpha: 0.9, alignment: 0.5 });
       g.moveTo(p.x, p.y);
       g.lineTo(bx, by);
+      g.stroke({ width: Math.max(1, thickness * 0.55), color, alpha: 0.9, alignment: 0.5 });
     }
 
     this.boltAlive = true;

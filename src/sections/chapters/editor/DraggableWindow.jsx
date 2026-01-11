@@ -24,13 +24,18 @@ export const DraggableWindow = ({
         }
     }, [defaultPosition, hasBeenDragged]);
 
+    const lastHeightRef = useRef(0);
+
     // Notify parent about height changes
     useEffect(() => {
         if (windowRef.current && onHeightChange) {
             const height = windowRef.current.offsetHeight;
-            onHeightChange(height);
+            if (height !== lastHeightRef.current) {
+                lastHeightRef.current = height;
+                onHeightChange(height);
+            }
         }
-    }, [isMinimized, onHeightChange]);
+    });
 
     useEffect(() => {
         if (isDragging) {

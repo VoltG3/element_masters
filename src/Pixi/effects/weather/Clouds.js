@@ -47,7 +47,6 @@ export default class WeatherClouds {
       const vy = (Math.random() - 0.5) * 4; // subtle vertical drift
 
       // Draw an organic cloud using overlapping circles (soft edges)
-      g.beginFill(0xffffff, 1.0);
       const rx = w * 0.5;
       const ry = h * 0.5;
       const circles = 8 + Math.floor(Math.random() * 6); // 8..13 lobes
@@ -58,11 +57,11 @@ export default class WeatherClouds {
         const cx = Math.cos(t) * rx * dist;
         const cy = Math.sin(t) * ry * dist;
         const r = baseR * (0.7 + Math.random() * 0.7);
-        g.drawCircle(cx, cy, r);
+        g.circle(cx, cy, r);
       }
       // central mass
-      g.drawCircle(0, 0, baseR * (0.9 + Math.random() * 0.5));
-      g.endFill();
+      g.circle(0, 0, baseR * (0.9 + Math.random() * 0.5));
+      g.fill({ color: 0xffffff, alpha: 1.0 });
       g.alpha = alpha;
       g.x = x;
       g.y = y;

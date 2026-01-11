@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DraggableWindow } from './DraggableWindow';
 import { PaletteSection } from './PaletteSection';
 import { Minimap } from './Minimap';
@@ -153,12 +153,23 @@ export const ToolbarWindows = ({
     const baseY = 60;
     const startX = 20;
 
-    // Calculate Y positions based on accumulated heights
-    const positions = heights.reduce((acc, height, index) => {
-        const y = index === 0 ? baseY : acc[index - 1].y + heights[index - 1];
-        acc.push({ x: startX, y });
-        return acc;
+    const handleHeightChange = useCallback((index, h) => {
+        setHeights(prev => {
+            if (prev[index] === h) return prev;
+            const newHeights = [...prev];
+            newHeights[index] = h;
+            return newHeights;
+        });
     }, []);
+
+    // Calculate Y positions based on accumulated heights
+    const positions = useMemo(() => {
+        return heights.reduce((acc, height, index) => {
+            const y = index === 0 ? baseY : acc[index - 1].y + heights[index - 1];
+            acc.push({ x: startX, y });
+            return acc;
+        }, []);
+    }, [heights]);
 
     return (
         <>
@@ -168,11 +179,7 @@ export const ToolbarWindows = ({
                 defaultPosition={positions[0]}
                 defaultWidth={300}
                 isOpenDefault={false}
-                onHeightChange={(h) => setHeights(prev => {
-                    const newHeights = [...prev];
-                    newHeights[0] = h;
-                    return newHeights;
-                })}
+                onHeightChange={(h) => handleHeightChange(0, h)}
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ fontSize: '12px' }}>Map Name: <strong>{mapName}</strong></div>
@@ -195,11 +202,7 @@ export const ToolbarWindows = ({
                 defaultPosition={positions[1]}
                 defaultWidth={300}
                 isOpenDefault={false}
-                onHeightChange={(h) => setHeights(prev => {
-                    const newHeights = [...prev];
-                    newHeights[1] = h;
-                    return newHeights;
-                })}
+                onHeightChange={(h) => handleHeightChange(1, h)}
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div>
@@ -285,11 +288,7 @@ export const ToolbarWindows = ({
                 defaultPosition={positions[2]}
                 defaultWidth={300}
                 isOpenDefault={false}
-                onHeightChange={(h) => setHeights(prev => {
-                    const newHeights = [...prev];
-                    newHeights[2] = h;
-                    return newHeights;
-                })}
+                onHeightChange={(h) => handleHeightChange(2, h)}
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <PaletteSection title="Blocks (Background)" isOpenDefault={true}>
@@ -342,11 +341,7 @@ export const ToolbarWindows = ({
                 defaultPosition={positions[3]}
                 defaultWidth={300}
                 isOpenDefault={false}
-                onHeightChange={(h) => setHeights(prev => {
-                    const newHeights = [...prev];
-                    newHeights[3] = h;
-                    return newHeights;
-                })}
+                onHeightChange={(h) => handleHeightChange(3, h)}
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div>
@@ -411,11 +406,7 @@ export const ToolbarWindows = ({
                 defaultPosition={positions[4]}
                 defaultWidth={300}
                 isOpenDefault={false}
-                onHeightChange={(h) => setHeights(prev => {
-                    const newHeights = [...prev];
-                    newHeights[4] = h;
-                    return newHeights;
-                })}
+                onHeightChange={(h) => handleHeightChange(4, h)}
             >
                 <div style={{ fontSize: '11px' }}>
                     <div style={{ marginBottom: '4px' }}>Size: <strong>{totalTiles}</strong> tiles</div>

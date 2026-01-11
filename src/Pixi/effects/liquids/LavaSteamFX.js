@@ -51,9 +51,8 @@ export default class LavaSteamFX {
       const radius = p.r * (1 + 0.8 * t);
       const g = p.g; g.clear();
       // soft grey-white steam
-      g.beginFill(0xdfdad2, Math.max(0, alpha));
-      g.drawCircle(p.x, p.y, radius);
-      g.endFill();
+      g.circle(p.x, p.y, radius);
+      g.fill({ color: 0xdfdad2, alpha: Math.max(0, alpha) });
       if (p.life >= p.max) {
         try { g.parent && g.parent.removeChild(g); } catch {}
         try { g.destroy(); } catch {}

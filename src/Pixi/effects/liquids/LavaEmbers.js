@@ -118,16 +118,16 @@ export default class LavaEmbers {
       const emberSize = 1 + 1.5 * (1 - t);
       const g = e.g; g.clear();
       // smoke trail (fainter)
-      g.lineStyle({ width: 1, color: 0x555555, alpha: 0.25 * emberAlpha });
       for (let k = 1; k < e.trail.length; k++) {
         const p0 = e.trail[k - 1]; const p1 = e.trail[k];
         g.moveTo(p0.x, p0.y);
         g.lineTo(p1.x, p1.y);
       }
+      g.stroke({ width: 1, color: 0x555555, alpha: 0.25 * emberAlpha });
+
       // glowing ember
-      g.beginFill(0xffa229, 0.9 * emberAlpha);
-      g.drawCircle(e.x, e.y, emberSize);
-      g.endFill();
+      g.circle(e.x, e.y, emberSize);
+      g.fill({ color: 0xffa229, alpha: 0.9 * emberAlpha });
 
       if (e.life >= e.max) {
         try { g.parent && g.parent.removeChild(g); } catch {}

@@ -24,9 +24,8 @@ export default class WeatherSnow {
     g.clear();
     // Slightly larger/more visible flakes on average
     const r = 1.2 + Math.random() * 2.0; // radius
-    g.beginFill(0xffffff, 0.97);
-    g.drawCircle(0, 0, r);
-    g.endFill();
+    g.circle(0, 0, r);
+    g.fill({ color: 0xffffff, alpha: 0.97 });
     const x = Math.random() * this.width;
     const y = -10 - Math.random() * 30;
     const speed = 40 + Math.random() * 80; // slower than rain, but a bit more range

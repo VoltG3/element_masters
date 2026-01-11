@@ -71,9 +71,8 @@ export default class WeatherFog {
       return;
     }
     // Draw once with alpha 1, then control real alpha via g.alpha each frame
-    g.beginFill(0x9fb7c9, 1);
-    g.drawRect(0, 0, w, h);
-    g.endFill();
+    g.rect(0, 0, w, h);
+    g.fill({ color: 0x9fb7c9, alpha: 1 });
     g.alpha = baseAlpha;
   }
 
