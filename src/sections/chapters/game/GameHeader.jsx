@@ -7,7 +7,7 @@ const HeaderContainer = styled.div`
     top: 0;
     left: 0;
     width: 100%;
-    height: 60px;
+    height: 110px;
     background-color: rgba(0, 0, 0, 0.3);
     display: flex;
     justify-content: space-between;
@@ -29,39 +29,70 @@ const AmmoDisplay = styled.div`
 
 const RightSection = styled.div`
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
 `;
 
-const HealthDisplay = styled.div`
-    font-size: 32px;
+const BarsContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 200px;
+`;
+
+const BarWrapper = styled.div`
+    width: 100%;
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+`;
+
+const BarFill = styled.div`
+    height: 100%;
+    width: ${props => props.$percent}%;
+    background-color: ${props => props.$color};
+    transition: width 0.3s ease;
+`;
+
+const BarLabel = styled.div`
+    position: absolute;
+    top: -12px;
+    left: 0;
+    font-size: 9px;
+    color: white;
     font-weight: bold;
-    color: rgba(255, 50, 50, 0.9);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    font-family: monospace;
+    text-shadow: 1px 1px 2px black;
     pointer-events: none;
+    white-space: nowrap;
+    text-transform: uppercase;
 `;
 
-const SoundButton = styled.button`
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: 1px solid;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-left: 12px;
-    user-select: none;
-    pointer-events: auto;
-    color: #fff;
-    background-color: ${props => props.$enabled ? 'rgba(40, 140, 60, 0.9)' : 'rgba(160, 40, 40, 0.9)'};
-    border-color: ${props => props.$enabled ? '#2e7d32' : '#7f1d1d'};
+const GameHeader = ({ 
+    health, 
+    maxHealth = 100, 
+    ammo = 0, 
+    oxygen = 100, 
+    maxOxygen = 100, 
+    lavaResist = 100, 
+    maxLavaResist = 100,
+    iceResist = 100,
+    maxIceResist = 100,
+    inWater = false,
+    liquidType = null,
+    onIce = false
+}) => {
+    const hpPercent = Math.max(0, Math.min(100, (health / maxHealth) * 100));
+    const oxyPercent = Math.max(0, Math.min(100, (oxygen / maxOxygen) * 100));
+    const lavaPercent = Math.max(0, Math.min(100, (lavaResist / maxLavaResist) * 100));
+    const icePercent = Math.max(0, Math.min(100, (iceResist / maxIceResist) * 100));
 
-    &:hover {
-        opacity: 0.9;
-    }
-`;
+    const showOxy = inWater || liquidType === 'water' || oxyPercent < 100;
+    const showLava = liquidType === 'lava' || lavaPercent < 100;
+    const showIce = onIce || icePercent < 100;
 
-const GameHeader = ({ health, ammo = 0, soundEnabled = false, onToggleSound }) => {
     return (
         <HeaderContainer>
             <AmmoDisplay>
@@ -69,19 +100,31 @@ const GameHeader = ({ health, ammo = 0, soundEnabled = false, onToggleSound }) =
             </AmmoDisplay>
 
             <RightSection>
-                <HealthDisplay>
-                    ❤️ {health}
-                </HealthDisplay>
-                <SoundButton
-                    $enabled={soundEnabled}
-                    onClick={() => {
-                        if (typeof onToggleSound === 'function') onToggleSound();
-                        try { window.dispatchEvent(new CustomEvent('game-sound-user-gesture')); } catch {}
-                    }}
-                    title={soundEnabled ? 'Sound ON' : 'Sound OFF'}
-                >
-                    {soundEnabled ? 'Sound ON' : 'Sound OFF'}
-                </SoundButton>
+                <BarsContainer style={{ gap: '12px' }}>
+                    {/* HP Bar */}
+                    <BarWrapper>
+                        <BarLabel>HP: {Math.round(health)}%</BarLabel>
+                        <BarFill $percent={hpPercent} $color="#ff3232" />
+                    </BarWrapper>
+
+                    {/* Oxygen Bar */}
+                    <BarWrapper>
+                        <BarLabel>O2: {Math.round(oxyPercent)}%</BarLabel>
+                        <BarFill $percent={oxyPercent} $color="#2ecdf1" />
+                    </BarWrapper>
+
+                    {/* Lava Bar */}
+                    <BarWrapper>
+                        <BarLabel>LAVA: {Math.round(lavaPercent)}%</BarLabel>
+                        <BarFill $percent={lavaPercent} $color="#ffa229" />
+                    </BarWrapper>
+
+                    {/* Ice Bar */}
+                    <BarWrapper>
+                        <BarLabel>ICE: {Math.round(icePercent)}%</BarLabel>
+                        <BarFill $percent={icePercent} $color="#a5f3fc" />
+                    </BarWrapper>
+                </BarsContainer>
             </RightSection>
         </HeaderContainer>
     );
@@ -89,9 +132,17 @@ const GameHeader = ({ health, ammo = 0, soundEnabled = false, onToggleSound }) =
 
 GameHeader.propTypes = {
     health: PropTypes.number.isRequired,
+    maxHealth: PropTypes.number,
     ammo: PropTypes.number,
-    soundEnabled: PropTypes.bool,
-    onToggleSound: PropTypes.func.isRequired
+    oxygen: PropTypes.number,
+    maxOxygen: PropTypes.number,
+    lavaResist: PropTypes.number,
+    maxLavaResist: PropTypes.number,
+    iceResist: PropTypes.number,
+    maxIceResist: PropTypes.number,
+    inWater: PropTypes.bool,
+    liquidType: PropTypes.string,
+    onIce: PropTypes.bool
 };
 
 export default GameHeader;

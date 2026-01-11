@@ -133,15 +133,16 @@ export const Editor = () => {
                 const maxH = def.maxHealth || 100;
                 const newHealth = Math.max(0, (current.health !== undefined ? current.health : maxH) - damage);
                 
-                // If health reached 0 and it's destructible, we could even remove it,
-                // but for the box, the user wants it to stay as "broken" (passable).
                 return {
                     ...prev,
                     [index]: { ...current, health: newHealth }
                 };
             });
+        } else if (newState === 'playerDamage' && payload !== undefined) {
+            // Reģistrējam spēlētāja bojājumus editora play režīmā (vizuālai atgriezeniskajai saitei)
+            // Šeit varētu atskaņot skaņu vai ko citu, bet dzinējs pats iestata hitTimerMs
         }
-    }, []);
+    }, [playModeObjectData, registryItems]);
 
     const handleRevealSecret = useCallback((secretIndex) => {
         setRevealedSecrets(prev => [...prev, secretIndex]);
@@ -156,7 +157,8 @@ export const Editor = () => {
         registryItems,
         handleGameOver,
         handleStateUpdate,
-        handleRevealSecret
+        handleRevealSecret,
+        objectMetadata
     );
 
     useEffect(() => {

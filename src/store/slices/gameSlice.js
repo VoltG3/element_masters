@@ -10,6 +10,7 @@ const initialState = {
   tileMapData: [],
   objectMapData: [],
   secretMapData: [],
+  objectMetadata: {}, // Track metadata per object position { index: { health: 100, etc } }
   revealedSecrets: [], // Track which secret zones have been revealed (array of indices)
   objectTextureIndices: {}, // Track texture index per object position { index: textureIndex }
   mapWidth: 20,
@@ -30,6 +31,7 @@ const gameSlice = createSlice({
       state.tileMapData = tileMapData;
       state.objectMapData = objectMapData;
       state.secretMapData = secretMapData || [];
+      state.objectMetadata = mapData?.meta?.objectMetadata || {}; // Load initial metadata from map
       state.revealedSecrets = []; // Reset revealed secrets on new map
       state.objectTextureIndices = {}; // Reset texture indices on new map
       state.mapWidth = mapWidth;
@@ -38,6 +40,13 @@ const gameSlice = createSlice({
     },
     updateObjectMap: (state, action) => {
       state.objectMapData = action.payload;
+    },
+    updateObjectMetadata: (state, action) => {
+      const { index, metadata } = action.payload;
+      state.objectMetadata[index] = {
+        ...(state.objectMetadata[index] || {}),
+        ...metadata
+      };
     },
     removeObjectAtIndex: (state, action) => {
       const index = action.payload;
@@ -85,6 +94,7 @@ const gameSlice = createSlice({
 export const {
   setActiveMap,
   updateObjectMap,
+  updateObjectMetadata,
   removeObjectAtIndex,
   updateObjectAtIndex,
   setObjectTextureIndex,

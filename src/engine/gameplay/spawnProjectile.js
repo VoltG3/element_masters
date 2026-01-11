@@ -1,6 +1,6 @@
 // Projectile spawning extracted from useGameEngine.js
 
-export function spawnProjectile(ctx, originX, originY, direction) {
+export function spawnProjectile(ctx, originX, originY, direction, ownerId = 'player') {
   const { findItemById, TILE_SIZE, parseBool, projectilesRef, projectileIdRef, playShotSfx } = ctx;
 
   const pDef = findItemById('fireball_basic');
@@ -17,6 +17,7 @@ export function spawnProjectile(ctx, originX, originY, direction) {
 
   const proj = {
     id,
+    ownerId, // Tagad mēs zinām, kurš izšāva
     x: originX,
     y: originY,
     vx,

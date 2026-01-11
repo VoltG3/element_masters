@@ -130,7 +130,9 @@ const PixiStage = ({
       url: bgUrl,
       color: bgColor,
       factor,
-      resolveBackgroundUrl
+      resolveBackgroundUrl,
+      minWidth: appRef.current?.screen?.width || 0,
+      minHeight: appRef.current?.screen?.height || 0
     });
   }, [mapWidth, mapHeight, tileSize, resolveBackgroundUrl]);
 
@@ -208,7 +210,7 @@ const PixiStage = ({
       parallaxRef.current = parallaxLayer;
 
       // Add all layers to stage
-      app.stage.addChild(parallaxLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, bg, bgAnim, overlayLayer);
+      app.stage.addChild(bg, bgAnim, parallaxLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, overlayLayer);
 
       // Preload textures to avoid Assets cache warnings and ensure textures are ready
       try {
@@ -369,6 +371,7 @@ const PixiStage = ({
 
           const f = parallaxFactorRef.current;
           if (parallaxManagerRef.current) {
+            parallaxManagerRef.current.resize(worldW, worldH, sw, sh);
             parallaxManagerRef.current.setScroll(camX, f);
           }
         }

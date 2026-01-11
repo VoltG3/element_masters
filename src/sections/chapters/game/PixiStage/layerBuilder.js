@@ -1,7 +1,8 @@
-import { Sprite, AnimatedSprite, Texture, Rectangle } from 'pixi.js';
+import { Sprite, AnimatedSprite, Texture, Rectangle, Container } from 'pixi.js';
 import { getTexture, msToSpeed, getRegItem } from './helpers';
 import { buildSpriteFromDef } from './playerManager';
 import { isWaterDef, isLavaDef } from './liquidRendering';
+import HealthBar from '../../../../Pixi/ui/HealthBar';
 
 // Build layers: tiles, objects, and secret overlays
 export const rebuildLayers = (refs, options) => {
@@ -105,12 +106,6 @@ export const rebuildLayers = (refs, options) => {
     }
   }
 
-  // console.log('[RENDER] Tiles rendering complete:', {
-  //   secretLayerTiles: secretLayerCount,
-  //   normalLayerTiles: normalLayerCount,
-  //   revealedSecretsCount: revealedSecrets?.length || 0
-  // });
-
   // Objects (non-player)
   for (let i = 0; i < mapWidth * mapHeight; i++) {
     const id = objectMapData[i];
@@ -118,11 +113,12 @@ export const rebuildLayers = (refs, options) => {
     const def = getDef(id);
     if (!def || def.type === 'entity') continue;
 
-    let sprite;
+    const meta = (objectMetadata && objectMetadata[i]) || {};
+    const maxH = def.maxHealth || 100;
+    const health = meta.health !== undefined ? meta.health : maxH;
+
+    let visualElement;
     if (def.spriteSheet && def.spriteSheet.enabled) {
-      const meta = (objectMetadata && objectMetadata[i]) || {};
-      const maxH = def.maxHealth || 100;
-      const health = meta.health !== undefined ? meta.health : maxH;
       const totalSprites = def.spriteSheet.totalSprites || 1;
       const columns = def.spriteSheet.columns || totalSprites;
       
@@ -131,9 +127,10 @@ export const rebuildLayers = (refs, options) => {
       frameIndex = Math.max(0, Math.min(totalSprites - 1, frameIndex));
 
       const baseTexture = getTexture(def.texture);
-      if (baseTexture && (baseTexture.width > 1 || (baseTexture.source && baseTexture.source.width > 1))) {
-        const texWidth = baseTexture.source ? baseTexture.source.width : baseTexture.width;
-        const texHeight = baseTexture.source ? baseTexture.source.height : baseTexture.height;
+      const source = baseTexture?.source;
+      if (source && source.width > 1) {
+        const texWidth = source.width;
+        const texHeight = source.height;
 
         const frameWidth = texWidth / columns;
         const frameHeight = texHeight / Math.ceil(totalSprites / columns);
@@ -144,31 +141,51 @@ export const rebuildLayers = (refs, options) => {
         const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
         
         const frameTexture = new Texture({
-            source: baseTexture.source || baseTexture,
+            source: source,
             frame: rect
         });
-        sprite = new Sprite(frameTexture);
+        visualElement = new Sprite(frameTexture);
       } else {
-        sprite = buildSpriteFromDef(def);
+        visualElement = buildSpriteFromDef(def);
       }
     } else {
-      sprite = buildSpriteFromDef(def);
+      visualElement = buildSpriteFromDef(def);
     }
 
-    if (!sprite) continue;
+    if (!visualElement) continue;
 
     const x = (i % mapWidth) * tileSize;
     const y = Math.floor(i / mapWidth) * tileSize;
-    sprite.x = x;
-    sprite.y = y;
-    sprite.width = tileSize;
-    sprite.height = tileSize;
+    visualElement.x = 0;
+    visualElement.y = 0;
+    visualElement.width = tileSize;
+    visualElement.height = tileSize;
+
+    // Create a container if we need a health bar or just to keep it clean
+    const container = new Container();
+    container.x = x;
+    container.y = y;
+    container.addChild(visualElement);
+
+    // Add health bar for destructible objects if damaged
+    if (def.isDestructible && health < maxH && health > 0) {
+      try {
+        const hb = new HealthBar({
+          width: tileSize,
+          height: 4,
+          offsetX: 0,
+          offsetY: -5
+        });
+        hb.update(health, maxH);
+        container.addChild(hb);
+      } catch (e) {}
+    }
 
     const renderAbove = !!def.renderAbovePlayer;
     if (renderAbove) {
-      objFrontRef.addChild(sprite);
+      objFrontRef.addChild(container);
     } else {
-      objBehindRef.addChild(sprite);
+      objBehindRef.addChild(container);
     }
   }
 };

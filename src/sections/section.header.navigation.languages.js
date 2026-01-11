@@ -1,5 +1,8 @@
 import styled from "styled-components"
 import { useTranslation } from "react-i18next"
+import { useState, useRef, useEffect } from "react"
+import { useSelector, useDispatch } from "react-redux"
+import { setSoundEnabled } from "../store/slices/settingsSlice"
 
 const NavButton = styled.button`
     display: flex;
@@ -19,6 +22,7 @@ const NavButton = styled.button`
     transition: all 0.3s ease;
     white-space: nowrap;
     border-radius: 0;
+    height: 36px;
 
     &:hover {
         background-color: #f4c542;
@@ -33,13 +37,92 @@ const NavButton = styled.button`
     }
 `
 
+const DropdownContainer = styled.div`
+    position: relative;
+    display: flex;
+`
+
+const DropdownMenu = styled.div`
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 10px;
+    z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    min-width: 150px;
+    margin-top: 5px;
+`
+
+const MenuItem = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+
+    &:hover {
+        background-color: #444;
+    }
+`
+
+const ToggleSwitch = styled.div`
+    width: 34px;
+    height: 18px;
+    background-color: ${props => props.$active ? '#f4c542' : '#666'};
+    border-radius: 9px;
+    position: relative;
+    transition: background-color 0.3s;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: ${props => props.$active ? '18px' : '2px'};
+        width: 14px;
+        height: 14px;
+        background-color: white;
+        border-radius: 50%;
+        transition: left 0.3s;
+    }
+`
+
 export default function SectionHeaderNavigationLanguages() {
     const { i18n } = useTranslation();
+    const dispatch = useDispatch();
+    const dropdownRef = useRef(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    
+    const { sound } = useSelector(state => state.settings);
+    const soundEnabled = sound?.enabled ?? false;
+
     const currentLang = i18n.language || 'en'
 
     const handleLanguageChange = (newLang) => {
         i18n.changeLanguage(newLang)
     }
+
+    const toggleSound = () => {
+        const next = !soundEnabled;
+        dispatch(setSoundEnabled(next));
+        try { window.dispatchEvent(new CustomEvent('game-sound-toggle', { detail: { enabled: next } })); } catch {}
+        try { window.dispatchEvent(new CustomEvent('game-sound-user-gesture')); } catch {}
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
         <nav style={{ display: "flex", gap: "0" }}>
@@ -77,6 +160,24 @@ export default function SectionHeaderNavigationLanguages() {
             >
                 JA
             </NavButton>
+
+            <DropdownContainer ref={dropdownRef}>
+                <NavButton onClick={() => setIsMenuOpen(!isMenuOpen)} title="Settings">
+                    ⚙️
+                </NavButton>
+                {isMenuOpen && (
+                    <DropdownMenu>
+                        <MenuItem onClick={toggleSound}>
+                            <span>Sound Effects</span>
+                            <ToggleSwitch $active={soundEnabled} />
+                        </MenuItem>
+                        <div style={{ height: '1px', backgroundColor: '#444', margin: '5px 0' }} />
+                        <div style={{ padding: '5px 8px', fontSize: '10px', color: '#888' }}>
+                            GAME SETTINGS
+                        </div>
+                    </DropdownMenu>
+                )}
+            </DropdownContainer>
         </nav>
     )
 }

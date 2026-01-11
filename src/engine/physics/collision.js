@@ -28,7 +28,16 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
   if (objectData && objectData[index]) {
     const objId = objectData[index];
     const objDef = registryItems.find(r => r.id === objId);
-    if (objDef && objDef.collision) {
+    
+    // Ignorējam entītijas kolīziju pārbaudēs (tām ir sava fizika un tās nevajadzētu uztvert kā blokus)
+    // Pārbaudām pēc vairākām pazīmēm, lai būtu droši
+    const isEntity = objDef && (
+      objDef.type === 'entity' || 
+      objDef.subtype === 'tank' || 
+      (objDef.name && objDef.name.toLowerCase().includes('entities.'))
+    );
+
+    if (objDef && objDef.collision && !isEntity) {
       // Special logic for destructible objects like the wooden box
       if (objDef.isDestructible && objectMetadata && objectMetadata[index]) {
         const health = objectMetadata[index].health !== undefined ? objectMetadata[index].health : objDef.maxHealth;
@@ -81,7 +90,38 @@ export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_S
   return false;
 }
 
+/**
+ * Gets physical properties of the surface below the player (friction, acceleration)
+ */
+export function getSurfaceProperties(x, y, width, height, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems) {
+  const cx = x + width / 2;
+  const feetY = y + height + 1; // 1 pixel below feet
+  const gx = Math.floor(cx / TILE_SIZE);
+  const gy = Math.floor(feetY / TILE_SIZE);
+  
+  if (gx < 0 || gy < 0 || gx >= mapWidthTiles || gy >= mapHeightTiles) {
+    return { friction: 0.8, acceleration: 0.2 };
+  }
+  
+  const index = gy * mapWidthTiles + gx;
+  const tileId = tileData[index];
+  if (!tileId) return { friction: 0.8, acceleration: 0.2 };
+  
+  const tileDef = registryItems.find(r => r.id === tileId);
+  if (!tileDef) return { friction: 0.8, acceleration: 0.2 };
+  
+  // If block has slipperiness, use it. Default friction is 0.8.
+  const slipperiness = tileDef.slipperiness !== undefined ? tileDef.slipperiness : 0.8;
+  
+  return {
+    friction: slipperiness,
+    // When slippery, acceleration is lower (harder to start/change direction)
+    acceleration: tileDef.slipperiness !== undefined ? (1 - slipperiness) * 2 + 0.05 : 0.2
+  };
+}
+
 export default {
   isSolidAtPixel,
   checkCollision,
+  getSurfaceProperties
 };

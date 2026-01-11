@@ -10,5 +10,6 @@
     "bottom": true,
     "left": true,
     "right": true
-  }
+  },
+  "slipperiness": 0.98
 }

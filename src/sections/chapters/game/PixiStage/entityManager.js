@@ -23,55 +23,78 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
     const def = ent.def || {};
 
     if (!spr) {
-      // Izveidojam jaunu spraitu
-      spr = new Sprite(Texture.EMPTY);
+      // Izveidojam jaunu spraitu ar baltu tekstūru kā aizvietotāju, kamēr lādējas īstā
+      spr = new Sprite(Texture.WHITE);
+      spr.anchor.set(0, 0);
       entitiesLayer.addChild(spr);
       entitySpritesMap.set(key, spr);
       spr._lastFrameIndex = -1;
     }
 
     // Atjaunojam tekstūru no spritesheet, ja nepieciešams
-    if (def.spriteSheet && def.spriteSheet.enabled) {
+    const baseTexture = getTexture(def.texture);
+    const source = baseTexture?.source;
+    const isTextureReady = source && source.width > 1;
+
+    if (def.spriteSheet && def.spriteSheet.enabled && isTextureReady) {
       const columns = def.spriteSheet.columns || 1;
       const frameIndex = ent.currentSpriteIndex !== undefined ? ent.currentSpriteIndex : 0;
       
       if (spr._lastFrameIndex !== frameIndex) {
-        const baseTexture = getTexture(def.texture);
-        if (baseTexture && baseTexture.source) {
-          const frameWidth = baseTexture.width / columns;
-          const frameHeight = baseTexture.height / Math.ceil(def.spriteSheet.totalSprites / columns);
-          
-          const col = frameIndex % columns;
-          const row = Math.floor(frameIndex / columns);
-          
-          const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
-          
-          spr.texture = new Texture({
-            source: baseTexture.source,
-            frame: rect
-          });
-          spr._lastFrameIndex = frameIndex;
+        const texWidth = source.width;
+        const texHeight = source.height;
+        const totalSprites = def.spriteSheet.totalSprites || 1;
+
+        // Ja kolonnu skaits JSONā ir nepareizs vai trūkst, mēģinām to aprēķināt
+        let effectiveColumns = columns;
+        if (!effectiveColumns || effectiveColumns <= 0) {
+            effectiveColumns = Math.floor(texWidth / 32) || 1;
         }
+
+        const frameWidth = texWidth / effectiveColumns;
+        const frameHeight = texHeight / Math.ceil(totalSprites / effectiveColumns);
+        
+        const col = frameIndex % effectiveColumns;
+        const row = Math.floor(frameIndex / effectiveColumns);
+        
+        const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
+        
+        spr.texture = new Texture({
+          source: source,
+          frame: rect
+        });
+        spr._lastFrameIndex = frameIndex;
+      }
+    } else if (isTextureReady) {
+      if (spr.texture !== baseTexture) {
+        spr.texture = baseTexture;
       }
     } else {
-      const tex = getTexture(def.texture);
-      if (tex && spr.texture !== tex) {
-        spr.texture = tex;
+      // Kamēr tekstūra lādējas, izmantojam balto kvadrātu
+      if (spr.texture !== Texture.WHITE) {
+        spr.texture = Texture.WHITE;
       }
     }
 
     // Pozīcija un izmērs
-    spr.width = ent.width || tileSize;
-    spr.height = ent.height || tileSize;
+    // Svarīgi: Vispirms iestatām izmēru, tad virzienu
+    const targetWidth = ent.width || tileSize;
+    const targetHeight = ent.height || tileSize;
     
+    spr.width = targetWidth;
+    spr.height = targetHeight;
+    
+    // Nodrošinām, ka scale nav 0 vai NaN (ja tekstūra bija dīvaina sākumā)
+    if (!spr.scale.x || isNaN(spr.scale.x)) spr.scale.x = 1;
+    if (!spr.scale.y || isNaN(spr.scale.y)) spr.scale.y = 1;
+
     // Virziens (flipping)
     const direction = ent.direction !== undefined ? ent.direction : 1;
-    const magX = Math.abs(spr.scale.x);
-    spr.scale.x = direction >= 0 ? magX : -magX;
+    const absScaleX = Math.abs(spr.scale.x);
+    spr.scale.x = direction >= 0 ? absScaleX : -absScaleX;
     
-    // Ja anchor ir 0,0 (noklusējums), tad negatīvs scale.x nobīda zīmējumu pa kreisi no X punkta.
-    // Tāpēc pieskaitām platumu, lai tas vizuāli paliktu tajā pašā vietā.
-    spr.x = ent.x + (direction < 0 ? spr.width : 0);
+    // Pozicionēšana ņemot vērā flipping
+    spr.x = ent.x + (direction < 0 ? targetWidth : 0);
     spr.y = ent.y;
   }
 

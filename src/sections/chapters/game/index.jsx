@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getRegistry, findItemById } from '../../../engine/registry';
 import PixiStage from './PixiStage';
@@ -7,7 +7,7 @@ import GameHeader from './GameHeader';
 import GameTerminal from './GameTerminal';
 import GameSettings from './GameSettings';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, setObjectTextureIndex, revealSecretZone, resetGame } from '../../../store/slices/gameSlice';
+import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
 import { setSoundEnabled } from '../../../store/slices/settingsSlice';
 import errorHandler from '../../../services/errorHandler';
@@ -16,14 +16,9 @@ import styled from 'styled-components';
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
 import map1 from '../../../assets/maps/Temp_01.json';
 import map2 from '../../../assets/maps/Temp_02.json';
-import map3 from '../../../assets/maps/Temp_03.json';
-import map4 from '../../../assets/maps/Temp_04.json';
-import map5 from '../../../assets/maps/Temp_05.json';
-import map6 from '../../../assets/maps/Temp_06.json';
-import map7 from '../../../assets/maps/Temp_07.json';
-import map8 from '../../../assets/maps/Temp_08.json';
+
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6, map7, map8];
+const BUILT_IN_MAPS = [map1, map2];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -156,7 +151,7 @@ export default function Game() {
     const viewportRef = useRef(null);
 
     // Redux state
-    const { activeMapData, tileMapData, objectMapData, secretMapData, revealedSecrets, objectTextureIndices, mapWidth, mapHeight } = useSelector(state => state.game);
+    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight } = useSelector(state => state.game);
     const { isMapModalOpen, cameraScrollX, shouldCenterMap } = useSelector(state => state.ui);
     const { sound } = useSelector(state => state.settings);
     const soundEnabled = sound.enabled;
@@ -171,12 +166,19 @@ export default function Game() {
         // Reload current map using Redux
         if (activeMapData) {
             console.log("Game Over! Reloading map...");
-            loadMapData({...activeMapData});
+            // Pievienojam timestamp, lai dzinējs zinātu, ka šis ir restarts/jauna ielāde
+            const mapToLoad = {
+                ...activeMapData,
+                meta: {
+                    ...activeMapData.meta,
+                    date_map_last_updated: new Date().toISOString()
+                }
+            };
+            loadMapData(mapToLoad);
         }
     };
 
-    // NEW: Function for removing items and updating interactables - now uses Redux
-    const handleStateUpdate = (action, payload) => {
+    const handleStateUpdate = useCallback((action, payload) => {
         if (action === 'collectItem') {
             const indexToRemove = payload;
             dispatch(removeObjectAtIndex(indexToRemove));
@@ -188,8 +190,24 @@ export default function Game() {
             if (currentId) {
                 dispatch(updateObjectAtIndex({ index, newId: currentId + '_used' }));
             }
+        } else if (action === 'objectDamage') {
+            const { index, damage } = payload;
+            const objId = objectMapData[index];
+            if (objId) {
+                const def = registryItems.find(r => r.id === objId);
+                if (def && def.isDestructible) {
+                    const currentMeta = objectMetadata[index] || {};
+                    const maxH = def.maxHealth || 100;
+                    const newHealth = Math.max(0, (currentMeta.health !== undefined ? currentMeta.health : maxH) - damage);
+                    dispatch(updateObjectMetadata({ index, metadata: { health: newHealth } }));
+                }
+            }
+        } else if (action === 'playerDamage' && payload !== undefined) {
+            // Šeit mēs nevaram viegli atjaunināt Redux katrā kadrā,
+            // bet varam atskaņot trāpījuma skaņu
+            console.log("Player hit by entity!");
         }
-    };
+    }, [dispatch, objectMapData, objectMetadata, registryItems]);
 
     // We no longer need 'engineMapData' with layers, as we pass objectMapData separately.
     // So we pass the original 'activeMapData' as first argument (for initialization to work correctly and not reset),
@@ -212,7 +230,8 @@ export default function Game() {
         registryItems,
         handleGameOver,
         handleStateUpdate,
-        handleRevealSecret
+        handleRevealSecret,
+        objectMetadata
     );
 
     // Iegūstam spēlētāja vizuālo izskatu (Texture)
@@ -370,12 +389,20 @@ export default function Game() {
         <GameContainer>
         
             {/* Game Header */}
-            <GameHeader health={playerState.health} ammo={playerState.ammo || 0} soundEnabled={soundEnabled} onToggleSound={() => {
-                const next = !soundEnabled;
-                dispatch(setSoundEnabled(next));
-                try { window.dispatchEvent(new CustomEvent('game-sound-toggle', { detail: { enabled: next } })); } catch {}
-                try { window.dispatchEvent(new CustomEvent('game-sound-user-gesture')); } catch {}
-            }} />
+            <GameHeader 
+                health={playerState.health} 
+                maxHealth={playerState.maxHealth}
+                ammo={playerState.ammo || 0} 
+                oxygen={playerState.oxygen}
+                maxOxygen={playerState.maxOxygen}
+                lavaResist={playerState.lavaResist}
+                maxLavaResist={playerState.maxLavaResist}
+                iceResist={playerState.iceResist}
+                maxIceResist={playerState.maxIceResist}
+                inWater={playerState.inWater}
+                liquidType={playerState.liquidType}
+                onIce={playerState.onIce}
+            />
 
 
             {isMapModalOpen && (
@@ -426,6 +453,7 @@ export default function Game() {
                             playerState={playerState}
                             playerVisuals={playerVisuals}
                             projectiles={playerState.projectiles || []}
+                            objectMetadata={objectMetadata}
                             backgroundImage={activeMapData?.meta?.backgroundImage}
                             backgroundColor={activeMapData?.meta?.backgroundColor}
                             backgroundParallaxFactor={(runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor)}

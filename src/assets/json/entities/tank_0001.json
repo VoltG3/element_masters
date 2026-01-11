@@ -12,10 +12,10 @@
   "ai": {
     "patrol": true,
     "canJump": false,
-    "stayOnPlatform": true,
-    "reactionDistance": 10,
-    "shootDistance": 8,
-    "shootCooldown": 1500
+    "stayOnPlatform": false,
+    "reactionDistance": 15,
+    "shootDistance": 12,
+    "shootCooldown": 1200
   },
   "death": {
     "disappear": true,

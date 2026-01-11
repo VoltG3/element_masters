@@ -89,15 +89,24 @@ export function updateEntities(ctx, deltaMs) {
       if (dist < shootDist) {
         if (entity.shootCooldown <= 0) {
            const facingPlayer = (dx > 0 && entity.direction > 0) || (dx < 0 && entity.direction < 0);
-           if (facingPlayer) {
+           // Tanks šauj, ja skatās uz spēlētāju vai ja tas ir pietiekami tuvu
+           if (facingPlayer || dist < TILE_SIZE * 2) {
              entity.isShooting = true;
              entity.shootCooldown = ai.shootCooldown || 2000;
+             
              // Izsaucam šāviņa izveidi
-             spawnProjectile(
-               entity.x + (entity.width / 2) + (entity.direction * TILE_SIZE * 0.5), 
-               entity.y + (entity.height * 0.5), 
-               entity.direction
-             );
+             if (typeof spawnProjectile === 'function') {
+                // Novietojam šāviņu ārpus tanka korpusa (atkarībā no virziena)
+                const spawnX = entity.x + (entity.width / 2) + (entity.direction * (entity.width / 2 + 10));
+                const spawnY = entity.y + (entity.height * 0.4); // Nedaudz augstāk par centru (stobrs)
+                
+                spawnProjectile(
+                  spawnX, 
+                  spawnY, 
+                  entity.direction,
+                  entity.id
+                );
+             }
            }
         }
       }
@@ -162,7 +171,9 @@ export function updateEntities(ctx, deltaMs) {
       height: entity.height,
       mapWidth,
       mapHeight,
-      checkCollision: (nx, ny) => checkCollision(nx, ny, mapWidth, mapHeight, entity.width, entity.height)
+      checkCollision: (nx, ny) => checkCollision(nx, ny, mapWidth, mapHeight, entity.width, entity.height),
+      isWaterAt: ctx.isWaterAt,
+      vx: entity.vx
     });
     entity.y = vp.y;
     entity.vy = vp.vy;
@@ -182,7 +193,13 @@ export function updateEntities(ctx, deltaMs) {
     // Atjaunojam animācijas rāmi, ja tas nav sprādziens
     if (!entity.isExploding) {
         const anims = def.spriteSheet?.animations || {};
-        const currentAnim = anims[entity.animation] || anims['move'] || [0];
+        let currentAnim = anims[entity.animation];
+        
+        // Rezerves varianti, ja specifiskā animācija nav atrasta
+        if (!currentAnim || !Array.isArray(currentAnim) || currentAnim.length === 0) {
+            currentAnim = anims['move'] || anims['idle'] || [0];
+        }
+        
         entity.animTimer = (entity.animTimer || 0) + deltaMs;
         const frameDur = 100; // ms
         if (entity.animTimer >= frameDur) {

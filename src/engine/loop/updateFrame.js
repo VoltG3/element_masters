@@ -68,18 +68,49 @@ export function updateFrame(ctx, timestamp) {
     isGrounded,
     direction,
     animation,
-    ammo
+    ammo,
+    iceResist,
+    maxIceResist
   } = gameState.current;
+
+  const dt = Math.max(0, deltaMs || 0);
+
+  // 0.5) Resources update (before physics to affect them)
+  // Ice resistance depletion: drains while on slippery surface; regenerates otherwise
+  const backgroundLayer = ctx.mapData.layers.find(l => l.name === 'background')?.data || [];
+  const surface = helpers.getSurfaceProperties ? helpers.getSurfaceProperties(x, y, width, height, mapWidth, mapHeight, TILE_SIZE, backgroundLayer, ctx.registryItems) : { friction: 0.8, acceleration: 0.2 };
+  
+  const isSlippery = surface.friction >= 0.9;
+  let currentIceRes = Number(iceResist);
+  const maxIce = Math.max(1, Number(maxIceResist || 100));
+  if (!Number.isFinite(currentIceRes)) currentIceRes = maxIce;
+
+  if (isSlippery) {
+    currentIceRes -= (20 * dt) / 1000;
+  } else {
+    currentIceRes += (35 * dt) / 1000;
+  }
+  currentIceRes = Math.max(0, Math.min(maxIce, currentIceRes));
+  gameState.current.iceResist = currentIceRes;
+
+  let effectiveFriction = surface.friction;
+  if (isSlippery && currentIceRes > 0) {
+      const ratio = currentIceRes / maxIce;
+      const targetFriction = 0.8;
+      effectiveFriction = surface.friction - (surface.friction - targetFriction) * ratio;
+  }
 
   // 1) Horizontal movement
   const mh = moveHorizontal({
     keys,
-    state: { x, y, width, direction },
+    state: { x, y, vx, width, direction },
     MOVE_SPEED,
     TILE_SIZE,
     mapWidth,
     mapHeight,
-    checkCollision
+    checkCollision,
+    friction: effectiveFriction,
+    acceleration: isSlippery ? (currentIceRes > 0 ? 0.15 : surface.acceleration) : surface.acceleration
   });
   x = mh.x; vx = mh.vx; direction = mh.direction;
 
@@ -142,7 +173,6 @@ export function updateFrame(ctx, timestamp) {
 
   // 2.7) Resource bars logic (oxygen & lava resistance indicators)
   try {
-    const dt = Math.max(0, deltaMs || 0);
     // Initialize defaults if missing
     const maxOxy = Math.max(1, Number(gameState.current.maxOxygen || 100));
     const maxLava = Math.max(1, Number(gameState.current.maxLavaResist || 100));
@@ -165,7 +195,7 @@ export function updateFrame(ctx, timestamp) {
     gameState.current.oxygen = oxy;
     gameState.current.maxOxygen = maxOxy;
 
-    // Lava resistance: drains while in lava; regenerates outside
+    // Lava resist depletion while in lava; regenerates outside
     if (liquidType === 'lava') {
       lavaRes -= (Math.max(0, Number(lavaParams.drainPerSecond) || 0) * dt) / 1000;
     } else {
@@ -257,7 +287,7 @@ export function updateFrame(ctx, timestamp) {
   if (keys?.mouseLeft && shootCooldownRef.current <= 0 && currentAmmo > 0) {
     const originX = x + (direction >= 0 ? width + 4 : -4);
     const originY = y + height / 2;
-    spawnProjectile(originX, originY, direction >= 0 ? 1 : -1);
+    spawnProjectile(originX, originY, direction >= 0 ? 1 : -1, 'player');
     shootCooldownRef.current = 350; // ms cooldown
     gameState.current.ammo = Math.max(0, currentAmmo - 1);
   }
@@ -273,10 +303,41 @@ export function updateFrame(ctx, timestamp) {
       mapHeight,
       TILE_SIZE,
       checkCollision,
+      isWaterAt,
       spawnProjectile,
       constants,
       registryItems: ctx.registryItems
-    }, deltaMs);
+    }, Math.min(dt, 100)); // Ierobežojam deltaMs uz 100ms, lai izvairītos no milzīgiem lēcieniem
+    
+    // Kontaktbojājumi no entītijām
+    const player = gameState.current;
+    if (entitiesRef.current && entitiesRef.current.length > 0) {
+      for (const ent of entitiesRef.current) {
+        if (ent.health <= 0 || ent.isExploding) continue;
+        
+        // AABB pārbaude
+        const hit = (
+          player.x < ent.x + ent.width &&
+          player.x + player.width > ent.x &&
+          player.y < ent.y + ent.height &&
+          player.y + player.height > ent.y
+        );
+        
+        if (hit && Number(player.hitTimerMs) <= 0) {
+          // Pievienojam nelielu atgrūdienu (knockback)
+          const knockbackDir = player.x + player.width / 2 < ent.x + ent.width / 2 ? -1 : 1;
+          gameState.current.vx = knockbackDir * 5;
+          gameState.current.vy = -3;
+          
+          // Iestatām bezsmertības periodu un vizuālo flash
+          gameState.current.hitTimerMs = 500;
+          
+          if (actions.onStateUpdate) {
+            actions.onStateUpdate('playerDamage', { damage: 10 });
+          }
+        }
+      }
+    }
   } catch (e) {
     console.error("Entity update failed:", e);
   }
@@ -312,7 +373,8 @@ export function updateFrame(ctx, timestamp) {
     inWater,
     headUnderWater,
     atSurface,
-    liquidType: liquidType || null
+    liquidType: liquidType || null,
+    onIce: isSlippery
   };
   setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [], entities: entitiesRef.current || [] });
 

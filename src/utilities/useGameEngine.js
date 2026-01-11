@@ -6,7 +6,7 @@ import { checkSecretDetection } from '../engine/gameplay/secrets';
 import { playSfx } from '../engine/audio';
 import { updateFrame } from '../engine/loop/updateFrame';
 import { getLiquidAtPixel, isLiquidAtPixel as isLiquidAtPixelUtil, sampleLiquidForAABB } from '../engine/liquids/liquidUtils';
-import { isSolidAtPixel as isSolidAtPixelExternal, checkCollision as checkCollisionExternal } from '../engine/physics';
+import { isSolidAtPixel as isSolidAtPixelExternal, checkCollision as checkCollisionExternal, getSurfaceProperties } from '../engine/physics';
 import {
     TILE_SIZE,
     GRAVITY,
@@ -15,7 +15,8 @@ import {
     JUMP_FORCE,
     MAX_HEALTH,
     MAX_OXYGEN,
-    MAX_LAVA_RESIST
+    MAX_LAVA_RESIST,
+    MAX_ICE_RESIST
 } from '../constants/gameConstants';
 import errorHandler from '../services/errorHandler';
 
@@ -26,8 +27,8 @@ const parseBool = (v, def = false) => {
     return def;
 };
 
-// Modified arguments: added objectData, secretData, revealedSecrets, onRevealSecret
-export const useGameEngine = (mapData, tileData, objectData, secretData, revealedSecrets, registryItems, onGameOver, onStateUpdate, onRevealSecret) => {
+// Modified arguments: added objectData, secretData, revealedSecrets, onRevealSecret, objectMetadata
+export const useGameEngine = (mapData, tileData, objectData, secretData, revealedSecrets, registryItems, onGameOver, onStateUpdate, onRevealSecret, objectMetadata) => {
     const input = useInput();
 
     // Player state
@@ -49,6 +50,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         maxOxygen: MAX_OXYGEN,
         lavaResist: MAX_LAVA_RESIST,
         maxLavaResist: MAX_LAVA_RESIST,
+        iceResist: MAX_ICE_RESIST,
+        maxIceResist: MAX_ICE_RESIST,
         projectiles: [] // Active projectiles for rendering
   });
 
@@ -70,6 +73,19 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     const oxygenDepleteAccRef = useRef(0);                 // O2 depletion DPS accumulator
     const lavaDepleteAccRef = useRef(0);                   // Lava resist depletion DPS accumulator
     const entitiesRef = useRef([]);                        // Active moving entities (tanks, etc.)
+
+    // Refs for props to avoid stale closures in the game loop
+    const onStateUpdateRef = useRef(onStateUpdate);
+    const onRevealSecretRef = useRef(onRevealSecret);
+    const onGameOverRef = useRef(onGameOver);
+    const objectMetadataRef = useRef(objectMetadata);
+    const revealedSecretsRef = useRef(revealedSecrets);
+
+    useEffect(() => { onStateUpdateRef.current = onStateUpdate; }, [onStateUpdate]);
+    useEffect(() => { onRevealSecretRef.current = onRevealSecret; }, [onRevealSecret]);
+    useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
+    useEffect(() => { objectMetadataRef.current = objectMetadata; }, [objectMetadata]);
+    useEffect(() => { revealedSecretsRef.current = revealedSecrets; }, [revealedSecrets]);
 
     // Sync global sound toggle from localStorage and events
     useEffect(() => {
@@ -146,11 +162,11 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     // Secrets detection wrapper
     const checkSecretsWrapper = (currentX, currentY, width, height, mapWidth, mapHeight) => {
         try {
-            if (!secretData || !onRevealSecret) return;
+            if (!secretData || !onRevealSecretRef.current) return;
 
             // Merge prop revealedSecrets with local tracking
             const mergedRevealed = [
-                ...(revealedSecrets || []),
+                ...(revealedSecretsRef.current || []),
                 ...Array.from(localRevealedRef.current)
             ];
 
@@ -170,7 +186,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             if (indicesToReveal && indicesToReveal.length > 0) {
                 // Add to local tracking immediately (before state updates)
                 indicesToReveal.forEach(idx => localRevealedRef.current.add(idx));
-                onRevealSecret(indicesToReveal);
+                onRevealSecretRef.current(indicesToReveal);
             }
         } catch (error) {
             errorHandler.error(error, {
@@ -181,16 +197,29 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         }
     };
 
+    const lastMapIdRef = useRef(null);
+
     // Initialize player at starting position
     useEffect(() => {
         if (!mapData) {
             isInitialized.current = false;
+            lastMapIdRef.current = null;
             return;
         }
 
-        // Ja spēle jau ir inicializēta, nemainām spēlētāja pozīciju
-        // Tas novērš "reset" uz sākumu, kad spēlētājs paceļ itemu (kas maina mapData)
-        if (isInitialized.current) return;
+        // Unique identifier for the map session
+        // We use created_at/updated time or just the object reference itself if it's a completely new load
+        // In Game/index.jsx loadMapData creates a new object {...activeMapData} for reset.
+        const meta = mapData.meta || {};
+        const currentMapId = meta.date_map_last_updated || meta.date_map_created_at || mapData.name || 'default';
+        const isNewMapLoad = currentMapId !== lastMapIdRef.current;
+
+        // Ja spēle jau ir inicializēta UN tā ir tā pati karte, nemainām spēlētāja pozīciju
+        // Tas novērš "reset" uz sākumu, kad spēlētājs paceļ itemu (kas maina mapData atsauci, bet ne saturu)
+        // Atļaujam pārlādi, ja entītiju saraksts ir tukšs (drošībai)
+        if (isInitialized.current && !isNewMapLoad && entitiesRef.current.length > 0) return;
+
+        lastMapIdRef.current = currentMapId;
 
         // Reset state for new initialization
         lastTimeRef.current = 0;
@@ -211,16 +240,22 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             if (objectData && Array.isArray(objectData)) {
                 objectData.forEach((id, idx) => {
                     if (id && !id.includes('player')) {
-                        const def = findItemById(id);
-                        if (def && def.type === 'entity') {
+                        const def = findItemById(id) || registryItems.find(r => r.id === id);
+                        const isEntity = def && (
+                            def.type === 'entity' || 
+                            def.subtype === 'tank' || 
+                            (def.name && def.name.toLowerCase().includes('entities.'))
+                        );
+
+                        if (isEntity) {
                             initialEntities.push({
                                 id: `entity_${idx}_${Date.now()}`,
                                 defId: id,
                                 def: def,
                                 x: (idx % mapW) * TILE_SIZE,
                                 y: Math.floor(idx / mapW) * TILE_SIZE,
-                                width: (def.width || 1) * TILE_SIZE,
-                                height: (def.height || 1) * TILE_SIZE,
+                                width: (Number(def.width) || 1) * TILE_SIZE,
+                                height: (Number(def.height) || 1) * TILE_SIZE,
                                 vx: 0,
                                 vy: 0,
                                 health: def.maxHealth || 100,
@@ -283,7 +318,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     const maxXAtStart = mapW * TILE_SIZE - gameState.current.width;
                     gameState.current.x = Math.max(0, Math.min(gameState.current.x, maxXAtStart));
 
-                    setPlayer({ ...gameState.current, projectiles: [] });
+                    setPlayer({ ...gameState.current, projectiles: [], entities: entitiesRef.current });
                     isInitialized.current = true;
                 } else {
                     // If player not found in map, place at 0,0 or some safe location
@@ -298,7 +333,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         lavaResist: MAX_LAVA_RESIST,
                         maxLavaResist: MAX_LAVA_RESIST
                     };
-                    setPlayer({ ...gameState.current, projectiles: [] });
+                    setPlayer({ ...gameState.current, projectiles: [], entities: entitiesRef.current });
                     isInitialized.current = true; // allow loop to work even without start position
                 }
             } else {
@@ -314,14 +349,14 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     lavaResist: MAX_LAVA_RESIST,
                     maxLavaResist: MAX_LAVA_RESIST
                 };
-                setPlayer({ ...gameState.current, projectiles: [] });
+                setPlayer({ ...gameState.current, projectiles: [], entities: entitiesRef.current });
                 isInitialized.current = true;
             }
         }
-    }, [mapData]);
+    }, [mapData, objectData]);
 
     // Helper function for collisions (AABB Collision) with blocks (tile layer) — delegates to GameEngine/collision
-    const checkCollision = (newX, newY, mapWidth, mapHeightParam) => {
+    const checkCollision = (newX, newY, mapWidth, mapHeightParam, widthOverride, heightOverride) => {
         return checkCollisionExternal(
             newX,
             newY,
@@ -330,11 +365,11 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             TILE_SIZE,
             tileData,
             registryItems,
-            gameState.current.width,
-            gameState.current.height,
+            widthOverride !== undefined ? widthOverride : gameState.current.width,
+            heightOverride !== undefined ? heightOverride : gameState.current.height,
             secretData,
             objectData,
-            mapData?.meta?.objectMetadata
+            objectMetadataRef.current || mapData?.meta?.objectMetadata
         );
     };
 
@@ -350,7 +385,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             registryItemsOverride || registryItems,
             secretDataOverride || secretData,
             objectDataOverride || objectData,
-            objectMetadataOverride || mapData?.meta?.objectMetadata
+            objectMetadataOverride || objectMetadataRef.current || mapData?.meta?.objectMetadata
         );
     };
 
@@ -379,7 +414,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     // Item collection — moved to GameEngine/collectItem
 
     // Helper function: create new projectile — moved to separate module
-    const spawnProjectile = (originX, originY, direction) => {
+    const spawnProjectile = (originX, originY, direction, ownerId = 'player') => {
         return spawnProjectileExternal({
             findItemById,
             TILE_SIZE,
@@ -387,7 +422,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             projectilesRef,
             projectileIdRef,
             playShotSfx
-        }, originX, originY, direction);
+        }, originX, originY, direction, ownerId);
     };
 
     // Game Loop (delegated to GameEngine/updateFrame)
@@ -401,21 +436,22 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             registryItems,
             helpers: {
                 checkCollision,
+                getSurfaceProperties: (x, y, w, h, mw, mh, ts, td, ri) => getSurfaceProperties(x, y, w, h, mw, mh, ts, td, ri),
                 isWaterAt: (wx, wy) => isWaterAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)),
                 getLiquidSample: ({ x, y, width, height, TILE_SIZE: TS, mapWidth, mapHeight }) =>
                     sampleLiquid({ x, y, width, height }, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15))
             },
             actions: {
                 collectItem: (x, y, mapWidth, objectLayer) =>
-                    collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState }, x, y, mapWidth, objectLayer),
+                    collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState }, x, y, mapWidth, objectLayer),
                 checkInteractables: (x, y, mapWidth, objectLayer) =>
-                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, mapData }, x, y, mapWidth, objectLayer),
+                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData }, x, y, mapWidth, objectLayer),
                 checkHazardDamage: (x, y, mapWidth, objectLayer, deltaMs) =>
                     checkHazardDamageWrapper(x, y, mapWidth, objectLayer, deltaMs),
                 checkSecrets: (x, y, width, height, mapWidth, mapHeight) =>
                     checkSecretsWrapper(x, y, width, height, mapWidth, mapHeight),
-                spawnProjectile: (originX, originY, direction) =>
-                    spawnProjectile(originX, originY, direction),
+                spawnProjectile: (originX, originY, direction, ownerId) =>
+                    spawnProjectile(originX, originY, direction, ownerId),
                 updateProjectiles: (deltaMs, mapWidth, mapHeight) =>
                     updateProjectiles({ 
                         projectilesRef, 
@@ -425,11 +461,11 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         isSolidAtPixel, 
                         findItemById, 
                         objectData, 
-                        objectMetadata: mapData?.meta?.objectMetadata, 
-                        onStateUpdate 
+                        objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata, 
+                        onStateUpdate: onStateUpdateRef.current
                     }, deltaMs, mapWidth, mapHeight),
                 setPlayer: (next) => setPlayer(next),
-                onGameOver
+                onGameOver: onGameOverRef.current
             }
         };
         const res = updateFrame(ctx, timestamp);
@@ -445,7 +481,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         return () => {
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [mapData, tileData, objectData]); // Restart loop if map or objects change
+    }, [mapData, objectData]); // Restart loop if map or objects change
 
     return player;
 };

@@ -14,18 +14,23 @@ export function moveHorizontal({
   TILE_SIZE,
   mapWidth,
   mapHeight,
-  checkCollision
+  checkCollision,
+  friction = 0.8,
+  acceleration = 0.2
 }) {
-  let { x, width, direction } = state;
-  let vx = 0;
-
-  if (keys?.a) {
-    vx = -MOVE_SPEED;
-    direction = -1;
-  }
-  if (keys?.d) {
-    vx = MOVE_SPEED;
-    direction = 1;
+  let { x, vx, width, direction } = state;
+  
+  const targetVx = keys?.a ? -MOVE_SPEED : (keys?.d ? MOVE_SPEED : 0);
+  
+  if (targetVx !== 0) {
+    // Accelerate
+    vx += targetVx * acceleration;
+    if (Math.abs(vx) > MOVE_SPEED) vx = Math.sign(vx) * MOVE_SPEED;
+    direction = Math.sign(targetVx);
+  } else {
+    // Apply friction
+    vx *= friction;
+    if (Math.abs(vx) < 0.1) vx = 0;
   }
 
   const proposedX = x + vx;

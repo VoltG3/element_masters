@@ -53,10 +53,12 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     return null;
   };
 
-  const checkEntityHit = (cx, cy, hw, hh) => {
+  const checkEntityHit = (cx, cy, hw, hh, p) => {
     if (!entitiesRef?.current) return null;
     for (const ent of entitiesRef.current) {
         if (ent.health <= 0 || ent.isExploding) continue;
+        if (ent.id === p.ownerId) continue; // Ignorējam izšāvēju
+
         const ex = ent.x;
         const ey = ent.y;
         const ew = ent.width;
@@ -70,13 +72,8 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
   };
 
   const checkPlayerHit = (cx, cy, hw, hh, p) => {
-    if (!playerState) return false;
+    if (!playerState || p.ownerId === 'player') return false; // Ignorējam, ja izšāva spēlētājs
     
-    // Safety: ignore player for the first few frames if projectile is very new
-    // to prevent self-hits during spawning.
-    const lifespan = findItemById(p.defId)?.lifespan || 600;
-    if (p.life > lifespan - 50) return false;
-
     const ex = playerState.x;
     const ey = playerState.y;
     const ew = playerState.width || TILE_SIZE;
@@ -128,7 +125,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         break;
       }
 
-      const hitEntX = checkEntityHit(nextX, cy, hw, hh);
+      const hitEntX = checkEntityHit(nextX, cy, hw, hh, p);
       if (hitEntX) {
         hitEntX.health -= p.dmg || 10;
         removed = true;
@@ -168,7 +165,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         break;
       }
 
-      const hitEntY = checkEntityHit(cx, nextY, hw, hh);
+      const hitEntY = checkEntityHit(cx, nextY, hw, hh, p);
       if (hitEntY) {
         hitEntY.health -= p.dmg || 10;
         removed = true;

@@ -1,0 +1,36 @@
+{
+  "id": "tank_0000",
+  "name": "entities.tank_test",
+  "type": "entity",
+  "subtype": "tank",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/entities/tanks/tank_0000.png",
+  "maxHealth": 50,
+  "speed": 1.0,
+  "collision": true,
+  "ai": {
+    "patrol": true,
+    "canJump": false,
+    "stayOnPlatform": true,
+    "reactionDistance": 10,
+    "shootDistance": 8,
+    "shootCooldown": 1500
+  },
+  "death": {
+    "disappear": true,
+    "explosion": true
+  },
+  "spriteSheet": {
+    "enabled": false,
+    "totalSprites": 1,
+    "columns": 1,
+    "animations": {
+      "move": [0],
+      "shoot": [0],
+      "move_damaged": [0],
+      "explode": [0],
+      "idle": [0]
+    }
+  }
+}

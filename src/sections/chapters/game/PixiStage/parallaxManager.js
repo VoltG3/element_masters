@@ -6,7 +6,7 @@ export const createParallaxManager = (parallaxLayer, textureCacheRef) => {
   let parallaxSprite = null;
 
   const build = (options) => {
-    const { worldWidth, worldHeight, url, color, factor, resolveBackgroundUrl } = options;
+    const { worldWidth, worldHeight, url, color, factor, resolveBackgroundUrl, minWidth = 0, minHeight = 0 } = options;
 
     if (!parallaxHelper) {
       parallaxHelper = new ParallaxBackground(parallaxLayer, textureCacheRef);
@@ -25,6 +25,8 @@ export const createParallaxManager = (parallaxLayer, textureCacheRef) => {
       url: resolvedUrl,
       color: color || '#87CEEB',
       factor: factor || 0.3,
+      minWidth,
+      minHeight
     });
 
     parallaxSprite = parallaxHelper.imgSprite || parallaxHelper.bgSprite;
@@ -33,6 +35,12 @@ export const createParallaxManager = (parallaxLayer, textureCacheRef) => {
   const setScroll = (cameraX, factor) => {
     if (parallaxHelper) {
       parallaxHelper.setScroll(cameraX, factor);
+    }
+  };
+
+  const resize = (worldWidth, worldHeight, minWidth = 0, minHeight = 0) => {
+    if (parallaxHelper) {
+      parallaxHelper.resize(worldWidth, worldHeight, minWidth, minHeight);
     }
   };
 
@@ -51,6 +59,7 @@ export const createParallaxManager = (parallaxLayer, textureCacheRef) => {
   return {
     build,
     setScroll,
+    resize,
     destroy,
     get sprite() {
       return parallaxHelper?.imgSprite || parallaxHelper?.bgSprite;

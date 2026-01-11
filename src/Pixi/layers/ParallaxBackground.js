@@ -13,9 +13,12 @@ export class ParallaxBackground {
     this._currentUrl = null;
   }
 
-  build({ worldWidth, worldHeight, url, color, factor = 0.3 }) {
+  build({ worldWidth, worldHeight, url, color, factor = 0.3, minWidth = 0, minHeight = 0 }) {
     if (!this.container) return;
     this.clear();
+
+    const w = Math.max(worldWidth, minWidth);
+    const h = Math.max(worldHeight, minHeight);
 
     this._worldW = worldWidth;
     this._worldH = worldHeight;
@@ -28,8 +31,8 @@ export class ParallaxBackground {
     
     const solid = new Sprite(Texture.WHITE);
     solid.tint = hex;
-    solid.width = worldWidth;
-    solid.height = worldHeight;
+    solid.width = w;
+    solid.height = h;
     solid.alpha = 1.0;
     try {
       solid.filters = [new BlurFilter({ strength: 0.8, quality: 2 })];
@@ -58,9 +61,9 @@ export class ParallaxBackground {
         if (tex.baseTexture) tex.baseTexture.wrapMode = WRAP_MODES.REPEAT;
         if (tex.source) tex.source.addressMode = 'repeat';
 
-        const sprite = new TilingSprite({ texture: tex, width: worldWidth, height: worldHeight });
+        const sprite = new TilingSprite({ texture: tex, width: w, height: h });
         const texH = (tex.height || (tex.source ? tex.source.height : 0) || 1);
-        const scaleY = worldHeight / texH;
+        const scaleY = h / texH;
         sprite.tileScale.set(1, scaleY);
         sprite.alpha = 1.0;
         try {
@@ -109,20 +112,23 @@ export class ParallaxBackground {
     }
   }
 
-  resize(worldWidth, worldHeight) {
+  resize(worldWidth, worldHeight, minWidth = 0, minHeight = 0) {
+    const w = Math.max(worldWidth, minWidth);
+    const h = Math.max(worldHeight, minHeight);
+
     this._worldW = worldWidth;
     this._worldH = worldHeight;
     if (this.bgSprite) {
-      this.bgSprite.width = worldWidth;
-      this.bgSprite.height = worldHeight;
+      this.bgSprite.width = w;
+      this.bgSprite.height = h;
     }
     if (this.imgSprite) {
-      this.imgSprite.width = worldWidth;
-      this.imgSprite.height = worldHeight;
+      this.imgSprite.width = w;
+      this.imgSprite.height = h;
       const tex = this.imgSprite.texture;
       const texH = (tex?.height || (tex?.source ? tex.source.height : 0) || 1);
       if (this.imgSprite.tileScale && texH > 0) {
-        const scaleY = worldHeight / texH;
+        const scaleY = h / texH;
         this.imgSprite.tileScale.set(1, scaleY);
       }
     }
