@@ -29,6 +29,8 @@ const initialState = {
   atSurface: false,
   liquidType: null,
   hitTimerMs: 0,
+  isWinning: false,
+  winCounter: 0,
 };
 
 const playerSlice = createSlice({

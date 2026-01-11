@@ -1,0 +1,11 @@
+{
+  "id": "end_0001",
+  "name": "interactable.end",
+  "type": "interactable",
+  "subtype": "end",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/interactables/ends/end_0001.png",
+  "collision": false,
+  "winCountSpeed": 10
+}

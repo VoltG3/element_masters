@@ -1,0 +1,10 @@
+{
+  "id": "arrow_up",
+  "name": "interactable.arrow_up",
+  "type": "interactable",
+  "subtype": "arrow",
+  "direction": "up",
+  "texture": "/assets/images/interactables/arrows/arrow_up.png",
+  "collision": false,
+  "isHiddenInGame": true
+}

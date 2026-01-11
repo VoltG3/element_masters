@@ -54,6 +54,14 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
       }
   }
 
+  // Check for End Level logic
+  if (objDef.subtype === 'end' && !gameState.current.isWinning) {
+    gameState.current.isWinning = true;
+    gameState.current.winCounter = 0;
+    gameState.current.winCountSpeed = objDef.winCountSpeed || 10;
+    return;
+  }
+
   // Check if already used (track used interactables in gameState)
   if (!gameState.current.usedInteractables) {
     gameState.current.usedInteractables = new Set();

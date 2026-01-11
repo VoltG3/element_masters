@@ -16,9 +16,10 @@ import styled from 'styled-components';
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
 import map1 from '../../../assets/maps/Temp_01.json';
 import map2 from '../../../assets/maps/Temp_02.json';
+import map3 from '../../../assets/maps/Temp_03.json';
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2];
+const BUILT_IN_MAPS = [map1, map2, map3];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -98,6 +99,20 @@ const MapInfo = styled.div`
     color: #555;
 `;
 
+const WinCounterOverlay = styled.div`
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 120px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(255,255,255,0.5);
+    z-index: 2000;
+    pointer-events: none;
+    font-family: 'Courier New', Courier, monospace;
+`;
+
 const ModalDivider = styled.div`
     border-top: 2px solid #eee;
     padding-top: 15px;
@@ -149,6 +164,7 @@ const PlaceholderMessage = styled.div`
 export default function Game() {
     const dispatch = useDispatch();
     const viewportRef = useRef(null);
+    const player = useSelector(state => state.player); // Ensure this isn't undefined
 
     // Redux state
     const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight } = useSelector(state => state.game);
@@ -206,6 +222,12 @@ export default function Game() {
             // Šeit mēs nevaram viegli atjaunināt Redux katrā kadrā,
             // bet varam atskaņot trāpījuma skaņu
             console.log("Player hit by entity!");
+        } else if (action === 'levelWin') {
+            console.log("Level Win! Returning to map selection.");
+            setTimeout(() => {
+                alert("Level Complete!");
+                dispatch(setMapModalOpen(true));
+            }, 500);
         }
     }, [dispatch, objectMapData, objectMetadata, registryItems]);
 
@@ -389,6 +411,13 @@ export default function Game() {
         <GameContainer>
         
             {/* Game Header */}
+            {/* UI Overlays */}
+            {playerState?.isWinning && (
+                <WinCounterOverlay>
+                    {Math.floor(playerState.winCounter || 0)}
+                </WinCounterOverlay>
+            )}
+
             <GameHeader 
                 health={playerState.health} 
                 maxHealth={playerState.maxHealth}

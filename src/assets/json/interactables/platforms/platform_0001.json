@@ -1,0 +1,11 @@
+{
+  "id": "platform_0001",
+  "name": "interactable.platform",
+  "type": "interactable",
+  "subtype": "platform",
+  "width": 2,
+  "height": 1,
+  "texture": "/assets/images/interactables/platforms/platform_0001.png",
+  "collision": true,
+  "isMoving": true
+}

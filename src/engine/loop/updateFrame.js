@@ -299,6 +299,7 @@ export function updateFrame(ctx, timestamp) {
     updateEntities({
       entitiesRef,
       gameState,
+      mapData,
       mapWidth,
       mapHeight,
       TILE_SIZE,
@@ -346,7 +347,16 @@ export function updateFrame(ctx, timestamp) {
   const maxX = mapWidth * TILE_SIZE - width;
   x = Math.max(0, Math.min(maxX, x));
 
-  // 7) Death check
+  // 7) Win and Death check
+  if (gameState.current.isWinning) {
+    gameState.current.winCounter = (gameState.current.winCounter || 0) + (gameState.current.winCountSpeed || 10) * (deltaMs / 100);
+    if (gameState.current.winCounter >= 100) {
+      gameState.current.winCounter = 100;
+      // Trigger level win event if needed
+      if (actions.onStateUpdate) actions.onStateUpdate('levelWin');
+    }
+  }
+
   if ((Number(gameState.current.health) || 0) <= 0) {
     try { onGameOver && onGameOver(); } catch {}
   }

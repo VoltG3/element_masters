@@ -1,0 +1,10 @@
+{
+  "id": "arrow_left",
+  "name": "interactable.arrow_left",
+  "type": "interactable",
+  "subtype": "arrow",
+  "direction": "left",
+  "texture": "/assets/images/interactables/arrows/arrow_left.png",
+  "collision": false,
+  "isHiddenInGame": true
+}

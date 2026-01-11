@@ -55,6 +55,57 @@ export function updateEntities(ctx, deltaMs) {
     }
 
     const def = entity.def;
+    
+    // Platformu loģika
+    if (entity.subtype === 'platform') {
+      const speed = def.speed || 1.5;
+      
+      // Meklējam bultiņas pašreizējā pozīcijā
+      const tileX = Math.floor((entity.x + entity.width / 2) / TILE_SIZE);
+      const tileY = Math.floor((entity.y + entity.height / 2) / TILE_SIZE);
+      
+      // Pārbaudām speciālo "arrows" slāni vai parasto objektu slāni
+      const arrowsLayer = ctx.mapData?.layers?.find(l => l.name === 'arrows' || l.name === 'Arrows')?.data;
+      const arrowId = arrowsLayer ? arrowsLayer[tileY * mapWidth + tileX] : null;
+      
+      if (arrowId) {
+        const arrowDef = ctx.registryItems[arrowId] || (Array.isArray(ctx.registryItems) ? ctx.registryItems.find(r => r.id === arrowId) : null);
+        if (arrowDef && arrowDef.subtype === 'arrow') {
+          if (arrowDef.direction === 'up') { entity.vx = 0; entity.vy = -speed; }
+          else if (arrowDef.direction === 'down') { entity.vx = 0; entity.vy = speed; }
+          else if (arrowDef.direction === 'left') { entity.vx = -speed; entity.vy = 0; }
+          else if (arrowDef.direction === 'right') { entity.vx = speed; entity.vy = 0; }
+        }
+      }
+
+      // Ja platforma vēl nekustas, iedodam tai sākuma impulsu (piemēram, pa labi)
+      if (entity.vx === 0 && entity.vy === 0) {
+        entity.vx = speed;
+      }
+
+      // Kustība
+      entity.x += entity.vx * (deltaMs / 16.6);
+      entity.y += entity.vy * (deltaMs / 16.6);
+
+      // Spēlētāja "pārvešana"
+      const player = gameState.current;
+      const onPlatform = (
+        player.x + player.width > entity.x &&
+        player.x < entity.x + entity.width &&
+        Math.abs((player.y + player.height) - entity.y) < 5 &&
+        player.vy >= 0
+      );
+
+      if (onPlatform) {
+        player.x += entity.vx * (deltaMs / 16.6);
+        player.y = entity.y - player.height;
+        player.vy = 0;
+        player.isGrounded = true;
+      }
+
+      return entity;
+    }
+
     const ai = def.ai || {};
     const reactionDist = (ai.reactionDistance || 10) * TILE_SIZE;
     const shootDist = (ai.shootDistance || 8) * TILE_SIZE;

@@ -52,6 +52,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         maxLavaResist: MAX_LAVA_RESIST,
         iceResist: MAX_ICE_RESIST,
         maxIceResist: MAX_ICE_RESIST,
+        isWinning: false,
+        winCounter: 0,
         projectiles: [] // Active projectiles for rendering
   });
 
@@ -244,12 +246,13 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         const isEntity = def && (
                             def.type === 'entity' || 
                             def.subtype === 'tank' || 
+                            def.subtype === 'platform' ||
                             (def.name && def.name.toLowerCase().includes('entities.'))
                         );
 
                         if (isEntity) {
                             initialEntities.push({
-                                id: `entity_${idx}_${Date.now()}`,
+                                id: `entity_${idx}_${Date.now()}_${idx}`,
                                 defId: id,
                                 def: def,
                                 x: (idx % mapW) * TILE_SIZE,
@@ -259,13 +262,14 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                                 vx: 0,
                                 vy: 0,
                                 health: def.maxHealth || 100,
-                                direction: -1,
-                                animation: 'move',
+                                direction: def.subtype === 'platform' ? 1 : -1,
+                                animation: def.subtype === 'platform' ? 'idle' : 'move',
                                 animFrame: 0,
                                 animTimer: 0,
                                 isGrounded: false,
                                 shootCooldown: 0,
-                                currentSpriteIndex: 0
+                                currentSpriteIndex: 0,
+                                subtype: def.subtype
                             });
                         }
                     }
@@ -305,7 +309,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         oxygen: MAX_OXYGEN,
                         maxOxygen: MAX_OXYGEN,
                         lavaResist: MAX_LAVA_RESIST,
-                        maxLavaResist: MAX_LAVA_RESIST
+                        maxLavaResist: MAX_LAVA_RESIST,
+                        isWinning: false,
+                        winCounter: 0
                     };
 
                     // If start position sinks into block, move up to safe location
