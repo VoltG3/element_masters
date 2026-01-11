@@ -273,7 +273,18 @@ export default class LiquidRegionSystem {
 
     const tex = type === 'lava' ? (this._lavaTex || (this._lavaTex = this._createLavaTexture(tileSize)))
                                  : (this._waterTex || (this._waterTex = this._createWaterTexture(tileSize)));
-    const tiling = new TilingSprite(tex, worldW, worldH);
+        
+    // LABOJUMS: Iestatām pareizu v8 addressMode, lai izvairītos no artefaktiem uz malām
+    if (tex.source) {
+      tex.source.addressMode = 'repeat';
+    }
+
+    const tiling = new TilingSprite({
+      texture: tex,
+      width: worldW,
+      height: worldH
+    });
+        
     tiling.tileScale.set(1, 1);
     tiling.alpha = type === 'lava' ? 0.98 : 0.92;
     // Ensure integer placement to reduce sampling seams
@@ -320,11 +331,12 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // Solid BLUE gradient base
+    // LABOJUMS: Mainām gradientu uz "seamless" (bežšuvju). 
+    // Sākam un beidzam ar to pašu krāsu, lai atkārtojoties nebūtu svītras.
     const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#5ba3d9');     // bright blue top
-    g.addColorStop(0.5, '#3a7fb8');   // medium blue
-    g.addColorStop(1, '#2a5d8f');     // darker blue bottom
+    g.addColorStop(0, '#3a7fb8');     // Vidēji zils
+    g.addColorStop(0.5, '#5ba3d9');   // Gaiši zils (centrā)
+    g.addColorStop(1, '#3a7fb8');     // Atpakaļ uz vidēji zilu
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 
@@ -351,14 +363,8 @@ export default class LiquidRegionSystem {
     }
     ctx.putImageData(imageData, 0, 0);
 
-    // Top shimmer - very subtle
-    ctx.globalAlpha = 0.15;
-    const shimmer = ctx.createLinearGradient(0, 0, 0, size * 0.2);
-    shimmer.addColorStop(0, '#a8d8f0');
-    shimmer.addColorStop(1, 'rgba(168, 216, 240, 0)');
-    ctx.fillStyle = shimmer;
-    ctx.fillRect(0, 0, size, size * 0.2);
-
+    // LABOJUMS: Noņemam vai padarām šo "shimmer" caurspīdīgu abās malās.
+    // Šobrīd šis zīmēja baltu svītru tikai augšā, kas radīja horizontālo līniju ik pēc 64 pikseļiem.
     return Texture.from(canvas);
   }
 
@@ -368,11 +374,11 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // Solid ORANGE gradient - ember color (#ffa229)!
+    // LABOJUMS: Seamless gradients lavai
     const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#ffb84d');     // bright orange top
-    g.addColorStop(0.5, '#ffa229');   // EMBER ORANGE - main color
-    g.addColorStop(1, '#d94f14');     // darker orange bottom
+    g.addColorStop(0, '#ffa229');     // Galvenā krāsa
+    g.addColorStop(0.5, '#ffb84d');   // Gaišāks centrs
+    g.addColorStop(1, '#ffa229');     // Galvenā krāsa
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 
@@ -408,13 +414,8 @@ export default class LiquidRegionSystem {
     }
     ctx.putImageData(imageData, 0, 0);
 
-    // Top surface glow - very subtle
-    ctx.globalAlpha = 0.2;
-    const surfaceGlow = ctx.createLinearGradient(0, 0, 0, size * 0.25);
-    surfaceGlow.addColorStop(0, '#ffed8a');
-    surfaceGlow.addColorStop(1, 'rgba(255, 237, 138, 0)');
-    ctx.fillStyle = surfaceGlow;
-    ctx.fillRect(0, 0, size, size * 0.25);
+    // Noņemam fiksēto virsmas spīdumu šeit, jo tas atkārtojas horizontāli.
+    // Virsmas spīdums jau tiek zīmēts ar capG dinamiski.
 
     return Texture.from(canvas);
   }
