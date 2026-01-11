@@ -48,7 +48,7 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
         // Ja kolonnu skaits JSONā ir nepareizs vai trūkst, mēģinām to aprēķināt
         let effectiveColumns = columns;
         if (!effectiveColumns || effectiveColumns <= 0) {
-            effectiveColumns = Math.floor(texWidth / 32) || 1;
+            effectiveColumns = Math.floor(texWidth / (def.spriteSheet.frameWidth || 32)) || 1;
         }
 
         const frameWidth = texWidth / effectiveColumns;
@@ -59,21 +59,25 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
         
         const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
         
-        spr.texture = new Texture({
-          source: source,
-          frame: rect
-        });
-        spr._lastFrameIndex = frameIndex;
+        try {
+            spr.texture = new Texture({
+              source: source,
+              frame: rect
+            });
+            spr._lastFrameIndex = frameIndex;
+        } catch (e) {
+            console.warn(`Failed to create texture for entity ${key} frame ${frameIndex}`, e);
+            spr.texture = baseTexture;
+        }
       }
     } else if (isTextureReady) {
       if (spr.texture !== baseTexture) {
         spr.texture = baseTexture;
+        spr._lastFrameIndex = -1;
       }
-    } else {
-      // Kamēr tekstūra lādējas, izmantojam balto kvadrātu
-      if (spr.texture !== Texture.WHITE) {
-        spr.texture = Texture.WHITE;
-      }
+    } else if (def.editorIcon) {
+        // Ja nav tekstūras, bet ir ikona (piemēram, bultiņa, kaut gan tās te nevajadzētu būt kā entītijai)
+        if (spr.texture !== Texture.WHITE) spr.texture = Texture.WHITE;
     }
 
     // Pozīcija un izmērs

@@ -1,4 +1,4 @@
-import { Sprite, AnimatedSprite, Texture, Container } from 'pixi.js';
+import { Sprite, AnimatedSprite, Texture, Container, Text } from 'pixi.js';
 import { getTexture, msToSpeed } from './helpers';
 import HealthBar from '../../../../Pixi/ui/HealthBar';
 
@@ -15,11 +15,48 @@ export const buildSpriteFromDef = (def) => {
       spr.play();
     }
   }
-  if (!spr) {
-    const tex = getTexture(def.texture) || Texture.WHITE;
-    spr = new Sprite(tex);
+
+  // Ja nav tekstūru masīva vai tas ir tukšs, mēģinām parasto tekstūru
+  if (!spr && def.texture) {
+    const tex = getTexture(def.texture);
+    if (tex) {
+      spr = new Sprite(tex);
+    }
   }
-  spr.anchor.set(0, 0);
+
+  // Ja joprojām nav spr (piemēram, nav tekstūras), pārbaudām editorIcon
+  if (!spr && def.editorIcon) {
+    spr = new Text({
+        text: def.editorIcon,
+        style: {
+            fontSize: 24,
+            fill: 0xffffff,
+            fontWeight: 'bold',
+            dropShadow: true,
+            dropShadowColor: 0x000000,
+            dropShadowBlur: 4,
+            dropShadowDistance: 2
+        }
+    });
+    // Centrējam tekstu tile ietvaros
+    spr.anchor.set(0.5, 0.5);
+    // Tā kā mēs lietojam anchor 0.5, mums būs jāpielāgo pozīcija vēlāk vai šeit
+    // Bet buildSpriteFromDef parasti atgriež objektu, kura anchor ir (0,0) pēc noklusējuma
+    // lai tas atbilstu tileSize pozicionēšanai.
+    // Tāpēc iestatīsim anchor uz 0, bet nedaudz nobīdīsim?
+    // Labāk lietot anchor 0.5 un layerBuilder-ī pieskaitīt tileSize/2.
+  }
+
+  if (!spr) {
+    spr = new Sprite(Texture.WHITE);
+  }
+
+  if (spr instanceof Sprite) {
+    spr.anchor.set(0, 0);
+  } else if (spr instanceof Text) {
+    // Tekstam mēs gribam, lai tas būtu centrā, tāpēc atstājam 0.5
+  }
+  
   return spr;
 };
 

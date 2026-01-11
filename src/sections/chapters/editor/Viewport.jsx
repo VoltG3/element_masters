@@ -245,24 +245,38 @@ export const Viewport = ({
                                     ...backgroundStyleObj
                                 }}>
                                 {/* Background Layer (Tiles) */}
-                                {tileObj && <AnimatedItem
-                                    textures={tileObj.textures}
-                                    texture={tileObj.texture}
-                                    speed={tileObj.animationSpeed}
-                                    spriteSheet={tileObj.spriteSheet}
-                                    style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2 }}
-                                />}
+                                {tileObj && (
+                                    tileObj.editorIcon ? (
+                                        <div style={{ position: 'absolute', zIndex: 2, fontSize: '20px', fontWeight: 'bold' }}>
+                                            {tileObj.editorIcon}
+                                        </div>
+                                    ) : (
+                                        <AnimatedItem
+                                            textures={tileObj.textures}
+                                            texture={tileObj.texture}
+                                            speed={tileObj.animationSpeed}
+                                            spriteSheet={tileObj.spriteSheet}
+                                            style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2 }}
+                                        />
+                                    )
+                                )}
 
                                 {/* Foreground Layer (Objects) */}
                                 {objObj && (
-                                    <div style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 3 }}>
-                                        <AnimatedItem
-                                            textures={objObj.textures}
-                                            texture={objObj.texture}
-                                            speed={objObj.animationSpeed}
-                                            spriteSheet={objObj.spriteSheet}
-                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                        />
+                                    <div style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {objObj.editorIcon ? (
+                                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff', textShadow: '0 0 4px #000' }}>
+                                                {objObj.editorIcon}
+                                            </div>
+                                        ) : (
+                                            <AnimatedItem
+                                                textures={objObj.textures}
+                                                texture={objObj.texture}
+                                                speed={objObj.animationSpeed}
+                                                spriteSheet={objObj.spriteSheet}
+                                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                            />
+                                        )}
                                         {/* Render Trigger ID if present */}
                                         {objectMetadata && objectMetadata[index] && objectMetadata[index].triggerId !== undefined && objectMetadata[index].triggerId !== null && (
                                             <div style={{

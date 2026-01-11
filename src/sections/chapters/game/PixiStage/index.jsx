@@ -47,6 +47,7 @@ const PixiStage = ({
   lavaBarEnabled = true,
   waterSplashesEnabled = true,
   lavaEmbersEnabled = true,
+  isEditor = false,
 }) => {
   const mountRef = useRef(null);
   const appRef = useRef(null);
@@ -289,7 +290,7 @@ const PixiStage = ({
           console.info('WebGL context restored');
           rebuildLayers(
             { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-            { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata }
+            { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
           );
           rebuildParallax();
           try {
@@ -304,7 +305,7 @@ const PixiStage = ({
       // First draw
       rebuildLayers(
         { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata }
+        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
       );
 
       // Initialize liquid system
@@ -544,7 +545,7 @@ const PixiStage = ({
     if (bgRef.current && objBehindRef.current && objFrontRef.current) {
       rebuildLayers(
         { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata }
+        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
       );
 
       // Rebuild liquid regions

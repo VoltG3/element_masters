@@ -497,6 +497,7 @@ export default function Game() {
                             lavaBarEnabled={runtimeSettings.lavaBarEnabled ?? true}
                             waterSplashesEnabled={runtimeSettings.waterSplashesEnabled ?? true}
                             lavaEmbersEnabled={runtimeSettings.lavaEmbersEnabled ?? true}
+                            isEditor={false}
                         />
 
                     </GameCanvas>

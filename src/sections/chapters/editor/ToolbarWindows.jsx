@@ -144,6 +144,7 @@ export const ToolbarWindows = ({
     };
     const renderPaletteItem = (item, color, layer) => {
         const hasImage = !!(item.texture || (Array.isArray(item.textures) && item.textures.length > 0));
+        const editorIcon = item.editorIcon;
         const isLiquid = !!(item.flags && item.flags.liquid);
         const isWater = !!(item.flags && item.flags.water);
         const isLava = !!(item.flags && item.flags.lava);
@@ -172,6 +173,10 @@ export const ToolbarWindows = ({
                         color: '#fff', fontSize: 8, textAlign: 'center', lineHeight: 1.1, fontWeight: 'bold'
                     }}>
                         {item.subtype === 'above' ? 'ABOVE' : 'BELOW'}
+                    </div>
+                ) : editorIcon ? (
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
+                        {editorIcon}
                     </div>
                 ) : hasImage ? (
                     <AnimatedItem

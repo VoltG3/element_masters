@@ -15,7 +15,8 @@ export const rebuildLayers = (refs, options) => {
     secretMapData,
     revealedSecrets,
     registryItems,
-    objectMetadata
+    objectMetadata,
+    isEditor
   } = options;
 
   const { bgRef, objBehindRef, objFrontRef, secretLayerRef } = refs;
@@ -66,8 +67,9 @@ export const rebuildLayers = (refs, options) => {
 
     let sprite;
     let frames = null;
-    if (isWaterDef(def) || isLavaDef(def)) {
+    if (isWaterDef(def) || isLavaDef(def) || def.type === 'entity' || def.subtype === 'platform') {
       // liquids are handled by LiquidRegionSystem; skip per-tile sprite
+      // entities and platforms are handled by separate managers
       continue;
     } else {
       if (Array.isArray(def.textures) && def.textures.length > 1) {
@@ -111,7 +113,7 @@ export const rebuildLayers = (refs, options) => {
     const id = objectMapData[i];
     if (!id || id.includes('player')) continue;
     const def = getDef(id);
-    if (!def || def.type === 'entity') continue;
+    if (!def || def.type === 'entity' || def.subtype === 'platform') continue;
 
     const meta = (objectMetadata && objectMetadata[i]) || {};
     const maxH = def.maxHealth || 100;
@@ -156,8 +158,16 @@ export const rebuildLayers = (refs, options) => {
 
     const x = (i % mapWidth) * tileSize;
     const y = Math.floor(i / mapWidth) * tileSize;
-    visualElement.x = 0;
-    visualElement.y = 0;
+    
+    // Ja tas ir teksts (piemēram, bultiņa redaktorā), centrējam to tile ietvaros
+    if (visualElement.anchor && visualElement.anchor.x === 0.5) {
+      visualElement.x = tileSize / 2;
+      visualElement.y = tileSize / 2;
+    } else {
+      visualElement.x = 0;
+      visualElement.y = 0;
+    }
+    
     visualElement.width = tileSize;
     visualElement.height = tileSize;
 
@@ -165,6 +175,13 @@ export const rebuildLayers = (refs, options) => {
     const container = new Container();
     container.x = x;
     container.y = y;
+    
+    // Slēpjam objektus, kuriem ir isHiddenInGame: true (piemēram, bultiņas spēlē)
+    // Bet ja mēs esam redaktorā, mēs gribam tās redzēt.
+    if (def.isHiddenInGame && !isEditor) {
+        container.visible = false;
+    }
+    
     container.addChild(visualElement);
 
     // Add health bar for destructible objects if damaged

@@ -300,6 +300,7 @@ export function updateFrame(ctx, timestamp) {
       entitiesRef,
       gameState,
       mapData,
+      objectData,
       mapWidth,
       mapHeight,
       TILE_SIZE,

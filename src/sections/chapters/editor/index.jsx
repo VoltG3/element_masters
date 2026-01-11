@@ -678,6 +678,7 @@ export const Editor = () => {
                             healthBarEnabled={true}
                             oxygenBarEnabled={true}
                             lavaBarEnabled={true}
+                            isEditor={true}
                         />
                     </div>
                 )}

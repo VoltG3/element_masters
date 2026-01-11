@@ -15,7 +15,9 @@ export function updateEntities(ctx, deltaMs) {
     TILE_SIZE,
     checkCollision,
     spawnProjectile,
-    constants
+    constants,
+    objectData,
+    mapData
   } = ctx;
 
   if (!entitiesRef.current || entitiesRef.current.length === 0) return;
@@ -59,33 +61,84 @@ export function updateEntities(ctx, deltaMs) {
     // Platformu loģika
     if (entity.subtype === 'platform') {
       const speed = def.speed || 1.5;
+      const mapW = mapWidth;
+      const mapH = mapHeight;
       
-      // Meklējam bultiņas pašreizējā pozīcijā
-      const tileX = Math.floor((entity.x + entity.width / 2) / TILE_SIZE);
-      const tileY = Math.floor((entity.y + entity.height / 2) / TILE_SIZE);
+      // Meklējam bultiņas vairākos punktos (centrā un malās), lai nepalaistu garām
+      const points = [
+        { x: entity.x + entity.width / 2, y: entity.y + entity.height / 2 }, // Centrs
+        { x: entity.x + 5, y: entity.y + entity.height / 2 },                // Kreisā mala
+        { x: entity.x + entity.width - 5, y: entity.y + entity.height / 2 }  // Labā mala
+      ];
       
-      // Pārbaudām speciālo "arrows" slāni vai parasto objektu slāni
-      const arrowsLayer = ctx.mapData?.layers?.find(l => l.name === 'arrows' || l.name === 'Arrows')?.data;
-      const arrowId = arrowsLayer ? arrowsLayer[tileY * mapWidth + tileX] : null;
-      
-      if (arrowId) {
-        const arrowDef = ctx.registryItems[arrowId] || (Array.isArray(ctx.registryItems) ? ctx.registryItems.find(r => r.id === arrowId) : null);
-        if (arrowDef && arrowDef.subtype === 'arrow') {
-          if (arrowDef.direction === 'up') { entity.vx = 0; entity.vy = -speed; }
-          else if (arrowDef.direction === 'down') { entity.vx = 0; entity.vy = speed; }
-          else if (arrowDef.direction === 'left') { entity.vx = -speed; entity.vy = 0; }
-          else if (arrowDef.direction === 'right') { entity.vx = speed; entity.vy = 0; }
+      let arrowId = null;
+      let foundArrowDef = null;
+
+      for (const p of points) {
+        const tx = Math.floor(p.x / TILE_SIZE);
+        const ty = Math.floor(p.y / TILE_SIZE);
+        
+        if (tx < 0 || tx >= mapW || ty < 0 || ty >= mapH) continue;
+        const idx = ty * mapW + tx;
+
+        // 1. Speciālais arrows slānis
+        const arrowsLayer = ctx.mapData?.layers?.find(l => l.name === 'arrows' || l.name === 'Arrows')?.data;
+        let id = arrowsLayer ? arrowsLayer[idx] : null;
+        
+        // 2. Objektu slānis
+        if (!id && ctx.objectData) {
+          id = ctx.objectData[idx];
+        }
+
+        if (id) {
+          const aDef = ctx.registryItems.find(r => r.id === id);
+          if (aDef && aDef.subtype === 'arrow') {
+            arrowId = id;
+            foundArrowDef = aDef;
+            break; 
+          }
         }
       }
+      
+      if (foundArrowDef) {
+        // Mainām kustības virzienu atbilstoši bultiņai
+        if (foundArrowDef.direction === 'up') { entity.vx = 0; entity.vy = -speed; }
+        else if (foundArrowDef.direction === 'down') { entity.vx = 0; entity.vy = speed; }
+        else if (foundArrowDef.direction === 'left') { entity.vx = -speed; entity.vy = 0; }
+        else if (foundArrowDef.direction === 'right') { entity.vx = speed; entity.vy = 0; }
+      }
 
-      // Ja platforma vēl nekustas, iedodam tai sākuma impulsu (piemēram, pa labi)
+      // Ja platforma vēl nekustas, iedodam tai sākuma impulsu
       if (entity.vx === 0 && entity.vy === 0) {
         entity.vx = speed;
       }
 
       // Kustība
-      entity.x += entity.vx * (deltaMs / 16.6);
-      entity.y += entity.vy * (deltaMs / 16.6);
+      let nextX = entity.x + entity.vx * (deltaMs / 16.6);
+      let nextY = entity.y + entity.vy * (deltaMs / 16.6);
+      
+      // Robežu pārbaude (neļaujam aizbraukt aiz kartes)
+      const worldW = mapWidth * TILE_SIZE;
+      const worldH = mapHeight * TILE_SIZE;
+      
+      if (nextX < 0) { 
+        nextX = 0; 
+        entity.vx = Math.abs(entity.vx); // Move Right
+      } else if (nextX + entity.width > worldW) { 
+        nextX = worldW - entity.width; 
+        entity.vx = -Math.abs(entity.vx); // Move Left
+      }
+      
+      if (nextY < 0) { 
+        nextY = 0; 
+        entity.vy = Math.abs(entity.vy); // Move Down
+      } else if (nextY + entity.height > worldH) { 
+        nextY = worldH - entity.height; 
+        entity.vy = -Math.abs(entity.vy); // Move Up
+      }
+      
+      entity.x = nextX;
+      entity.y = nextY;
 
       // Spēlētāja "pārvešana"
       const player = gameState.current;
@@ -196,7 +249,13 @@ export function updateEntities(ctx, deltaMs) {
     
     const mh = moveHorizontal({
       keys,
-      state: { x: entity.x, y: entity.y, width: entity.width, direction: entity.direction },
+      state: { 
+        x: entity.x, 
+        y: entity.y, 
+        vx: entity.vx || 0,
+        width: entity.width, 
+        direction: entity.direction 
+      },
       MOVE_SPEED: frameSpeed,
       TILE_SIZE,
       mapWidth,

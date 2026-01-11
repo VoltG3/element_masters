@@ -4,7 +4,7 @@
   "type": "interactable",
   "subtype": "arrow",
   "direction": "up",
-  "texture": "/assets/images/interactables/arrows/arrow_up.png",
+  "editorIcon": "↑",
   "collision": false,
   "isHiddenInGame": true
 }
