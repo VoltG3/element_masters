@@ -225,7 +225,13 @@ export function updateFrame(ctx, timestamp) {
     if (liquidDamageAccumulatorRef) liquidDamageAccumulatorRef.current = 0;
   }
 
-  // 3) Item collection
+  // 3) Item collection and triggers
+  // Sync moved state to Ref so triggers can see it and modify it (Teleport, Knockback, etc.)
+  gameState.current.x = x;
+  gameState.current.y = y;
+  gameState.current.vx = vx;
+  gameState.current.vy = vy;
+
   collectItem(x, y, mapWidth, objectData);
 
   // 3.5) Interactables check (berry bushes etc.)
@@ -233,6 +239,12 @@ export function updateFrame(ctx, timestamp) {
 
   // 4) Hazard damage check (bushes etc.)
   try { checkHazardDamage(x, y, mapWidth, objectData, deltaMs); } catch {}
+
+  // Sync back from Ref in case triggers changed something
+  x = gameState.current.x;
+  y = gameState.current.y;
+  vx = gameState.current.vx;
+  vy = gameState.current.vy;
 
   // 4.5) Secrets detection and reveal
   try { if (checkSecrets) checkSecrets(x, y, width, height, mapWidth, mapHeight); } catch {}
@@ -243,7 +255,7 @@ export function updateFrame(ctx, timestamp) {
   // Get fresh ammo value after item collection
   const currentAmmo = Math.max(0, Number(gameState.current.ammo) || 0);
   if (keys?.mouseLeft && shootCooldownRef.current <= 0 && currentAmmo > 0) {
-    const originX = x + width / 2;
+    const originX = x + (direction >= 0 ? width + 4 : -4);
     const originY = y + height / 2;
     spawnProjectile(originX, originY, direction >= 0 ? 1 : -1);
     shootCooldownRef.current = 350; // ms cooldown

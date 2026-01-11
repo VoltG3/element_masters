@@ -69,8 +69,14 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     return null;
   };
 
-  const checkPlayerHit = (cx, cy, hw, hh) => {
+  const checkPlayerHit = (cx, cy, hw, hh, p) => {
     if (!playerState) return false;
+    
+    // Safety: ignore player for the first few frames if projectile is very new
+    // to prevent self-hits during spawning.
+    const lifespan = findItemById(p.defId)?.lifespan || 600;
+    if (p.life > lifespan - 50) return false;
+
     const ex = playerState.x;
     const ey = playerState.y;
     const ew = playerState.width || TILE_SIZE;
@@ -115,7 +121,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       // 1) X axis
       let nextX = cx + p.vx * stepTime;
       
-      const hitPlayerX = checkPlayerHit(nextX, cy, hw, hh);
+      const hitPlayerX = checkPlayerHit(nextX, cy, hw, hh, p);
       if (hitPlayerX) {
         if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
         removed = true;
@@ -154,8 +160,8 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
       // 2) Y axis
       let nextY = cy + p.vy * stepTime;
-
-      const hitPlayerY = checkPlayerHit(cx, nextY, hw, hh);
+      
+      const hitPlayerY = checkPlayerHit(cx, nextY, hw, hh, p);
       if (hitPlayerY) {
         if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
         removed = true;

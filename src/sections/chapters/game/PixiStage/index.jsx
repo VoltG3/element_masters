@@ -18,6 +18,7 @@ import { rebuildLayers } from './layerBuilder';
 Assets.setPreferences?.({ skipCacheIdWarning: true });
 
 const EMPTY_ARRAY = [];
+const EMPTY_OBJECT = {};
 
 const PixiStage = ({
   mapWidth,
@@ -39,7 +40,7 @@ const PixiStage = ({
   weatherClouds = 0,
   projectiles = EMPTY_ARRAY,
   healthBarEnabled = true,
-  objectMetadata = {},
+  objectMetadata = EMPTY_OBJECT,
   weatherFog = 0,
   weatherThunder = 0,
   oxygenBarEnabled = true,
@@ -536,6 +537,7 @@ const PixiStage = ({
   useEffect(() => {
     const app = appRef.current;
     if (!app) return;
+
     if (bgRef.current && objBehindRef.current && objFrontRef.current) {
       rebuildLayers(
         { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
@@ -631,7 +633,7 @@ const PixiStage = ({
       weatherSystemsRef.current.thunder = new WeatherThunder(fogLayer, api, getThunderIntensity);
       weatherSystemsRef.current.thunder.setIntensity(getThunderIntensity());
     }
-  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, mapWidth, mapHeight, tileSize]);
+  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, mapWidth, mapHeight, tileSize, isSolidAt]);
 
   // Rebuild parallax when props change
   useEffect(() => {

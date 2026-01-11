@@ -105,11 +105,11 @@ export const rebuildLayers = (refs, options) => {
     }
   }
 
-  console.log('[RENDER] Tiles rendering complete:', {
-    secretLayerTiles: secretLayerCount,
-    normalLayerTiles: normalLayerCount,
-    revealedSecretsCount: revealedSecrets?.length || 0
-  });
+  // console.log('[RENDER] Tiles rendering complete:', {
+  //   secretLayerTiles: secretLayerCount,
+  //   normalLayerTiles: normalLayerCount,
+  //   revealedSecretsCount: revealedSecrets?.length || 0
+  // });
 
   // Objects (non-player)
   for (let i = 0; i < mapWidth * mapHeight; i++) {

@@ -149,9 +149,9 @@ export const Editor = () => {
 
     const gameEngineState = useGameEngine(
         isPlayMode ? mapDataForGame : null,
-        isPlayMode ? tileMapData : [],
-        isPlayMode ? playModeObjectData : [],
-        isPlayMode ? playModeSecretData : [],
+        isPlayMode ? tileMapData : EMPTY_ARRAY,
+        isPlayMode ? playModeObjectData : EMPTY_ARRAY,
+        isPlayMode ? playModeSecretData : EMPTY_ARRAY,
         revealedSecrets,
         registryItems,
         handleGameOver,

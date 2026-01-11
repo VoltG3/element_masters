@@ -32,9 +32,9 @@ export function checkHazardDamage({
 
   // Overlapped tile rectangle (inclusive)
   const minGX = Math.floor(playerLeft / TILE_SIZE);
-  const maxGX = Math.floor((playerRight - 1) / TILE_SIZE);
+  const maxGX = Math.floor(playerRight / TILE_SIZE);
   const minGY = Math.floor(playerTop / TILE_SIZE);
-  const maxGY = Math.floor((playerBottom - 1) / TILE_SIZE);
+  const maxGY = Math.floor(playerBottom / TILE_SIZE);
 
   // Collect candidate hazards that match direction rules
   const candidates = [];
@@ -60,8 +60,8 @@ export function checkHazardDamage({
       const tileTop = gy * TILE_SIZE;
       const tileBottom = tileTop + TILE_SIZE;
 
-      const overlapsHorizontally = playerRight > tileLeft && playerLeft < tileRight;
-      const overlapsVertically = playerBottom > tileTop && playerTop < tileBottom;
+      const overlapsHorizontally = playerRight >= tileLeft && playerLeft <= tileRight;
+      const overlapsVertically = playerBottom >= tileTop && playerTop <= tileBottom;
       if (!overlapsHorizontally || !overlapsVertically) continue;
 
       // Allow per-hazard touch margin; default 4px
