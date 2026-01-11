@@ -24,6 +24,7 @@ export const Editor = () => {
     const [tileMapData, setTileMapData] = useState([]);
     const [objectMapData, setObjectMapData] = useState([]);
     const [secretMapData, setSecretMapData] = useState([]);
+    const [objectMetadata, setObjectMetadata] = useState({});
     const [selectedTile, setSelectedTile] = useState(null);
     const [showGrid, setShowGrid] = useState(true);
 
@@ -41,12 +42,13 @@ export const Editor = () => {
     const [previewPosition, setPreviewPosition] = useState(null);
     const [originalMapData, setOriginalMapData] = useState(null);
     const bucketTimerRef = useRef(null);
-    const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData, secretMapData });
+    const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata });
 
     // Map metadata
     const [mapName, setMapName] = useState("New Map");
     const [creatorName, setCreatorName] = useState("Anonymous");
     const [createdAt, setCreatedAt] = useState(null);
+    const [highlightedIndex, setHighlightedIndex] = useState(null);
     const [isNewMapModalOpen, setIsNewMapModalOpen] = useState(false);
     const [tempMapName, setTempMapName] = useState("");
     const [tempCreatorName, setTempCreatorName] = useState("");
@@ -67,14 +69,14 @@ export const Editor = () => {
     // 3. Definējam stabilu handleSaveMap funkciju
     const handleSaveMap = useCallback(() => {
         saveMap({
-            mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
+            mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
             mapName, creatorName, createdAt,
             selectedBackgroundImage, selectedBackgroundColor,
             backgroundParallaxFactor, selectedBackgroundMusic,
             registryItems, setCreatedAt
         });
     }, [
-        mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
+        mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
         mapName, creatorName, createdAt,
         selectedBackgroundImage, selectedBackgroundColor,
         backgroundParallaxFactor, selectedBackgroundMusic,
@@ -97,13 +99,14 @@ export const Editor = () => {
             tileSize: TILE_SIZE,
             backgroundImage: selectedBackgroundImage,
             backgroundColor: selectedBackgroundColor,
-            backgroundParallaxFactor: backgroundParallaxFactor
+            backgroundParallaxFactor: backgroundParallaxFactor,
+            objectMetadata: objectMetadata
         },
         layers: [
             { type: "tile", name: "background", data: tileMapData },
             { type: "object", name: "entities", data: playModeObjectData }
         ]
-    }), [mapWidth, mapHeight, selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, tileMapData, playModeObjectData]);
+    }), [mapWidth, mapHeight, selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, tileMapData, playModeObjectData, objectMetadata]);
 
     const handleGameOver = useCallback(() => {
         // On game over in editor, just pause
@@ -119,6 +122,23 @@ export const Editor = () => {
                 const newData = [...prev];
                 newData[payload] = null;
                 return newData;
+            });
+        } else if (newState === 'objectDamage' && payload !== undefined) {
+            const { index, damage } = payload;
+            setObjectMetadata(prev => {
+                const current = prev[index] || {};
+                const objId = playModeObjectData[index];
+                const def = registryItems.find(r => r.id === objId);
+                if (!def) return prev;
+                const maxH = def.maxHealth || 100;
+                const newHealth = Math.max(0, (current.health !== undefined ? current.health : maxH) - damage);
+                
+                // If health reached 0 and it's destructible, we could even remove it,
+                // but for the box, the user wants it to stay as "broken" (passable).
+                return {
+                    ...prev,
+                    [index]: { ...current, health: newHealth }
+                };
             });
         }
     }, []);
@@ -140,8 +160,8 @@ export const Editor = () => {
     );
 
     useEffect(() => {
-        stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData, secretMapData };
-    }, [mapWidth, mapHeight, tileMapData, objectMapData, secretMapData]);
+        stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata };
+    }, [mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata]);
 
     useEffect(() => {
         const size = 15 * 20;
@@ -171,14 +191,21 @@ export const Editor = () => {
     const blocks = useMemo(() => registryItems.filter(item => item.name && item.name.startsWith('block.') && !(item.flags && item.flags.liquid)), [registryItems]);
     const liquids = useMemo(() => registryItems.filter(item => item.flags && item.flags.liquid), [registryItems]);
     const entities = useMemo(() => registryItems.filter(item => {
-        if (!item.name || !item.name.startsWith('entities.')) return false;
+        if (!item.name || !item.name.toLowerCase().includes('entities.')) return false;
         if (item.isHiddenInEditor) return false;
-        return !item.type || item.type === 'default';
+        // Tips var būt entity, default vai pat nebūt norādīts, ja nosaukums sakrīt
+        return !item.type || item.type === 'default' || item.type === 'entity' || item.subtype === 'tank';
     }), [registryItems]);
-    const items = useMemo(() => registryItems.filter(item => item.name && item.name.startsWith('item.')), [registryItems]);
-    const interactables = useMemo(() => registryItems.filter(item => item.name && item.name.startsWith('interactable.')), [registryItems]);
-    const hazards = useMemo(() => registryItems.filter(item => item.type === 'hazard'), [registryItems]);
-    const secrets = useMemo(() => registryItems.filter(item => item.type === 'secret'), [registryItems]);
+    const decorations = useMemo(() => registryItems.filter(item => {
+        if (item.type === 'decoration') return true;
+        if (item.name && item.name.toLowerCase().includes('decoration.')) return true;
+        if (item.id && item.id.includes('stone_pack')) return true;
+        return false;
+    }), [registryItems]);
+    const items = useMemo(() => registryItems.filter(item => item.name && item.name.toLowerCase().includes('item.')), [registryItems]);
+    const interactables = useMemo(() => registryItems.filter(item => item.name && item.name.toLowerCase().includes('interactable.')), [registryItems]);
+    const hazards = useMemo(() => registryItems.filter(item => item.type === 'hazard' || (item.name && item.name.toLowerCase().includes('hazard.'))), [registryItems]);
+    const secrets = useMemo(() => registryItems.filter(item => item.type === 'secret' || (item.name && item.name.toLowerCase().includes('secret.'))), [registryItems]);
 
     const selectedBgOption = backgroundOptions.find((bg) => bg.metaPath === selectedBackgroundImage) || backgroundOptions[0];
     const selectedBackgroundUrl = selectedBgOption && selectedBackgroundImage ? selectedBgOption.src : null;
@@ -218,7 +245,23 @@ export const Editor = () => {
     };
     const setCurrentData = (newData) => {
         if (activeLayer === 'tile') setTileMapData(newData);
-        else if (activeLayer === 'object') setObjectMapData(newData);
+        else if (activeLayer === 'object') {
+            // Ja mēs mainām objektu slāni, pārbaudām vai vajag izdzēst metadatus
+            setObjectMapData((prev) => {
+                const newMetadata = { ...objectMetadata };
+                let metadataChanged = false;
+                
+                newData.forEach((id, idx) => {
+                    if (prev[idx] !== id && objectMetadata[idx]) {
+                        delete newMetadata[idx];
+                        metadataChanged = true;
+                    }
+                });
+                
+                if (metadataChanged) setObjectMetadata(newMetadata);
+                return newData;
+            });
+        }
         else if (activeLayer === 'secret') setSecretMapData(newData);
     };
 
@@ -409,7 +452,8 @@ export const Editor = () => {
             setMapHeight,
             setTileMapData,
             setObjectMapData,
-            setSecretMapData
+            setSecretMapData,
+            setObjectMetadata
         });
     };
 
@@ -426,6 +470,7 @@ export const Editor = () => {
         setEditorSnapshot({
             objectMapData: [...objectMapData],
             secretMapData: [...secretMapData],
+            objectMetadata: { ...objectMetadata },
             playerPosition: { ...playerPosition }
         });
 
@@ -486,6 +531,7 @@ export const Editor = () => {
 
             setPlayModeObjectData(resetData);
             setPlayModeSecretData([...editorSnapshot.secretMapData]);
+            setObjectMetadata({ ...editorSnapshot.objectMetadata });
             setRevealedSecrets([]);
             // Player position is maintained by useGameEngine state
         }
@@ -523,11 +569,11 @@ export const Editor = () => {
                         event, setMapWidth, setMapHeight, setMapName, setCreatorName,
                         setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
                         setBackgroundParallaxFactor, setSelectedBackgroundMusic,
-                        setTileMapData, setObjectMapData, setSecretMapData
+                        setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
                     })}
                     showGrid={showGrid}
                     setShowGrid={setShowGrid}
-                    clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData })}
+                    clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata })}
                     isPlayMode={isPlayMode}
                     handlePlay={handlePlay}
                     handlePause={handlePause}
@@ -550,6 +596,7 @@ export const Editor = () => {
                     liquids={liquids}
                     entities={entities}
                     items={items}
+                    decorations={decorations}
                     interactables={interactables}
                     hazards={hazards}
                     secrets={secrets}
@@ -571,8 +618,12 @@ export const Editor = () => {
                     mapHeight={mapHeight}
                     tileMapData={tileMapData}
                     objectMapData={objectMapData}
+                    objectMetadata={objectMetadata}
+                    setObjectMetadata={setObjectMetadata}
                     registryItems={registryItems}
                     onMapResize={handleMapResize}
+                    highlightedIndex={highlightedIndex}
+                    setHighlightedIndex={setHighlightedIndex}
                 />
 
                 {!isPlayMode ? (
@@ -588,8 +639,10 @@ export const Editor = () => {
                         tileMapData={tileMapData}
                         objectMapData={objectMapData}
                         secretMapData={secretMapData}
+                        objectMetadata={objectMetadata}
                         registryItems={registryItems}
                         hoverIndex={hoverIndex}
+                        highlightedIndex={highlightedIndex}
                         brushSize={brushSize}
                         bucketPreviewIndices={bucketPreviewIndices}
                         selection={selection}
@@ -615,6 +668,7 @@ export const Editor = () => {
                             registryItems={registryItems}
                             playerState={gameEngineState}
                             playerVisuals={playerVisuals}
+                            objectMetadata={objectMetadata}
                             backgroundImage={selectedBackgroundImage}
                             backgroundColor={selectedBackgroundColor}
                             backgroundParallaxFactor={backgroundParallaxFactor}

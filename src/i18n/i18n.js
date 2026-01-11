@@ -30,8 +30,8 @@ const ja_navigation = {
 i18n
     .use(initReactI18next)
     .init({
-        lng: "lv",
-        fallbackLng: "lv",
+        lng: "en",
+        fallbackLng: "en",
         supportedLngs: ["lv", "no", "en", "ru", "ja"],
         ns: ["navigation"],
         defaultNS: "navigation",

@@ -2,6 +2,7 @@
 import { moveHorizontal } from '../physics/horizontal';
 import { applyVerticalPhysics } from '../physics/vertical';
 import { tickLiquidDamage } from '../liquids/liquidUtils';
+import { updateEntities } from '../gameplay/entities';
 
 // updateFrame(ctx, timestamp) → { continue: boolean }
 // ctx expects:
@@ -29,7 +30,7 @@ export function updateFrame(ctx, timestamp) {
     actions
   } = ctx;
 
-  const { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef } = refs;
+  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
   const { checkCollision, isWaterAt, getLiquidSample } = helpers;
   const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, updateProjectiles, setPlayer, onGameOver } = actions;
@@ -251,6 +252,23 @@ export function updateFrame(ctx, timestamp) {
   // Update existing projectiles
   try { updateProjectiles(deltaMs, mapWidth, mapHeight); } catch {}
 
+  // 5.5) Update entities (tanks etc.)
+  try {
+    updateEntities({
+      entitiesRef,
+      gameState,
+      mapWidth,
+      mapHeight,
+      TILE_SIZE,
+      checkCollision,
+      spawnProjectile,
+      constants,
+      registryItems: ctx.registryItems
+    }, deltaMs);
+  } catch (e) {
+    console.error("Entity update failed:", e);
+  }
+
   // 6) Clamp player to world bounds horizontally; allow falling below map to trigger game over
   const maxX = mapWidth * TILE_SIZE - width;
   x = Math.max(0, Math.min(maxX, x));
@@ -284,7 +302,7 @@ export function updateFrame(ctx, timestamp) {
     atSurface,
     liquidType: liquidType || null
   };
-  setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [] });
+  setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [], entities: entitiesRef.current || [] });
 
   return { continue: true };
 }

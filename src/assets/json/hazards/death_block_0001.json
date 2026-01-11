@@ -1,0 +1,21 @@
+{
+  "id": "death_block_0001",
+  "name": "hazard.death_block",
+  "type": "hazard",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/hazards/death_block_0001.png",
+  "collision": true,
+  "renderAbovePlayer": true,
+
+  "damage": 5,
+  "damageOnce": false,
+  "damagePerSecond": 5,
+
+  "damageDirections": {
+    "top": true,
+    "bottom": true,
+    "left": true,
+    "right": true
+  }
+}

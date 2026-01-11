@@ -7,6 +7,7 @@ export const saveMap = async ({
     tileMapData,
     objectMapData,
     secretMapData,
+    objectMetadata,
     mapName,
     creatorName,
     createdAt,
@@ -42,7 +43,8 @@ export const saveMap = async ({
             backgroundImage: selectedBackgroundImage || null,
             backgroundColor: selectedBackgroundImage ? null : selectedBackgroundColor,
             backgroundParallaxFactor: backgroundParallaxFactor,
-            backgroundMusic: selectedBackgroundMusic || null
+            backgroundMusic: selectedBackgroundMusic || null,
+            objectMetadata: objectMetadata || {}
         },
         statistics: {
             total_tiles: mapWidth * mapHeight,
@@ -95,7 +97,8 @@ export const loadMap = ({
     setSelectedBackgroundMusic,
     setTileMapData,
     setObjectMapData,
-    setSecretMapData
+    setSecretMapData,
+    setObjectMetadata
 }) => {
     const fileReader = new FileReader();
     const file = event.target.files[0];
@@ -131,6 +134,12 @@ export const loadMap = ({
                         setSelectedBackgroundMusic(normalized);
                     } else {
                         setSelectedBackgroundMusic(null);
+                    }
+
+                    if (loaded.meta.objectMetadata) {
+                        setObjectMetadata(loaded.meta.objectMetadata);
+                    } else {
+                        setObjectMetadata({});
                     }
 
                     const bgLayer = loaded.layers.find(l => l.name === 'background');
@@ -182,22 +191,24 @@ export const loadMap = ({
     }
 };
 
-export const clearMap = ({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData }) => {
+export const clearMap = ({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata }) => {
     if (window.confirm("Are you sure you want to clear the map?")) {
         const size = mapWidth * mapHeight;
         setTileMapData(Array(size).fill(null));
         setObjectMapData(Array(size).fill(null));
         setSecretMapData(Array(size).fill(null));
+        setObjectMetadata({});
     }
 };
 
-export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setMapHeight, setTileMapData, setObjectMapData, setSecretMapData }) => {
-    const { mapWidth: oldW, mapHeight: oldH, tileMapData: oldTiles, objectMapData: oldObjs, secretMapData: oldSecrets } = stateRef.current;
+export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setMapHeight, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata }) => {
+    const { mapWidth: oldW, mapHeight: oldH, tileMapData: oldTiles, objectMapData: oldObjs, secretMapData: oldSecrets, objectMetadata: oldMeta } = stateRef.current;
     if (newWidth < 1 || newHeight < 1) return;
     if (newWidth === oldW && newHeight === oldH) return;
 
     const resizeArray = (oldArr) => {
         const newArr = Array(newWidth * newHeight).fill(null);
+        if (!oldArr) return newArr;
         for (let y = 0; y < Math.min(oldH, newHeight); y++) {
             for (let x = 0; x < Math.min(oldW, newWidth); x++) {
                 newArr[y * newWidth + x] = oldArr[y * oldW + x];
@@ -206,9 +217,25 @@ export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setM
         return newArr;
     };
 
+    const resizeMetadata = (oldM) => {
+        const newM = {};
+        if (!oldM) return newM;
+        for (let y = 0; y < Math.min(oldH, newHeight); y++) {
+            for (let x = 0; x < Math.min(oldW, newWidth); x++) {
+                const oldIdx = y * oldW + x;
+                const newIdx = y * newWidth + x;
+                if (oldM[oldIdx]) {
+                    newM[newIdx] = oldM[oldIdx];
+                }
+            }
+        }
+        return newM;
+    };
+
     setMapWidth(newWidth);
     setMapHeight(newHeight);
     setTileMapData(resizeArray(oldTiles));
     setObjectMapData(resizeArray(oldObjs));
-    setSecretMapData(resizeArray(oldSecrets || []));
+    setSecretMapData(resizeArray(oldSecrets));
+    setObjectMetadata(resizeMetadata(oldMeta));
 };

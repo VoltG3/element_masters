@@ -1,0 +1,28 @@
+{
+  "id": "portal_001",
+  "name": "interactable.portal_entrance",
+  "type": "interactable",
+  "width": 1,
+  "height": 2,
+  "textures": [
+    "/assets/images/interactables/portals/portal_01/portal_A_001.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_002.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_003.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_004.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_005.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_006.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_007.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_008.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_009.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_010.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_011.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_012.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_013.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_014.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_015.png",
+    "/assets/images/interactables/portals/portal_01/portal_A_016.png"
+  ],
+  "animationSpeed": 100,
+  "collision": false,
+  "renderAbovePlayer": true
+}

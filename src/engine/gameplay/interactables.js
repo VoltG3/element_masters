@@ -2,7 +2,7 @@
 // Unlike items (which disappear), interactables stay but change texture
 
 export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLayerData) {
-  const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState } = ctx;
+  const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, mapData } = ctx;
   if (!objectLayerData) return;
 
   const centerX = currentX + gameState.current.width / 2;
@@ -18,6 +18,41 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
 
   const objDef = registryItems.find(r => r.id === objId);
   if (!objDef || !objDef.name || !objDef.name.startsWith('interactable.')) return;
+
+  // Check for Teleport logic
+  const metadata = mapData?.meta?.objectMetadata;
+  const currentMeta = metadata?.[index];
+  
+  if (objId.includes('portal') && currentMeta && currentMeta.triggerId !== undefined && currentMeta.triggerId !== null) {
+      // Find destination
+      for (let i = 0; i < objectLayerData.length; i++) {
+          if (i === index) continue;
+          const destId = objectLayerData[i];
+          if (destId && (destId.includes('target') || destId === 'portal_target')) {
+              const destMeta = metadata?.[i];
+              if (destMeta && destMeta.triggerId === currentMeta.triggerId) {
+                  // TELEPORT!
+                  const tx = (i % mapWidth) * TILE_SIZE;
+                  const ty = Math.floor(i / mapWidth) * TILE_SIZE;
+                  
+                  // Move player to target
+                  gameState.current.x = tx;
+                  gameState.current.y = ty;
+                  
+                  // Play sound
+                  try {
+                      const vol = Math.max(0, Math.min(1, objDef?.sfxVolume ?? 1));
+                      playShotSfx(objDef?.sfx || "/assets/sound/sfx/teleport.ogg", vol);
+                  } catch {}
+
+                  // For teleport we don't necessarily mark as used if we want multi-use
+                  // but if the user wants it to disappear/change state, we can.
+                  // For now, let's just teleport.
+                  return;
+              }
+          }
+      }
+  }
 
   // Check if already used (track used interactables in gameState)
   if (!gameState.current.usedInteractables) {

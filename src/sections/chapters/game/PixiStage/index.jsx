@@ -11,6 +11,7 @@ import { createWaterFrames, createLavaFrames } from './liquidRendering';
 import { createParallaxManager } from './parallaxManager';
 import { createPlayerContainer, updatePlayerSprite } from './playerManager';
 import { syncProjectiles, cleanupProjectiles } from './projectileManager';
+import { syncEntities, cleanupEntities } from './entityManager';
 import { rebuildLayers } from './layerBuilder';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
@@ -38,6 +39,7 @@ const PixiStage = ({
   weatherClouds = 0,
   projectiles = EMPTY_ARRAY,
   healthBarEnabled = true,
+  objectMetadata = {},
   weatherFog = 0,
   weatherThunder = 0,
   oxygenBarEnabled = true,
@@ -70,6 +72,8 @@ const PixiStage = ({
   const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null });
   const projectilesLayerRef = useRef(null);
   const projectileSpritesRef = useRef(new Map());
+  const entitiesLayerRef = useRef(null);
+  const entitySpritesRef = useRef(new Map());
   const projectilesPropRef = useRef(EMPTY_ARRAY);
   const pixiTextureCacheRef = useRef(null);
   const hbEnabledRef = useRef(healthBarEnabled !== false);
@@ -163,6 +167,7 @@ const PixiStage = ({
       const secretBelowLayer = new Container();
       const secretAboveLayer = new Container();
       const playerLayer = new Container();
+      const entitiesLayer = new Container();
       const weatherLayer = new Container();
       const liquidLayer = new Container();
       const liquidFxLayer = new Container();
@@ -180,6 +185,7 @@ const PixiStage = ({
       secretBelowLayer.zIndex = LAYERS.secretsBelow;
       secretAboveLayer.zIndex = LAYERS.secretsAbove;
       playerLayer.zIndex = LAYERS.player;
+      entitiesLayer.zIndex = LAYERS.player;
       weatherLayer.zIndex = LAYERS.weather;
       fogLayer.zIndex = LAYERS.fog;
       liquidLayer.zIndex = LAYERS.liquids;
@@ -196,11 +202,12 @@ const PixiStage = ({
       liquidLayerRef.current = liquidLayer;
       fogLayerRef.current = fogLayer;
       projectilesLayerRef.current = projLayer;
+      entitiesLayerRef.current = entitiesLayer;
       overlayLayerRef.current = overlayLayer;
       parallaxRef.current = parallaxLayer;
 
       // Add all layers to stage
-      app.stage.addChild(parallaxLayer, objBehind, secretBelowLayer, playerLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, bg, bgAnim, overlayLayer);
+      app.stage.addChild(parallaxLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, bg, bgAnim, overlayLayer);
 
       // Preload textures to avoid Assets cache warnings and ensure textures are ready
       try {
@@ -279,7 +286,7 @@ const PixiStage = ({
           console.info('WebGL context restored');
           rebuildLayers(
             { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-            { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems }
+            { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata }
           );
           rebuildParallax();
           try {
@@ -294,7 +301,7 @@ const PixiStage = ({
       // First draw
       rebuildLayers(
         { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems }
+        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata }
       );
 
       // Initialize liquid system
@@ -488,6 +495,10 @@ const PixiStage = ({
 
         // Projectiles
         syncProjectiles(projectilesLayerRef.current, projectileSpritesRef.current, projectilesPropRef.current, registryItems, tileSize);
+
+        // Entities
+        const sNow = playerStateRef.current || {};
+        syncEntities(entitiesLayerRef.current, entitySpritesRef.current, sNow.entities, registryItems, tileSize);
       });
     } catch (error) {
       console.error('PixiStage init failed:', error);
@@ -516,6 +527,7 @@ const PixiStage = ({
       weatherSystemsRef.current.fog?.destroy();
     } catch {}
     cleanupProjectiles(projectileSpritesRef.current);
+    cleanupEntities(entitySpritesRef.current);
     clearTextureCache();
   };
   }, [mapWidth, mapHeight, tileSize, playerVisuals]);
@@ -527,7 +539,7 @@ const PixiStage = ({
     if (bgRef.current && objBehindRef.current && objFrontRef.current) {
       rebuildLayers(
         { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems }
+        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata }
       );
 
       // Rebuild liquid regions
@@ -540,7 +552,7 @@ const PixiStage = ({
       } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
       try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
     }
-  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets]);
+  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets, objectMetadata]);
 
   // Weather systems lifecycle
   useEffect(() => {
@@ -649,6 +661,7 @@ PixiStage.propTypes = {
   weatherClouds: PropTypes.number,
   projectiles: PropTypes.array,
   healthBarEnabled: PropTypes.bool,
+  objectMetadata: PropTypes.object,
   weatherFog: PropTypes.number,
   weatherThunder: PropTypes.number,
   oxygenBarEnabled: PropTypes.bool,

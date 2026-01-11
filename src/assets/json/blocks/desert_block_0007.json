@@ -1,0 +1,14 @@
+{
+  "id": "desert_block_0007",
+  "name": "block.desert_0007",
+  "width": "1",
+  "height": "1",
+  "texture": "/assets/images/blocks/desert_pack_01/desert_pack_0007.png",
+  "renderAbovePlayer": true,
+  "collision": {
+    "top": true,
+    "bottom": true,
+    "left": true,
+    "right": true
+  }
+}

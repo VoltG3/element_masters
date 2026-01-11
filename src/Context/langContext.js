@@ -2,7 +2,7 @@ import React, { createContext, useContext, useCallback, useEffect, useState } fr
 import i18n from "../i18n/i18n"
 
 const SUPPORTED_LANGS = ["lv", "no", "en", "ru", "ja"];
-const DEFAULT_LANG = "lv"
+const DEFAULT_LANG = "en"
 
 const LangContext = createContext({
     currentLang: DEFAULT_LANG,

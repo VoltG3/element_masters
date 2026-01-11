@@ -1,4 +1,4 @@
-import { Sprite, AnimatedSprite } from 'pixi.js';
+import { Sprite, AnimatedSprite, Texture, Rectangle } from 'pixi.js';
 import { getTexture, msToSpeed, getRegItem } from './helpers';
 import { buildSpriteFromDef } from './playerManager';
 import { isWaterDef, isLavaDef } from './liquidRendering';
@@ -13,7 +13,8 @@ export const rebuildLayers = (refs, options) => {
     objectMapData,
     secretMapData,
     revealedSecrets,
-    registryItems
+    registryItems,
+    objectMetadata
   } = options;
 
   const { bgRef, objBehindRef, objFrontRef, secretLayerRef } = refs;
@@ -115,9 +116,45 @@ export const rebuildLayers = (refs, options) => {
     const id = objectMapData[i];
     if (!id || id.includes('player')) continue;
     const def = getDef(id);
-    if (!def) continue;
+    if (!def || def.type === 'entity') continue;
 
-    const sprite = buildSpriteFromDef(def);
+    let sprite;
+    if (def.spriteSheet && def.spriteSheet.enabled) {
+      const meta = (objectMetadata && objectMetadata[i]) || {};
+      const maxH = def.maxHealth || 100;
+      const health = meta.health !== undefined ? meta.health : maxH;
+      const totalSprites = def.spriteSheet.totalSprites || 1;
+      const columns = def.spriteSheet.columns || totalSprites;
+      
+      const healthPercent = Math.max(0, Math.min(100, (health / maxH) * 100));
+      let frameIndex = Math.floor((1 - healthPercent / 100) * (totalSprites - 1));
+      frameIndex = Math.max(0, Math.min(totalSprites - 1, frameIndex));
+
+      const baseTexture = getTexture(def.texture);
+      if (baseTexture && (baseTexture.width > 1 || (baseTexture.source && baseTexture.source.width > 1))) {
+        const texWidth = baseTexture.source ? baseTexture.source.width : baseTexture.width;
+        const texHeight = baseTexture.source ? baseTexture.source.height : baseTexture.height;
+
+        const frameWidth = texWidth / columns;
+        const frameHeight = texHeight / Math.ceil(totalSprites / columns);
+        
+        const col = frameIndex % columns;
+        const row = Math.floor(frameIndex / columns);
+        
+        const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
+        
+        const frameTexture = new Texture({
+            source: baseTexture.source || baseTexture,
+            frame: rect
+        });
+        sprite = new Sprite(frameTexture);
+      } else {
+        sprite = buildSpriteFromDef(def);
+      }
+    } else {
+      sprite = buildSpriteFromDef(def);
+    }
+
     if (!sprite) continue;
 
     const x = (i % mapWidth) * tileSize;

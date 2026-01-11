@@ -1,0 +1,14 @@
+{
+  "id": "ice_block_0001",
+  "name": "block.ice_0001",
+  "width": "1",
+  "height": "1",
+  "texture": "/assets/images/blocks/block_pack_01/ice_block_0001.png",
+  "renderAbovePlayer": true,
+  "collision": {
+    "top": true,
+    "bottom": true,
+    "left": true,
+    "right": true
+  }
+}

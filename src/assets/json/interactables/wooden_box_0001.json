@@ -1,0 +1,24 @@
+{
+  "id": "wooden_box_0001",
+  "name": "interactable.wooden_box",
+  "type": "interactable",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/interactables/wooden_box_0001.png",
+  "collision": true,
+  "renderAbovePlayer": false,
+  "maxHealth": 100,
+  "isDestructible": true,
+  "passableHealthThreshold": 20,
+  "spriteSheet": {
+    "enabled": true,
+    "totalSprites": 114,
+    "columns": 11
+  },
+  "description": {
+    "normal_state": "Sprite 1 (index 0)",
+    "damage_stages": "Sprites 2 to 94",
+    "passable_state": "Sprites 95 to 114 (last 20 sprites)",
+    "damage_per_hit": 10
+  }
+}

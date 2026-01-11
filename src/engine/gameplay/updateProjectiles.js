@@ -1,9 +1,9 @@
 // Projectile update and ricochet simulation extracted from useGameEngine.js
 
-// ctx: { projectilesRef, TILE_SIZE, isSolidAtPixel, findItemById }
+// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, onStateUpdate }
 // updateProjectiles(ctx, deltaMs, mapWidth, mapHeight)
 export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
-  const { projectilesRef, TILE_SIZE, isSolidAtPixel, findItemById } = ctx;
+  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, onStateUpdate } = ctx;
   const dtProj = deltaMs / 1000;
   const worldW = mapWidth * TILE_SIZE;
   const worldH = mapHeight * TILE_SIZE;
@@ -17,7 +17,67 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     ];
     for (let k = 0; k < pts.length; k++) {
       const pt = pts[k];
-      if (isSolidAtPixel(pt.x, pt.y, mapWidth, mapHeight)) return true;
+      // Updated isSolidAtPixel call with all necessary layers
+      if (isSolidAtPixel(pt.x, pt.y, mapWidth, mapHeight, TILE_SIZE, null, null, null, objectData, objectMetadata)) return true;
+    }
+    return false;
+  };
+
+  const checkObjectHit = (cx, cy, hw, hh) => {
+    if (!objectData) return null;
+    const pts = [
+        { x: cx - hw, y: cy - hh },
+        { x: cx + hw, y: cy - hh },
+        { x: cx - hw, y: cy + hh },
+        { x: cx + hw, y: cy + hh },
+        { x: cx, y: cy }
+    ];
+    for (const pt of pts) {
+        const gx = Math.floor(pt.x / TILE_SIZE);
+        const gy = Math.floor(pt.y / TILE_SIZE);
+        if (gx < 0 || gy < 0 || gx >= mapWidth || gy >= mapHeight) continue;
+        const index = gy * mapWidth + gx;
+        const objId = objectData[index];
+        if (objId) {
+            const def = findItemById(objId);
+            if (def && def.isDestructible) {
+                // Check if already passable
+                const currentMeta = objectMetadata?.[index] || {};
+                const health = currentMeta.health !== undefined ? currentMeta.health : def.maxHealth;
+                if (health > (def.passableHealthThreshold || 0)) {
+                    return index;
+                }
+            }
+        }
+    }
+    return null;
+  };
+
+  const checkEntityHit = (cx, cy, hw, hh) => {
+    if (!entitiesRef?.current) return null;
+    for (const ent of entitiesRef.current) {
+        if (ent.health <= 0 || ent.isExploding) continue;
+        const ex = ent.x;
+        const ey = ent.y;
+        const ew = ent.width;
+        const eh = ent.height;
+        if (cx + hw > ex && cx - hw < ex + ew &&
+            cy + hh > ey && cy - hh < ey + eh) {
+            return ent;
+        }
+    }
+    return null;
+  };
+
+  const checkPlayerHit = (cx, cy, hw, hh) => {
+    if (!playerState) return false;
+    const ex = playerState.x;
+    const ey = playerState.y;
+    const ew = playerState.width || TILE_SIZE;
+    const eh = playerState.height || TILE_SIZE;
+    if (cx + hw > ex && cx - hw < ex + ew &&
+        cy + hh > ey && cy - hh < ey + eh) {
+        return true;
     }
     return false;
   };
@@ -54,6 +114,28 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     for (let s = 0; s < steps; s++) {
       // 1) X axis
       let nextX = cx + p.vx * stepTime;
+      
+      const hitPlayerX = checkPlayerHit(nextX, cy, hw, hh);
+      if (hitPlayerX) {
+        if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
+        removed = true;
+        break;
+      }
+
+      const hitEntX = checkEntityHit(nextX, cy, hw, hh);
+      if (hitEntX) {
+        hitEntX.health -= p.dmg || 10;
+        removed = true;
+        break;
+      }
+
+      const hitIdxX = checkObjectHit(nextX, cy, hw, hh);
+      if (hitIdxX !== null) {
+        if (onStateUpdate) onStateUpdate('objectDamage', { index: hitIdxX, damage: p.dmg || 10 });
+        removed = true;
+        break;
+      }
+
       if (p.cwt && isSolidRect(nextX, cy, hw, hh)) {
         if (p.ric) {
           p.vx = -p.vx * bounceDamp;
@@ -72,6 +154,28 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
       // 2) Y axis
       let nextY = cy + p.vy * stepTime;
+
+      const hitPlayerY = checkPlayerHit(cx, nextY, hw, hh);
+      if (hitPlayerY) {
+        if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
+        removed = true;
+        break;
+      }
+
+      const hitEntY = checkEntityHit(cx, nextY, hw, hh);
+      if (hitEntY) {
+        hitEntY.health -= p.dmg || 10;
+        removed = true;
+        break;
+      }
+
+      const hitIdxY = checkObjectHit(cx, nextY, hw, hh);
+      if (hitIdxY !== null) {
+        if (onStateUpdate) onStateUpdate('objectDamage', { index: hitIdxY, damage: p.dmg || 10 });
+        removed = true;
+        break;
+      }
+
       if (p.cwt && isSolidRect(cx, nextY, hw, hh)) {
         if (p.ric) {
           p.vy = -p.vy * bounceDamp;

@@ -38,6 +38,7 @@ export const ToolbarWindows = ({
     liquids,
     entities,
     items,
+    decorations,
     interactables,
     hazards,
     secrets,
@@ -59,10 +60,14 @@ export const ToolbarWindows = ({
     mapHeight,
     tileMapData,
     objectMapData,
+    objectMetadata,
+    setObjectMetadata,
     registryItems,
-    onMapResize
+    onMapResize,
+    highlightedIndex,
+    setHighlightedIndex
 }) => {
-    const [activePanel, setActivePanel] = useState(null); // 'map', 'tools', 'palette', 'bg', 'stats'
+    const [activePanel, setActivePanel] = useState(null); // 'map', 'tools', 'palette', 'bg', 'stats', 'props'
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isResizeWindowOpen, setIsResizeWindowOpen] = useState(false);
@@ -173,6 +178,7 @@ export const ToolbarWindows = ({
                         textures={item.textures}
                         texture={item.texture}
                         speed={item.animationSpeed}
+                        spriteSheet={item.spriteSheet}
                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                         alt={item.name}
                     />
@@ -247,6 +253,7 @@ export const ToolbarWindows = ({
                 <div onClick={() => togglePanel('palette')} style={activePanel === 'palette' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Palette">🧱</div>
                 <div onClick={() => togglePanel('bg')} style={activePanel === 'bg' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Background & Music">🖼️</div>
                 <div onClick={() => togglePanel('stats')} style={activePanel === 'stats' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Statistics">📊</div>
+                <div onClick={() => togglePanel('props')} style={activePanel === 'props' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Object Properties">📋</div>
             </div>
 
             {/* Panels */}
@@ -400,25 +407,31 @@ export const ToolbarWindows = ({
                                 </div>
                             </PaletteSection>
 
-                            <PaletteSection title="Entities (Objects)" isOpenDefault={false}>
+                            <PaletteSection title="Entities (Objects)" isOpenDefault={true}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
                                 </div>
                             </PaletteSection>
 
-                            <PaletteSection title="Items (Objects)" isOpenDefault={false}>
+                            <PaletteSection title="Decorations" isOpenDefault={true}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {decorations && decorations.map(d => renderPaletteItem(d, 'purple', 'object'))}
+                                </div>
+                            </PaletteSection>
+
+                            <PaletteSection title="Items (Objects)" isOpenDefault={true}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {items.map(i => renderPaletteItem(i, 'green', 'object'))}
                                 </div>
                             </PaletteSection>
 
-                            <PaletteSection title="Interactables" isOpenDefault={false}>
+                            <PaletteSection title="Interactables" isOpenDefault={true}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
                                 </div>
                             </PaletteSection>
 
-                            <PaletteSection title="Hazards" isOpenDefault={false}>
+                            <PaletteSection title="Hazards" isOpenDefault={true}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
                                 </div>
@@ -539,6 +552,110 @@ export const ToolbarWindows = ({
                 </div>
             )}
 
+            {activePanel === 'props' && (
+                <div style={panelStyle}>
+                    <div style={panelHeaderStyle}>
+                        <h3 style={{ margin: 0 }}>Object Properties</h3>
+                        <div onClick={() => setActivePanel(null)} style={{ cursor: 'pointer' }}>✕</div>
+                    </div>
+                    <div style={{ padding: '10px 0' }}>
+                        <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
+                            Configure triggers for Portals and Targets.
+                            <br />
+                            <strong>1.</strong> Place a <strong>Portal</strong> and a <strong>Portal Target</strong> from the palette.
+                            <br />
+                            <strong>2.</strong> Link them by giving them the <strong>same Trigger ID</strong> here.
+                            <br />
+                            <i style={{ fontSize: '11px' }}>* Tip: You can see visual links between them in the editor and minimap.</i>
+                        </p>
+                        <div style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+                            {objectMapData.map((id, index) => {
+                                if (!id) return null;
+                                const def = registryItems.find(r => r.id === id);
+                                if (!def || (!id.includes('portal') && !id.includes('target') && id !== 'portal_target')) return null;
+
+                                const x = index % mapWidth;
+                                const y = Math.floor(index / mapWidth);
+                                const metadata = objectMetadata[index] || {};
+                                const isHighlighted = highlightedIndex === index;
+
+                                return (
+                                    <div key={index} 
+                                        onMouseEnter={() => setHighlightedIndex(index)}
+                                        onMouseLeave={() => setHighlightedIndex(null)}
+                                        style={{
+                                            padding: '10px',
+                                            border: isHighlighted ? '1px solid gold' : '1px solid #eee',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '5px',
+                                            backgroundColor: isHighlighted ? '#fffde7' : '#f9f9f9',
+                                            marginBottom: '5px',
+                                            borderRadius: '4px',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                {id.includes('portal') && !id.includes('target') ? '🔵' : '🎯'} {def.name}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                                <span style={{ color: '#666', fontSize: '11px' }}>({x}, {y})</span>
+                                                <button 
+                                                    onClick={() => {
+                                                        const el = document.querySelector(`.viewport`);
+                                                        if (el) {
+                                                            const scrollX = x * 32 - el.clientWidth / 2 + 16;
+                                                            const scrollY = y * 32 - el.clientHeight / 2 + 16;
+                                                            el.scrollTo({ left: scrollX, top: scrollY, behavior: 'smooth' });
+                                                        }
+                                                    }}
+                                                    style={{ 
+                                                        padding: '2px 6px', fontSize: '10px', cursor: 'pointer',
+                                                        backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '3px'
+                                                    }}
+                                                    title="Scroll to this object"
+                                                >
+                                                    Locate
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Trigger ID:</label>
+                                            <input
+                                                type="number"
+                                                value={metadata.triggerId || ''}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setObjectMetadata(prev => ({
+                                                        ...prev,
+                                                        [index]: { ...prev[index], triggerId: isNaN(val) ? null : val }
+                                                    }));
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '4px 8px',
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '4px',
+                                                    fontSize: '13px',
+                                                    backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
+                                                }}
+                                                placeholder="Enter ID (e.g. 1)"
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {objectMapData.filter(id => id && (id.includes('portal') || id.includes('target'))).length === 0 && (
+                                <p style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
+                                    No portals or targets found on map.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Right side buttons */}
             <div style={rightSidebarStyle}>
                 <div onClick={() => setIsMinimapOpen(!isMinimapOpen)} style={isMinimapOpen ? activeSidebarButtonStyle : sidebarButtonStyle} title="Minimap">🗺️</div>
@@ -559,6 +676,7 @@ export const ToolbarWindows = ({
                         mapHeight={mapHeight}
                         tileMapData={tileMapData}
                         objectMapData={objectMapData}
+                        objectMetadata={objectMetadata}
                         registryItems={registryItems}
                     />
                 </DraggableWindow>

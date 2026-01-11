@@ -35,7 +35,7 @@ const NavButton = styled.button`
 
 export default function SectionHeaderNavigationLanguages() {
     const { i18n } = useTranslation();
-    const currentLang = i18n.language || 'lv'
+    const currentLang = i18n.language || 'en'
 
     const handleLanguageChange = (newLang) => {
         i18n.changeLanguage(newLang)

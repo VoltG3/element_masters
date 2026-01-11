@@ -28,7 +28,8 @@ export function spawnProjectile(ctx, originX, originY, direction) {
     dir: direction >= 0 ? 1 : -1,
     cwt: !!(pDef && pDef.collisionWithTiles),
     hbs: Math.max(0.1, Math.min(1.0, (pDef?.hitboxScale ?? 1))),
-    ric: ricochetFlag
+    ric: ricochetFlag,
+    dmg: pDef?.damage || 10
   };
   projectilesRef.current.push(proj);
 

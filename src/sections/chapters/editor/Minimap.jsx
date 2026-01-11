@@ -5,6 +5,7 @@ export const Minimap = ({
     mapHeight,
     tileMapData,
     objectMapData,
+    objectMetadata,
     registryItems
 }) => {
     const canvasRef = useRef(null);
@@ -91,7 +92,45 @@ export const Minimap = ({
             ctx.stroke();
         }
 
-    }, [mapWidth, mapHeight, tileMapData, objectMapData, registryItems]);
+        // Draw connections between portals and targets
+        if (objectMetadata) {
+            const portals = [];
+            const targets = [];
+
+            for (let i = 0; i < mapWidth * mapHeight; i++) {
+                const id = objectMapData[i];
+                if (!id) continue;
+                const metadata = objectMetadata[i];
+                if (!metadata || metadata.triggerId === null || metadata.triggerId === undefined) continue;
+
+                const pos = {
+                    x: (i % mapWidth) * tileWidth + tileWidth / 2,
+                    y: Math.floor(i / mapWidth) * tileHeight + tileHeight / 2
+                };
+
+                if (id.includes('portal') && !id.includes('target')) {
+                    portals.push({ triggerId: metadata.triggerId, pos });
+                } else if (id.includes('target') || id === 'portal_target') {
+                    targets.push({ triggerId: metadata.triggerId, pos });
+                }
+            }
+
+            portals.forEach(portal => {
+                const target = targets.find(t => t.triggerId === portal.triggerId);
+                if (target) {
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 3]);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(portal.pos.x, portal.pos.y);
+                    ctx.lineTo(target.pos.x, target.pos.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            });
+        }
+
+    }, [mapWidth, mapHeight, tileMapData, objectMapData, objectMetadata, registryItems]);
 
     return (
         <canvas

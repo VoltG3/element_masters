@@ -14,8 +14,10 @@ export const Viewport = ({
     tileMapData,
     objectMapData,
     secretMapData,
+    objectMetadata,
     registryItems,
     hoverIndex,
+    highlightedIndex,
     brushSize,
     bucketPreviewIndices,
     selection,
@@ -36,6 +38,59 @@ export const Viewport = ({
             }}
             onMouseUp={() => setIsDragging(false)}>
             <div style={{ position: 'relative', width: 'fit-content' }} onMouseLeave={handleGridMouseLeave}>
+                {/* Visual links between portals and targets */}
+                <svg style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: mapWidth * 32,
+                    height: mapHeight * 32,
+                    zIndex: 10,
+                    pointerEvents: 'none',
+                    opacity: 0.6
+                }}>
+                    {(() => {
+                        const links = [];
+                        const portals = [];
+                        const targets = [];
+
+                        // Collect all portals and targets with Trigger IDs
+                        objectMapData.forEach((id, index) => {
+                            if (!id) return;
+                            const metadata = objectMetadata?.[index];
+                            if (!metadata || metadata.triggerId === undefined || metadata.triggerId === null) return;
+
+                            const x = (index % mapWidth) * 32 + 16;
+                            const y = Math.floor(index / mapWidth) * 32 + 16;
+
+                            if (id.includes('portal') && !id.includes('target')) {
+                                portals.push({ x, y, id: metadata.triggerId });
+                            } else if (id.includes('target') || id === 'portal_target') {
+                                targets.push({ x, y, id: metadata.triggerId });
+                            }
+                        });
+
+                        // Draw lines between matching IDs
+                        portals.forEach(p => {
+                            targets.forEach(t => {
+                                if (p.id === t.id) {
+                                    links.push(
+                                        <line
+                                            key={`link-${p.x}-${p.y}-${t.x}-${t.y}`}
+                                            x1={p.x} y1={p.y}
+                                            x2={t.x} y2={t.y}
+                                            stroke="#fff"
+                                            strokeWidth="2"
+                                            strokeDasharray="5,5"
+                                        />
+                                    );
+                                }
+                            });
+                        });
+                        return links;
+                    })()}
+                </svg>
+
                 {/* Background preview layer */}
                 <div
                     style={{
@@ -142,6 +197,7 @@ export const Viewport = ({
 
                         let borderStyle = showGrid ? '0.5px solid rgba(128,128,128,0.5)' : 'none';
                         let bgStyle = 'transparent';
+                        const isHighlighted = highlightedIndex === index;
 
                         const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
                         const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
@@ -152,6 +208,7 @@ export const Viewport = ({
                         else if (isBucketTarget) borderStyle = '2px solid orange';
                         else if (isMoveHover) borderStyle = '2px solid blue';
                         else if (isMoveSelecting) { borderStyle = '1px dashed blue'; bgStyle = 'rgba(0, 0, 255, 0.1)'; }
+                        else if (isHighlighted) { borderStyle = '3px solid gold'; bgStyle = 'rgba(255, 215, 0, 0.4)'; }
                         else if (isSelected) {
                             if (isPreviewSelection) {
                                 borderStyle = '2px solid cyan';
@@ -192,16 +249,41 @@ export const Viewport = ({
                                     textures={tileObj.textures}
                                     texture={tileObj.texture}
                                     speed={tileObj.animationSpeed}
+                                    spriteSheet={tileObj.spriteSheet}
                                     style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 2 }}
                                 />}
 
                                 {/* Foreground Layer (Objects) */}
-                                {objObj && <AnimatedItem
-                                    textures={objObj.textures}
-                                    texture={objObj.texture}
-                                    speed={objObj.animationSpeed}
-                                    style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', zIndex: 3 }}
-                                />}
+                                {objObj && (
+                                    <div style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 3 }}>
+                                        <AnimatedItem
+                                            textures={objObj.textures}
+                                            texture={objObj.texture}
+                                            speed={objObj.animationSpeed}
+                                            spriteSheet={objObj.spriteSheet}
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                        />
+                                        {/* Render Trigger ID if present */}
+                                        {objectMetadata && objectMetadata[index] && objectMetadata[index].triggerId !== undefined && objectMetadata[index].triggerId !== null && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '-15px',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                backgroundColor: 'rgba(0,0,0,0.7)',
+                                                color: '#fff',
+                                                padding: '1px 4px',
+                                                borderRadius: '3px',
+                                                fontSize: '10px',
+                                                whiteSpace: 'nowrap',
+                                                zIndex: 10,
+                                                border: '1px solid #fff'
+                                            }}>
+                                                ID: {objectMetadata[index].triggerId}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Secret Layer (Dark Filter) */}
                                 {secretObj && (

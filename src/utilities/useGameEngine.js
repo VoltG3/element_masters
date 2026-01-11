@@ -69,6 +69,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     const liquidDamageAccumulatorRef = useRef(0);          // Accumulated time for liquid DPS ticking (e.g., lava)
     const oxygenDepleteAccRef = useRef(0);                 // O2 depletion DPS accumulator
     const lavaDepleteAccRef = useRef(0);                   // Lava resist depletion DPS accumulator
+    const entitiesRef = useRef([]);                        // Active moving entities (tanks, etc.)
 
     // Sync global sound toggle from localStorage and events
     useEffect(() => {
@@ -181,21 +182,62 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     };
 
     // Initialize player at starting position
-    // Important: This effect now depends ONLY on mapData (which doesn't change when collecting items)
     useEffect(() => {
-        // Reset hazard state when map changes
-        isInitialized.current = false;
+        if (!mapData) {
+            isInitialized.current = false;
+            return;
+        }
+
+        // Ja spēle jau ir inicializēta, nemainām spēlētāja pozīciju
+        // Tas novērš "reset" uz sākumu, kad spēlētājs paceļ itemu (kas maina mapData)
+        if (isInitialized.current) return;
+
+        // Reset state for new initialization
         lastTimeRef.current = 0;
         hazardDamageAccumulatorRef.current = 0;
         lastHazardIndexRef.current = null;
         triggeredHazardsRef.current = new Set();
         projectilesRef.current = [];
+        entitiesRef.current = [];
         shootCooldownRef.current = 0;
         projectileIdRef.current = 1;
 
         if (mapData && mapData.layers) {
             const mapW = mapData.meta?.width || mapData.width || 20;
             const mapH = mapData.meta?.height || mapData.height || 15;
+            
+            // Search for entities in objectData
+            const initialEntities = [];
+            if (objectData && Array.isArray(objectData)) {
+                objectData.forEach((id, idx) => {
+                    if (id && !id.includes('player')) {
+                        const def = findItemById(id);
+                        if (def && def.type === 'entity') {
+                            initialEntities.push({
+                                id: `entity_${idx}_${Date.now()}`,
+                                defId: id,
+                                def: def,
+                                x: (idx % mapW) * TILE_SIZE,
+                                y: Math.floor(idx / mapW) * TILE_SIZE,
+                                width: (def.width || 1) * TILE_SIZE,
+                                height: (def.height || 1) * TILE_SIZE,
+                                vx: 0,
+                                vy: 0,
+                                health: def.maxHealth || 100,
+                                direction: -1,
+                                animation: 'move',
+                                animFrame: 0,
+                                animTimer: 0,
+                                isGrounded: false,
+                                shootCooldown: 0,
+                                currentSpriteIndex: 0
+                            });
+                        }
+                    }
+                });
+            }
+            entitiesRef.current = initialEntities;
+
             const objLayer = mapData.layers.find(l => l.name === 'entities');
             if (objLayer) {
                 // Search for player (anything containing 'player')
@@ -290,21 +332,25 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             registryItems,
             gameState.current.width,
             gameState.current.height,
-            secretData
+            secretData,
+            objectData,
+            mapData?.meta?.objectMetadata
         );
     };
 
     // Simple point solidity check for projectiles — delegates to GameEngine/collision
-    const isSolidAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles) => {
+    const isSolidAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE_OVERRIDE, tileDataOverride, registryItemsOverride, secretDataOverride, objectDataOverride, objectMetadataOverride) => {
         return isSolidAtPixelExternal(
             wx,
             wy,
             mapWidthTiles,
             mapHeightTiles,
-            TILE_SIZE,
-            tileData,
-            registryItems,
-            secretData
+            TILE_SIZE_OVERRIDE || TILE_SIZE,
+            tileDataOverride || tileData,
+            registryItemsOverride || registryItems,
+            secretDataOverride || secretData,
+            objectDataOverride || objectData,
+            objectMetadataOverride || mapData?.meta?.objectMetadata
         );
     };
 
@@ -350,8 +396,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             mapData,
             objectData,
             input,
-            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef },
+            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef },
             constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE },
+            registryItems,
             helpers: {
                 checkCollision,
                 isWaterAt: (wx, wy) => isWaterAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)),
@@ -362,7 +409,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                 collectItem: (x, y, mapWidth, objectLayer) =>
                     collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState }, x, y, mapWidth, objectLayer),
                 checkInteractables: (x, y, mapWidth, objectLayer) =>
-                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState }, x, y, mapWidth, objectLayer),
+                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, mapData }, x, y, mapWidth, objectLayer),
                 checkHazardDamage: (x, y, mapWidth, objectLayer, deltaMs) =>
                     checkHazardDamageWrapper(x, y, mapWidth, objectLayer, deltaMs),
                 checkSecrets: (x, y, width, height, mapWidth, mapHeight) =>
@@ -370,7 +417,17 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                 spawnProjectile: (originX, originY, direction) =>
                     spawnProjectile(originX, originY, direction),
                 updateProjectiles: (deltaMs, mapWidth, mapHeight) =>
-                    updateProjectiles({ projectilesRef, TILE_SIZE, isSolidAtPixel, findItemById }, deltaMs, mapWidth, mapHeight),
+                    updateProjectiles({ 
+                        projectilesRef, 
+                        entitiesRef,
+                        playerState: gameState.current,
+                        TILE_SIZE, 
+                        isSolidAtPixel, 
+                        findItemById, 
+                        objectData, 
+                        objectMetadata: mapData?.meta?.objectMetadata, 
+                        onStateUpdate 
+                    }, deltaMs, mapWidth, mapHeight),
                 setPlayer: (next) => setPlayer(next),
                 onGameOver
             }

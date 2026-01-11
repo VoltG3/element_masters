@@ -1,0 +1,11 @@
+{
+  "id": "portal_target",
+  "name": "interactable.portal_destination",
+  "type": "interactable",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/entities/player/player_target_100.A.png",
+  "collision": false,
+  "renderAbovePlayer": true,
+  "isHiddenInGame": true
+}

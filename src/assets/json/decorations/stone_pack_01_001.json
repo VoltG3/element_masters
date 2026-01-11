@@ -1,0 +1,10 @@
+{
+  "id": "stone_pack_01_001",
+  "name": "decoration.stone_001",
+  "type": "decoration",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/decorations/stone_pack_01/stone_pack_01_001.png",
+  "collision": false,
+  "renderAbovePlayer": false
+}
