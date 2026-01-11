@@ -247,190 +247,124 @@ export default class LiquidRegionSystem {
     }
   }
 
-  _addRegion(type, tileIndices, mapWidth, mapHeight, tileSize) {
-    const node = new Container();
-    const mask = new Graphics();
-    const worldW = mapWidth * tileSize;
-    const worldH = mapHeight * tileSize;
+      _addRegion(type, tileIndices, mapWidth, mapHeight, tileSize) {
+        const node = new Container();
+        const mask = new Graphics();
+        // SVARĪGI: v8 maskas labāk strādā bez addChild, ja tās ir Graphics
+        const worldW = mapWidth * tileSize;
+        const worldH = mapHeight * tileSize;
 
-    // Draw mask as union of tile rects (grid-aligned)
-    // To avoid hairline gaps between rows/columns due to AA/subpixel sampling,
-    // slightly expand each rect by a small bleed so neighbors overlap.
-    mask.clear();
-    const bleed = 0.5; // px
-    for (let k = 0; k < tileIndices.length; k++) {
-      const idx = tileIndices[k];
-      const gx = (idx % mapWidth);
-      const gy = Math.floor(idx / mapWidth);
-      mask.rect(
-        gx * tileSize - bleed,
-        gy * tileSize - bleed,
-        tileSize + bleed * 2,
-        tileSize + bleed * 2
-      );
-    }
-    mask.fill({ color: 0xffffff, alpha: 1 });
-
-    const tex = type === 'lava' ? (this._lavaTex || (this._lavaTex = this._createLavaTexture(tileSize)))
-                                 : (this._waterTex || (this._waterTex = this._createWaterTexture(tileSize)));
-        
-    // LABOJUMS: Iestatām pareizu v8 addressMode, lai izvairītos no artefaktiem uz malām
-    if (tex.source) {
-      tex.source.addressMode = 'repeat';
-    }
-
-    const tiling = new TilingSprite({
-      texture: tex,
-      width: worldW,
-      height: worldH
-    });
-        
-    tiling.tileScale.set(1, 1);
-    tiling.alpha = type === 'lava' ? 0.98 : 0.92;
-    // Ensure integer placement to reduce sampling seams
-    tiling.x = 0; tiling.y = 0;
-
-    // Constrain fill to region mask
-    node.addChild(tiling);
-    // Add subtle noise overlays to break repetition
-    const noiseTex = this._noiseTex || (this._noiseTex = this._createNoiseTexture(128, 128));
-    const noise1 = new TilingSprite(noiseTex, worldW, worldH);
-    const noise2 = new TilingSprite(noiseTex, worldW, worldH);
-    // Different scales/alphas per liquid
-    if (type === 'water') {
-      noise1.tileScale.set(0.9, 1.1);
-      noise2.tileScale.set(0.6, 0.7);
-      noise1.alpha = 0.06; noise2.alpha = 0.08;
-    } else {
-      noise1.tileScale.set(1.2, 0.9);
-      noise2.tileScale.set(0.7, 0.6);
-      noise1.alpha = 0.08; noise2.alpha = 0.12;
-    }
-    node.addChild(noise1);
-    node.addChild(noise2);
-
-    node.addChild(mask);
-    node.mask = mask;
-
-    // Water surface rim highlight along top edges of the region
-    let capG = null;
-    let topEdges = null;
-    if (type === 'water') {
-      capG = new Graphics();
-      node.addChild(capG);
-      topEdges = this._computeTopEdgeSpans(tileIndices, mapWidth, tileSize);
-    }
-
-    this.container.addChild(node);
-    this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [] });
-  }
-
-  _createWaterTexture(tileSize) {
-    const canvas = document.createElement('canvas');
-    const size = tileSize * 2;
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    // LABOJUMS: Mainām gradientu uz "seamless" (bežšuvju). 
-    // Sākam un beidzam ar to pašu krāsu, lai atkārtojoties nebūtu svītras.
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#3a7fb8');     // Vidēji zils
-    g.addColorStop(0.5, '#5ba3d9');   // Gaiši zils (centrā)
-    g.addColorStop(1, '#3a7fb8');     // Atpakaļ uz vidēji zilu
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-
-    // Simple noise function for organic look
-    const noise = (x, y, scale) => {
-      const val = Math.sin(x * scale) * Math.cos(y * scale * 1.3) +
-                  Math.sin(x * scale * 2.1 + 1.7) * Math.cos(y * scale * 1.7 + 2.3);
-      return (val + 2) / 4; // 0..1
-    };
-
-    // Add subtle organic pattern with noise (no obvious horizontal lines)
-    const imageData = ctx.getImageData(0, 0, size, size);
-    const data = imageData.data;
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const idx = (y * size + x) * 4;
-        const n = noise(x, y, 0.05);
-        // Subtle brightness variation
-        const brightness = 0.95 + n * 0.1;
-        data[idx] = Math.min(255, data[idx] * brightness);     // R
-        data[idx + 1] = Math.min(255, data[idx + 1] * brightness); // G
-        data[idx + 2] = Math.min(255, data[idx + 2] * brightness); // B
-      }
-    }
-    ctx.putImageData(imageData, 0, 0);
-
-    // LABOJUMS: Noņemam vai padarām šo "shimmer" caurspīdīgu abās malās.
-    // Šobrīd šis zīmēja baltu svītru tikai augšā, kas radīja horizontālo līniju ik pēc 64 pikseļiem.
-    return Texture.from(canvas);
-  }
-
-  _createLavaTexture(tileSize) {
-    const canvas = document.createElement('canvas');
-    const size = tileSize * 2;
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    // LABOJUMS: Seamless gradients lavai
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#ffa229');     // Galvenā krāsa
-    g.addColorStop(0.5, '#ffb84d');   // Gaišāks centrs
-    g.addColorStop(1, '#ffa229');     // Galvenā krāsa
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-
-    // Simple noise function for organic flow
-    const noise = (x, y, scale) => {
-      const val = Math.sin(x * scale * 0.8) * Math.cos(y * scale * 1.5) +
-                  Math.sin(x * scale * 1.9 + 2.1) * Math.cos(y * scale * 1.3 + 1.7);
-      return (val + 2) / 4; // 0..1
-    };
-
-    // Add organic pattern with noise - no horizontal lines!
-    const imageData = ctx.getImageData(0, 0, size, size);
-    const data = imageData.data;
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const idx = (y * size + x) * 4;
-        const n1 = noise(x, y, 0.06);
-        const n2 = noise(x * 1.3, y * 0.7, 0.04);
-        // Combine noise for flowing veins effect
-        const brightness = 0.9 + n1 * 0.15 + n2 * 0.1;
-        data[idx] = Math.min(255, data[idx] * brightness);     // R
-        data[idx + 1] = Math.min(255, data[idx + 1] * brightness); // G
-        data[idx + 2] = Math.min(255, data[idx + 2] * brightness); // B
-
-        // Add bright spots where noise peaks
-        if (n1 > 0.7 && n2 > 0.6) {
-          const glow = (n1 + n2 - 1.3) * 80;
-          data[idx] = Math.min(255, data[idx] + glow);
-          data[idx + 1] = Math.min(255, data[idx + 1] + glow * 0.7);
-          data[idx + 2] = Math.min(255, data[idx + 2] + glow * 0.3);
+        mask.clear();
+        const bleed = 1; // Palielināts bleed, lai nosegtu spraugas
+        for (let k = 0; k < tileIndices.length; k++) {
+          const idx = tileIndices[k];
+          const gx = (idx % mapWidth);
+          const gy = Math.floor(idx / mapWidth);
+          mask.rect(
+            gx * tileSize - bleed,
+            gy * tileSize - bleed,
+            tileSize + bleed * 2,
+            tileSize + bleed * 2
+          );
         }
+        mask.fill({ color: 0xffffff, alpha: 1 });
+
+        const tex = type === 'lava' ? (this._lavaTex || (this._lavaTex = this._createLavaTexture(tileSize)))
+                                     : (this._waterTex || (this._waterTex = this._createWaterTexture(tileSize)));
+        
+        // v8 addressMode iestatīšana
+        if (tex.source && tex.source.style) {
+          tex.source.style.addressMode = 'repeat';
+        }
+
+        const tiling = new TilingSprite({
+          texture: tex,
+          width: worldW,
+          height: worldH
+        });
+        
+        tiling.tileScale.set(1, 1);
+        tiling.alpha = type === 'lava' ? 0.98 : 0.92;
+        node.addChild(tiling);
+
+        // Noise slāņi
+        const noiseTex = this._noiseTex || (this._noiseTex = this._createNoiseTexture(256, 256));
+        if (noiseTex.source && noiseTex.source.style) {
+          noiseTex.source.style.addressMode = 'repeat';
+        }
+
+        const noise1 = new TilingSprite({ texture: noiseTex, width: worldW, height: worldH });
+        const noise2 = new TilingSprite({ texture: noiseTex, width: worldW, height: worldH });
+        
+        if (type === 'water') {
+          noise1.alpha = 0.08; noise2.alpha = 0.1;
+        } else {
+          noise1.alpha = 0.12; noise2.alpha = 0.15;
+        }
+        node.addChild(noise1, noise2);
+
+        // LABOJUMS: Maska tiek pievienota kā bērns, lai tā sekotu līdzi node koordinātām
+        node.addChild(mask);
+        node.mask = mask;
+
+        if (type === 'water') {
+          const capG = new Graphics();
+          node.addChild(capG);
+          const topEdges = this._computeTopEdgeSpans(tileIndices, mapWidth, tileSize);
+          // Saglabājam atsauces uz r reģistrā
+          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [] });
+        } else {
+          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, waves: [] });
+        }
+
+        this.container.addChild(node);
       }
-    }
-    ctx.putImageData(imageData, 0, 0);
 
-    // Noņemam fiksēto virsmas spīdumu šeit, jo tas atkārtojas horizontāli.
-    // Virsmas spīdums jau tiek zīmēts ar capG dinamiski.
+      _createWaterTexture(tileSize) {
+        const canvas = document.createElement('canvas');
+        const size = 64; // Power of Two obligāts v8 tilingam
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
 
-    return Texture.from(canvas);
+        // SEAMLESS gradients (sākums un beigas ir #3a7fb8)
+        const g = ctx.createLinearGradient(0, 0, 0, size);
+        g.addColorStop(0, '#3a7fb8');   
+        g.addColorStop(0.5, '#5ba3d9'); 
+        g.addColorStop(1, '#3a7fb8');   
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, size, size);
+
+        return Texture.from(canvas);
+      }
+
+      _createLavaTexture(tileSize) {
+        const canvas = document.createElement('canvas');
+        const size = 64; 
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // SEAMLESS gradients lavai
+        const g = ctx.createLinearGradient(0, 0, 0, size);
+        g.addColorStop(0, '#ffa229');
+        g.addColorStop(0.5, '#ffb84d');
+        g.addColorStop(1, '#ffa229');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, size, size);
+
+        return Texture.from(canvas);
   }
 
-  _createNoiseTexture(w = 128, h = 128) {
+  _createNoiseTexture(w = 256, h = 256) {
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(w, h);
-    for (let i = 0; i < img.data.length; i += 4) {
-      // soft noise around mid-high values
-      const v = 200 + Math.floor(Math.random() * 55); // 200..254
-      img.data[i] = v; img.data[i + 1] = v; img.data[i + 2] = v; img.data[i + 3] = 255;
+    
+    ctx.fillStyle = '#ffffff';
+    for(let i=0; i<500; i++) {
+      ctx.globalAlpha = Math.random() * 0.05;
+      ctx.fillRect(Math.random()*w, Math.random()*h, 2, 2);
     }
-    ctx.putImageData(img, 0, 0);
+
     return Texture.from(canvas);
   }
 
