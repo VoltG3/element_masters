@@ -133,10 +133,7 @@ const HiddenFileInput = styled.input`
 
 const Viewport = styled.div`
     height: 100%;
-    display: ${props => props.$centered ? 'flex' : 'block'};
-    align-items: ${props => props.$centered ? 'center' : 'stretch'};
-    justify-content: ${props => props.$centered ? 'center' : 'flex-start'};
-    overflow: auto;
+    overflow: hidden;
     filter: ${props => props.$blurred ? 'blur(5px)' : 'none'};
     pointer-events: ${props => props.$blurred ? 'none' : 'auto'};
     transition: filter 0.3s ease;
@@ -144,10 +141,8 @@ const Viewport = styled.div`
 
 const GameCanvas = styled.div`
     position: relative;
-    width: ${props => props.$width}px;
-    height: ${props => props.$height}px;
-    border: 5px solid #222;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    height: 100%;
     background-color: #111;
 `;
 
@@ -227,59 +222,6 @@ export default function Game() {
         return findItemById("player_default_100") || findItemById("player");
     }, []);
     // --- END ENGINE ---
-
-    // Determine if the map fits entirely in the viewport; if so, center it
-    useEffect(() => {
-        const vp = viewportRef.current;
-        if (!vp) return;
-        const recalc = () => {
-            const vw = vp.clientWidth || 0;
-            const vh = vp.clientHeight || 0;
-            const cw = mapWidth * 32;
-            const ch = mapHeight * 32;
-            const fits = cw <= vw && ch <= vh;
-            dispatch(setShouldCenterMap(fits));
-            if (fits) {
-                // Ensure no residual scroll when centered
-                if ((vp.scrollLeft || vp.scrollTop)) {
-                    vp.scrollTo({ left: 0, top: 0, behavior: 'auto' });
-                }
-            }
-        };
-        recalc();
-        window.addEventListener('resize', recalc);
-        return () => window.removeEventListener('resize', recalc);
-    }, [mapWidth, mapHeight, isMapModalOpen, dispatch]);
-
-    // Camera follow with horizontal dead-zone on large maps (disabled when map is centered)
-    useEffect(() => {
-        const vp = viewportRef.current;
-        if (!vp || !activeMapData || isMapModalOpen || shouldCenterMap) return;
-
-        const vw = vp.clientWidth || 0;
-        const contentWidth = mapWidth * 32;
-        const maxScrollLeft = Math.max(0, contentWidth - vw);
-
-        const px = Number(playerState?.x) || 0;
-        const pw = Number(playerState?.width) || 32;
-        const playerCenter = px + pw / 2;
-
-        const currentLeft = vp.scrollLeft || 0;
-        const deadLeft = currentLeft + vw * 0.3;
-        const deadRight = currentLeft + vw * 0.7;
-
-        let targetLeft = currentLeft;
-        if (playerCenter > deadRight) {
-            targetLeft = playerCenter - vw * 0.7;
-        } else if (playerCenter < deadLeft) {
-            targetLeft = playerCenter - vw * 0.3;
-        }
-        targetLeft = Math.max(0, Math.min(maxScrollLeft, targetLeft));
-
-        if (Math.abs(targetLeft - currentLeft) > 0.5) {
-            vp.scrollTo({ left: targetLeft, top: 0, behavior: 'auto' });
-        }
-    }, [playerState, activeMapData, isMapModalOpen, mapWidth, shouldCenterMap]);
 
     // Listen for runtime settings updates from GameSettings (live apply)
     useEffect(() => {
@@ -465,12 +407,10 @@ export default function Game() {
 
             <Viewport
                 ref={viewportRef}
-                onScroll={(e) => dispatch(setCameraScrollX(e.currentTarget.scrollLeft || 0))}
-                $centered={shouldCenterMap}
                 $blurred={isMapModalOpen}
             >
                 {activeMapData ? (
-                    <GameCanvas $width={mapWidth * 32} $height={mapHeight * 32}>
+                    <GameCanvas>
                     
                         {/* PIXI RENDERER */}
                         <PixiStage

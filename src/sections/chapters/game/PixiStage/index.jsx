@@ -51,6 +51,7 @@ const PixiStage = ({
   const parallaxManagerRef = useRef(null);
   const cameraScrollRef = useRef(0);
   const parallaxFactorRef = useRef(Number(backgroundParallaxFactor) || 0.3);
+  const cameraPosRef = useRef({ x: 0, y: 0 });
   const bgRef = useRef(null);
   const bgAnimRef = useRef(null);
   const bgImageRef = useRef(backgroundImage);
@@ -138,8 +139,7 @@ const PixiStage = ({
       const app = new Application();
       try {
         await app.init({
-          width: mapWidth * tileSize,
-          height: mapHeight * tileSize,
+          resizeTo: mountRef.current,
           backgroundAlpha: 0,
           antialias: false,
           autoDensity: true,
@@ -326,11 +326,43 @@ const PixiStage = ({
           );
         }
 
-        // Parallax
-        const f = parallaxFactorRef.current;
-        const camX = cameraScrollRef.current || 0;
-        if (parallaxManagerRef.current) {
-          parallaxManagerRef.current.setScroll(camX, f);
+        // Camera Follow
+        const sw = app.screen.width;
+        const sh = app.screen.height;
+        const worldW = mapWidth * tileSize;
+        const worldH = mapHeight * tileSize;
+
+        if (s) {
+          const targetX = (s.x || 0) + (s.width || tileSize) / 2;
+          const targetY = (s.y || 0) + (s.height || tileSize) / 2;
+
+          let camX = targetX - sw / 2;
+          let camY = targetY - sh / 2;
+
+          // Constraints with centering for small maps
+          if (worldW < sw) {
+            camX = (worldW - sw) / 2;
+          } else {
+            camX = Math.max(0, Math.min(camX, worldW - sw));
+          }
+
+          if (worldH < sh) {
+            camY = (worldH - sh) / 2;
+          } else {
+            camY = Math.max(0, Math.min(camY, worldH - sh));
+          }
+
+          cameraPosRef.current = { x: camX, y: camY };
+          app.stage.pivot.set(camX, camY);
+
+          if (parallaxRef.current) {
+            parallaxRef.current.position.set(camX, camY);
+          }
+
+          const f = parallaxFactorRef.current;
+          if (parallaxManagerRef.current) {
+            parallaxManagerRef.current.setScroll(camX, f);
+          }
         }
 
         // Weather
