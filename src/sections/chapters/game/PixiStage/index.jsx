@@ -16,16 +16,17 @@ import { rebuildLayers } from './layerBuilder';
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
 Assets.setPreferences?.({ skipCacheIdWarning: true });
 
+const EMPTY_ARRAY = [];
+
 const PixiStage = ({
   mapWidth,
   mapHeight,
   tileSize = 32,
-  tileMapData = [],
-  objectMapData = [],
-  secretMapData = [],
-  revealedSecrets = [],
-  objectTextureIndices = {},
-  registryItems = [],
+  tileMapData = EMPTY_ARRAY,
+  objectMapData = EMPTY_ARRAY,
+  secretMapData = EMPTY_ARRAY,
+  revealedSecrets = EMPTY_ARRAY,
+  registryItems = EMPTY_ARRAY,
   playerState,
   playerVisuals,
   backgroundImage,
@@ -35,7 +36,7 @@ const PixiStage = ({
   weatherRain = 0,
   weatherSnow = 0,
   weatherClouds = 0,
-  projectiles = [],
+  projectiles = EMPTY_ARRAY,
   healthBarEnabled = true,
   weatherFog = 0,
   weatherThunder = 0,
@@ -68,7 +69,7 @@ const PixiStage = ({
   const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null });
   const projectilesLayerRef = useRef(null);
   const projectileSpritesRef = useRef(new Map());
-  const projectilesPropRef = useRef([]);
+  const projectilesPropRef = useRef(EMPTY_ARRAY);
   const pixiTextureCacheRef = useRef(null);
   const hbEnabledRef = useRef(healthBarEnabled !== false);
   const oxyEnabledRef = useRef(oxygenBarEnabled !== false);
@@ -132,20 +133,29 @@ const PixiStage = ({
     let destroyed = false;
 
     const init = async () => {
+      if (appRef.current) return;
+
       const app = new Application();
-      await app.init({
-        width: mapWidth * tileSize,
-        height: mapHeight * tileSize,
-        backgroundAlpha: 0,
-        antialias: false,
-        autoDensity: true,
-      });
-      if (destroyed) { app.destroy(true); return; }
+      try {
+        await app.init({
+          width: mapWidth * tileSize,
+          height: mapHeight * tileSize,
+          backgroundAlpha: 0,
+          antialias: false,
+          autoDensity: true,
+        });
 
-      appRef.current = app;
-      app.stage.sortableChildren = true;
+        if (destroyed) {
+          app.destroy(true, { children: true, texture: true });
+          return;
+        }
 
-      // Create layers
+        if (!app.renderer) return;
+
+        appRef.current = app;
+        app.stage.sortableChildren = true;
+
+        // Create layers
       const bg = new Container();
       const bgAnim = new Container();
       const objBehind = new Container();
@@ -223,8 +233,8 @@ const PixiStage = ({
       playerSpriteRefs.current = playerComponents.sprites;
       playerHealthBarRef.current = playerComponents.healthBar;
 
-      // Mount canvas
-      if (mountRef.current) {
+      // Mount canvas - DROŠA PIEVIENOŠANA
+      if (mountRef.current && app.renderer && app.canvas) {
         mountRef.current.innerHTML = '';
         mountRef.current.appendChild(app.canvas);
       }
@@ -260,7 +270,7 @@ const PixiStage = ({
       lavaBarRef.current = lvBar;
 
       // WebGL context loss/restore handlers
-      if (app.canvas) {
+      if (app.canvas && app.renderer) {
         app.canvas.addEventListener('webglcontextlost', (e) => {
           e.preventDefault();
           console.warn('WebGL context lost');
@@ -447,31 +457,35 @@ const PixiStage = ({
         // Projectiles
         syncProjectiles(projectilesLayerRef.current, projectileSpritesRef.current, projectilesPropRef.current, registryItems, tileSize);
       });
-    };
+    } catch (error) {
+      console.error('PixiStage init failed:', error);
+    }
+  };
 
-    init();
+  init();
 
-    return () => {
-      destroyed = true;
-      if (appRef.current) {
-        appRef.current.destroy(true);
-        appRef.current = null;
-      }
-      try { liquidSystemRef.current?.destroy(); } catch {}
-      try { waterFxRef.current?.destroy(); } catch {}
-      try { lavaEmbersRef.current?.destroy(); } catch {}
-      try { lavaSteamRef.current?.destroy(); } catch {}
-      try { parallaxManagerRef.current?.destroy(); } catch {}
-      parallaxManagerRef.current = null;
-      try { pixiTextureCacheRef.current?.clear?.(); } catch {}
-      try {
-        weatherSystemsRef.current.rain?.destroy();
-        weatherSystemsRef.current.snow?.destroy();
-        weatherSystemsRef.current.fog?.destroy();
-      } catch {}
-      cleanupProjectiles(projectileSpritesRef.current);
-      clearTextureCache();
-    };
+  return () => {
+    destroyed = true;
+    if (appRef.current) {
+      const appToDestroy = appRef.current;
+      appRef.current = null;
+      appToDestroy.destroy(true, { children: true, texture: true });
+    }
+    try { liquidSystemRef.current?.destroy(); } catch {}
+    try { waterFxRef.current?.destroy(); } catch {}
+    try { lavaEmbersRef.current?.destroy(); } catch {}
+    try { lavaSteamRef.current?.destroy(); } catch {}
+    try { parallaxManagerRef.current?.destroy(); } catch {}
+    parallaxManagerRef.current = null;
+    try { pixiTextureCacheRef.current?.clear?.(); } catch {}
+    try {
+      weatherSystemsRef.current.rain?.destroy();
+      weatherSystemsRef.current.snow?.destroy();
+      weatherSystemsRef.current.fog?.destroy();
+    } catch {}
+    cleanupProjectiles(projectileSpritesRef.current);
+    clearTextureCache();
+  };
   }, [mapWidth, mapHeight, tileSize, playerVisuals]);
 
   // Rebuild layers when map data changes
@@ -494,7 +508,7 @@ const PixiStage = ({
       } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
       try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
     }
-  }, [tileMapData, objectMapData, objectTextureIndices, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets]);
+  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets]);
 
   // Weather systems lifecycle
   useEffect(() => {
@@ -591,7 +605,6 @@ PixiStage.propTypes = {
   objectMapData: PropTypes.array,
   secretMapData: PropTypes.array,
   revealedSecrets: PropTypes.array,
-  objectTextureIndices: PropTypes.object,
   registryItems: PropTypes.array,
   playerState: PropTypes.object,
   playerVisuals: PropTypes.object,

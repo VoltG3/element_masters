@@ -383,8 +383,11 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
 
     // Loop initialization / restart
     useEffect(() => {
+        if (!mapData) return;
         requestRef.current = requestAnimationFrame(update);
-        return () => cancelAnimationFrame(requestRef.current);
+        return () => {
+            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        };
     }, [mapData, tileData, objectData]); // Restart loop if map or objects change
 
     return player;

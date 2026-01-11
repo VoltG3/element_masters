@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { getRegistry } from '../../../engine/registry';
 import { TILE_SIZE } from '../../../constants/gameConstants';
 import { saveMap, loadMap, clearMap, resizeMapData } from './mapOperations';
@@ -7,8 +7,17 @@ import { loadBackgroundOptions, loadMusicOptions } from './assetLoaders';
 import { Viewport } from './Viewport';
 import { NewMapModal } from './NewMapModal';
 import { ToolbarWindows } from './ToolbarWindows';
+import { useGameEngine } from '../../../utilities/useGameEngine';
+import PixiStage from '../game/PixiStage';
+
+const EMPTY_ARRAY = [];
+const EMPTY_OBJECT = {};
 
 export const Editor = () => {
+    // 1. Definējam registryItems pašā augšā
+    const registryItems = useMemo(() => getRegistry() || [], []);
+    const playerVisuals = useMemo(() => registryItems.find(item => item.id === 'player') || EMPTY_OBJECT, [registryItems]);
+
     // Editor state: map dimensions, tile/object data, selected tile, tools
     const [mapWidth, setMapWidth] = useState(20);
     const [mapHeight, setMapHeight] = useState(15);
@@ -42,6 +51,94 @@ export const Editor = () => {
     const [tempMapName, setTempMapName] = useState("");
     const [tempCreatorName, setTempCreatorName] = useState("");
 
+    // 2. NOŅEM ŠO RINDIŅU (tā vairs nav vajadzīga šeit):
+    // const registryItems = getRegistry() || [];
+
+    // Background and music options (memoized to avoid reloading every frame)
+    const backgroundOptions = useMemo(() => loadBackgroundOptions(), []);
+    const musicOptions = useMemo(() => loadMusicOptions(), []);
+
+    // Background state - needed before Play/Pause state
+    const [selectedBackgroundImage, setSelectedBackgroundImage] = useState(backgroundOptions[0]?.metaPath || null);
+    const [backgroundParallaxFactor, setBackgroundParallaxFactor] = useState(0.3);
+    const [selectedBackgroundColor, setSelectedBackgroundColor] = useState('#87CEEB');
+    const [selectedBackgroundMusic, setSelectedBackgroundMusic] = useState(null);
+
+    // 3. Definējam stabilu handleSaveMap funkciju
+    const handleSaveMap = useCallback(() => {
+        saveMap({
+            mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
+            mapName, creatorName, createdAt,
+            selectedBackgroundImage, selectedBackgroundColor,
+            backgroundParallaxFactor, selectedBackgroundMusic,
+            registryItems, setCreatedAt
+        });
+    }, [
+        mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
+        mapName, creatorName, createdAt,
+        selectedBackgroundImage, selectedBackgroundColor,
+        backgroundParallaxFactor, selectedBackgroundMusic,
+        registryItems
+    ]);
+
+    // Play/Pause/Reset state
+    const [isPlayMode, setIsPlayMode] = useState(false);
+    const [editorSnapshot, setEditorSnapshot] = useState(null);
+    const [playerPosition, setPlayerPosition] = useState({ x: 100, y: 100 });
+    const [revealedSecrets, setRevealedSecrets] = useState([]);
+    const [playModeObjectData, setPlayModeObjectData] = useState([]);
+    const [playModeSecretData, setPlayModeSecretData] = useState([]);
+
+    // Game engine integration for Play mode
+    const mapDataForGame = useMemo(() => ({
+        meta: {
+            width: mapWidth,
+            height: mapHeight,
+            tileSize: TILE_SIZE,
+            backgroundImage: selectedBackgroundImage,
+            backgroundColor: selectedBackgroundColor,
+            backgroundParallaxFactor: backgroundParallaxFactor
+        },
+        layers: [
+            { type: "tile", name: "background", data: tileMapData },
+            { type: "object", name: "entities", data: playModeObjectData }
+        ]
+    }), [mapWidth, mapHeight, selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, tileMapData, playModeObjectData]);
+
+    const handleGameOver = useCallback(() => {
+        // On game over in editor, just pause
+        setIsPlayMode(false);
+    }, []);
+
+    const handleStateUpdate = useCallback((newState, payload) => {
+        // Update player position during play or handle events like item collection
+        if (newState && typeof newState === 'object' && newState.x !== undefined && newState.y !== undefined) {
+            setPlayerPosition({ x: newState.x, y: newState.y });
+        } else if (newState === 'collectItem' && payload !== undefined) {
+            setPlayModeObjectData(prev => {
+                const newData = [...prev];
+                newData[payload] = null;
+                return newData;
+            });
+        }
+    }, []);
+
+    const handleRevealSecret = useCallback((secretIndex) => {
+        setRevealedSecrets(prev => [...prev, secretIndex]);
+    }, []);
+
+    const gameEngineState = useGameEngine(
+        isPlayMode ? mapDataForGame : null,
+        isPlayMode ? tileMapData : [],
+        isPlayMode ? playModeObjectData : [],
+        isPlayMode ? playModeSecretData : [],
+        revealedSecrets,
+        registryItems,
+        handleGameOver,
+        handleStateUpdate,
+        handleRevealSecret
+    );
+
     useEffect(() => {
         stateRef.current = { mapWidth, mapHeight, tileMapData, objectMapData, secretMapData };
     }, [mapWidth, mapHeight, tileMapData, objectMapData, secretMapData]);
@@ -71,26 +168,17 @@ export const Editor = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selection, previewPosition, originalMapData, selectionMode]);
 
-    const registryItems = getRegistry() || [];
-    const blocks = registryItems.filter(item => item.name && item.name.startsWith('block.') && !(item.flags && item.flags.liquid));
-    const liquids = registryItems.filter(item => item.flags && item.flags.liquid);
-    const entities = registryItems.filter(item => {
+    const blocks = useMemo(() => registryItems.filter(item => item.name && item.name.startsWith('block.') && !(item.flags && item.flags.liquid)), [registryItems]);
+    const liquids = useMemo(() => registryItems.filter(item => item.flags && item.flags.liquid), [registryItems]);
+    const entities = useMemo(() => registryItems.filter(item => {
         if (!item.name || !item.name.startsWith('entities.')) return false;
         if (item.isHiddenInEditor) return false;
         return !item.type || item.type === 'default';
-    });
-    const items = registryItems.filter(item => item.name && item.name.startsWith('item.'));
-    const interactables = registryItems.filter(item => item.name && item.name.startsWith('interactable.'));
-    const hazards = registryItems.filter(item => item.type === 'hazard');
-    const secrets = registryItems.filter(item => item.type === 'secret');
-
-    const backgroundOptions = loadBackgroundOptions();
-    const musicOptions = loadMusicOptions();
-
-    const [selectedBackgroundImage, setSelectedBackgroundImage] = useState(backgroundOptions[0]?.metaPath || null);
-    const [backgroundParallaxFactor, setBackgroundParallaxFactor] = useState(0.3);
-    const [selectedBackgroundColor, setSelectedBackgroundColor] = useState('#87CEEB');
-    const [selectedBackgroundMusic, setSelectedBackgroundMusic] = useState(null);
+    }), [registryItems]);
+    const items = useMemo(() => registryItems.filter(item => item.name && item.name.startsWith('item.')), [registryItems]);
+    const interactables = useMemo(() => registryItems.filter(item => item.name && item.name.startsWith('interactable.')), [registryItems]);
+    const hazards = useMemo(() => registryItems.filter(item => item.type === 'hazard'), [registryItems]);
+    const secrets = useMemo(() => registryItems.filter(item => item.type === 'secret'), [registryItems]);
 
     const selectedBgOption = backgroundOptions.find((bg) => bg.metaPath === selectedBackgroundImage) || backgroundOptions[0];
     const selectedBackgroundUrl = selectedBgOption && selectedBackgroundImage ? selectedBgOption.src : null;
@@ -332,6 +420,77 @@ export const Editor = () => {
         setSelection(null);
     };
 
+    // Play/Pause/Reset handlers
+    const handlePlay = () => {
+        // Save snapshot of current state (original editor data)
+        setEditorSnapshot({
+            objectMapData: [...objectMapData],
+            secretMapData: [...secretMapData],
+            playerPosition: { ...playerPosition }
+        });
+
+        // Create copies for play mode (these will be modified by game engine)
+        const playData = [...objectMapData];
+
+        // Find player spawn position or use default center position
+        let spawnIndex = playData.findIndex(id => id && id.includes('player'));
+        if (spawnIndex === -1) {
+            // No player found, place at center of map (or position 3,3)
+            const spawnX = Math.min(3, mapWidth - 1);
+            const spawnY = Math.min(3, mapHeight - 1);
+            spawnIndex = spawnY * mapWidth + spawnX;
+            // Add temporary player marker (use ID 'player' which is in registry)
+            playData[spawnIndex] = 'player';
+        }
+
+        setPlayModeObjectData(playData);
+        setPlayModeSecretData([...secretMapData]);
+        setRevealedSecrets([]);
+
+        setIsPlayMode(true);
+    };
+
+    const handlePause = () => {
+        setIsPlayMode(false);
+        // When pausing, update editor's objectMapData with current play state
+        // This simulates "saving" the collected items during play
+        const pauseData = [...playModeObjectData];
+
+        // Remove temporary player if it was auto-added (not in original editor data)
+        const originalHadPlayer = editorSnapshot.objectMapData.findIndex(id => id && id.includes('player')) !== -1;
+        if (!originalHadPlayer) {
+            const playerIndex = pauseData.findIndex(id => id && id.includes('player'));
+            if (playerIndex !== -1) {
+                pauseData[playerIndex] = null;
+            }
+        }
+
+        setObjectMapData(pauseData);
+        setSecretMapData([...playModeSecretData]);
+    };
+
+    const handleReset = () => {
+        if (editorSnapshot && isPlayMode) {
+            // Restore objects from snapshot but keep player position
+            // This resets collected objects during play mode
+            const resetData = [...editorSnapshot.objectMapData];
+
+            // Re-add player at same spawn position
+            let spawnIndex = resetData.findIndex(id => id && id.includes('player'));
+            if (spawnIndex === -1) {
+                const spawnX = Math.min(3, mapWidth - 1);
+                const spawnY = Math.min(3, mapHeight - 1);
+                spawnIndex = spawnY * mapWidth + spawnX;
+                resetData[spawnIndex] = 'player';
+            }
+
+            setPlayModeObjectData(resetData);
+            setPlayModeSecretData([...editorSnapshot.secretMapData]);
+            setRevealedSecrets([]);
+            // Player position is maintained by useGameEngine state
+        }
+    };
+
     const totalTiles = mapWidth * mapHeight;
     const filledBlocks = tileMapData.filter(t => t !== null).length;
     const emptyBlocks = totalTiles - filledBlocks;
@@ -359,13 +518,7 @@ export const Editor = () => {
                     mapName={mapName}
                     creatorName={creatorName}
                     openNewMapModal={openNewMapModal}
-                    saveMap={() => saveMap({
-                        mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
-                        mapName, creatorName, createdAt,
-                        selectedBackgroundImage, selectedBackgroundColor,
-                        backgroundParallaxFactor, selectedBackgroundMusic,
-                        registryItems, setCreatedAt
-                    })}
+                    saveMap={handleSaveMap} // 4. Izmanto jauno handleSaveMap
                     loadMap={(event) => loadMap({
                         event, setMapWidth, setMapHeight, setMapName, setCreatorName,
                         setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
@@ -375,6 +528,10 @@ export const Editor = () => {
                     showGrid={showGrid}
                     setShowGrid={setShowGrid}
                     clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData })}
+                    isPlayMode={isPlayMode}
+                    handlePlay={handlePlay}
+                    handlePause={handlePause}
+                    handleReset={handleReset}
                     activeTool={activeTool}
                     setActiveTool={setActiveTool}
                     brushSize={brushSize}
@@ -418,32 +575,56 @@ export const Editor = () => {
                     onMapResize={handleMapResize}
                 />
 
-                <Viewport
-                    mapWidth={mapWidth}
-                    mapHeight={mapHeight}
-                    selectedBackgroundUrl={selectedBackgroundUrl}
-                    selectedBackgroundColor={selectedBackgroundColor}
-                    selectedBackgroundImage={selectedBackgroundImage}
-                    showGrid={showGrid}
-                    activeLayer={activeLayer}
-                    activeTool={activeTool}
-                    tileMapData={tileMapData}
-                    objectMapData={objectMapData}
-                    secretMapData={secretMapData}
-                    registryItems={registryItems}
-                    hoverIndex={hoverIndex}
-                    brushSize={brushSize}
-                    bucketPreviewIndices={bucketPreviewIndices}
-                    selection={selection}
-                    previewPosition={previewPosition}
-                    dragStart={dragStart}
-                    isDragging={isDragging}
-                    handleGridMouseDown={handleGridMouseDown}
-                    handleGridMouseEnter={handleGridMouseEnter}
-                    handleGridMouseUp={handleGridMouseUp}
-                    handleGridMouseLeave={handleGridMouseLeave}
-                    setIsDragging={setIsDragging}
-                />
+                {!isPlayMode ? (
+                    <Viewport
+                        mapWidth={mapWidth}
+                        mapHeight={mapHeight}
+                        selectedBackgroundUrl={selectedBackgroundUrl}
+                        selectedBackgroundColor={selectedBackgroundColor}
+                        selectedBackgroundImage={selectedBackgroundImage}
+                        showGrid={showGrid}
+                        activeLayer={activeLayer}
+                        activeTool={activeTool}
+                        tileMapData={tileMapData}
+                        objectMapData={objectMapData}
+                        secretMapData={secretMapData}
+                        registryItems={registryItems}
+                        hoverIndex={hoverIndex}
+                        brushSize={brushSize}
+                        bucketPreviewIndices={bucketPreviewIndices}
+                        selection={selection}
+                        previewPosition={previewPosition}
+                        dragStart={dragStart}
+                        isDragging={isDragging}
+                        handleGridMouseDown={handleGridMouseDown}
+                        handleGridMouseEnter={handleGridMouseEnter}
+                        handleGridMouseUp={handleGridMouseUp}
+                        handleGridMouseLeave={handleGridMouseLeave}
+                        setIsDragging={setIsDragging}
+                    />
+                ) : (
+                    <div style={{ flex: 1, position: 'relative', backgroundColor: '#000' }}>
+                        <PixiStage
+                            mapWidth={mapWidth}
+                            mapHeight={mapHeight}
+                            tileSize={TILE_SIZE}
+                            tileMapData={tileMapData}
+                            objectMapData={playModeObjectData}
+                            secretMapData={playModeSecretData}
+                            revealedSecrets={revealedSecrets}
+                            registryItems={registryItems}
+                            playerState={gameEngineState}
+                            playerVisuals={playerVisuals}
+                            backgroundImage={selectedBackgroundImage}
+                            backgroundColor={selectedBackgroundColor}
+                            backgroundParallaxFactor={backgroundParallaxFactor}
+                            projectiles={gameEngineState?.projectiles || EMPTY_ARRAY}
+                            healthBarEnabled={true}
+                            oxygenBarEnabled={true}
+                            lavaBarEnabled={true}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

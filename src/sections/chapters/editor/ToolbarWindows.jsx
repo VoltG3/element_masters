@@ -16,6 +16,10 @@ export const ToolbarWindows = ({
     showGrid,
     setShowGrid,
     clearMap,
+    isPlayMode,
+    handlePlay,
+    handlePause,
+    handleReset,
     activeTool,
     setActiveTool,
     brushSize,
@@ -193,6 +197,20 @@ export const ToolbarWindows = ({
                         <button onClick={() => setShowGrid(!showGrid)} style={showGrid ? activeButtonStyle : buttonStyle}>#</button>
                         <button onClick={clearMap} style={{ ...buttonStyle, color: 'red' }} title="Clear Map">✕</button>
                     </div>
+
+                    <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '5px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>PLAY MODE</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                            {!isPlayMode ? (
+                                <button onClick={handlePlay} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: '#fff', borderColor: '#388E3C' }} title="Play from current position">▶ Play</button>
+                            ) : (
+                                <>
+                                    <button onClick={handlePause} style={{ ...buttonStyle, backgroundColor: '#FF9800', color: '#fff', borderColor: '#F57C00' }} title="Pause and return to editor">⏸ Pause</button>
+                                    <button onClick={handleReset} style={{ ...buttonStyle, backgroundColor: '#2196F3', color: '#fff', borderColor: '#1976D2' }} title="Reset collected objects">↻ Reset</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </DraggableWindow>
 
@@ -204,12 +222,18 @@ export const ToolbarWindows = ({
                 isOpenDefault={false}
                 onHeightChange={(h) => handleHeightChange(1, h)}
             >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>TOOLS</span>
-                        <button onClick={() => setActiveTool('brush')} style={activeTool === 'brush' ? activeButtonStyle : buttonStyle}>🖌️</button>
-                        <button onClick={() => setActiveTool('bucket')} style={activeTool === 'bucket' ? activeButtonStyle : buttonStyle}>🪣</button>
-                        <button onClick={() => setActiveTool('move')} style={activeTool === 'move' ? activeButtonStyle : buttonStyle}>✋</button>
+                {isPlayMode ? (
+                    <div style={{ padding: '10px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                        Tools disabled during Play mode
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div>
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>TOOLS</span>
+                            <button onClick={() => setActiveTool('brush')} style={activeTool === 'brush' ? activeButtonStyle : buttonStyle}>🖌️</button>
+                            <button onClick={() => setActiveTool('bucket')} style={activeTool === 'bucket' ? activeButtonStyle : buttonStyle}>🪣</button>
+                            <button onClick={() => setActiveTool('move')} style={activeTool === 'move' ? activeButtonStyle : buttonStyle}>✋</button>
+                        </div>
 
                         {(activeTool === 'brush') && (
                             <div style={{ marginTop: '5px' }}>
@@ -269,8 +293,6 @@ export const ToolbarWindows = ({
                                 </div>
                             </div>
                         )}
-                    </div>
-
                     <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px' }}>
                         <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>ERASERS</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -280,6 +302,7 @@ export const ToolbarWindows = ({
                         </div>
                     </div>
                 </div>
+                )}
             </DraggableWindow>
 
             {/* Window 3: Blocks/Liquids/Entities */}
@@ -290,49 +313,55 @@ export const ToolbarWindows = ({
                 isOpenDefault={false}
                 onHeightChange={(h) => handleHeightChange(2, h)}
             >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <PaletteSection title="Blocks (Background)" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
-                        </div>
-                    </PaletteSection>
+                {isPlayMode ? (
+                    <div style={{ padding: '10px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                        Palette disabled during Play mode
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <PaletteSection title="Blocks (Background)" isOpenDefault={true}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
+                            </div>
+                        </PaletteSection>
 
-                    <PaletteSection title="Liquids (Blocks)" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
-                        </div>
-                    </PaletteSection>
+                        <PaletteSection title="Liquids (Blocks)" isOpenDefault={true}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
+                            </div>
+                        </PaletteSection>
 
-                    <PaletteSection title="Entities (Objects)">
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
-                        </div>
-                    </PaletteSection>
+                        <PaletteSection title="Entities (Objects)">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
+                            </div>
+                        </PaletteSection>
 
-                    <PaletteSection title="Items (Objects)">
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {items.map(i => renderPaletteItem(i, 'green', 'object'))}
-                        </div>
-                    </PaletteSection>
+                        <PaletteSection title="Items (Objects)">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {items.map(i => renderPaletteItem(i, 'green', 'object'))}
+                            </div>
+                        </PaletteSection>
 
-                    <PaletteSection title="interactables (Objects)">
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
-                        </div>
-                    </PaletteSection>
+                        <PaletteSection title="interactables (Objects)">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
+                            </div>
+                        </PaletteSection>
 
-                    <PaletteSection title="Hazards (Objects)">
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
-                        </div>
-                    </PaletteSection>
+                        <PaletteSection title="Hazards (Objects)">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
+                            </div>
+                        </PaletteSection>
 
-                    <PaletteSection title="Secrets">
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
-                        </div>
-                    </PaletteSection>
-                </div>
+                        <PaletteSection title="Secrets">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                            </div>
+                        </PaletteSection>
+                    </div>
+                )}
             </DraggableWindow>
 
             {/* Window 4: Background & Music */}
