@@ -1,4 +1,4 @@
-import { Sprite, AnimatedSprite, Texture, Rectangle, Container } from 'pixi.js';
+import { Sprite, AnimatedSprite, Texture, Rectangle, Container, Graphics } from 'pixi.js';
 import { getTexture, msToSpeed, getRegItem } from './helpers';
 import { buildSpriteFromDef } from './playerManager';
 import { isWaterDef, isLavaDef } from './liquidRendering';
@@ -41,6 +41,11 @@ export const rebuildLayers = (refs, options) => {
   safeDestroy(secretLayerRef?.below);
   safeDestroy(secretLayerRef?.above);
 
+  // Track which tiles need secret overlay
+  // We need overlay for: 1) unrevealed above/secret zones, 2) all open/below zones
+  const secretOverlayTilesBelow = new Map(); // tile index -> filterColor
+  const secretOverlayTilesAbove = new Map(); // tile index -> filterColor
+
   // Helper: resolve registry item by id
   const getDef = (id) => getRegItem(registryItems, id);
 
@@ -61,6 +66,19 @@ export const rebuildLayers = (refs, options) => {
     const isInOpenArea = secretSubtype === 'open' || secretSubtype === 'below';
     const isInSecretArea = secretSubtype === 'secret' || secretSubtype === 'above';
     const isSecretRevealed = revealedSecrets && revealedSecrets.includes(i);
+
+    // Track which tiles need overlay rendering
+    // above/secret: overlay AFTER reveal (to darken objects after revealing secret)
+    // open/below: no overlay needed (tiles already darkened)
+    if (isInSecretArea && isSecretRevealed) {
+      const filterColor = secretDef?.filterColorInGame || secretDef?.filterColor || 'rgba(0, 0, 0, 0.6)';
+      const renderAbove = secretDef?.renderAbovePlayer;
+      if (renderAbove) {
+        secretOverlayTilesAbove.set(i, filterColor);
+      } else {
+        secretOverlayTilesBelow.set(i, filterColor);
+      }
+    }
 
     // Determine if this tile should be rendered with filter on secret layer
     let renderOnSecretLayer = false;
@@ -192,7 +210,19 @@ export const rebuildLayers = (refs, options) => {
     if (def.isHiddenInGame && !isEditor) {
         container.visible = false;
     }
-    
+
+    // Check if object is in unrevealed secret zone - if so, hide it
+    const secretId = secretMapData?.[i];
+    const secretDef = secretId ? getDef(secretId) : null;
+    const secretSubtype = secretDef?.subtype;
+    const isInSecretArea = secretSubtype === 'secret' || secretSubtype === 'above';
+    const isSecretRevealed = revealedSecrets && revealedSecrets.includes(i);
+
+    if (isInSecretArea && !isSecretRevealed && !isEditor) {
+      // Object is in unrevealed secret zone - make it invisible
+      container.visible = false;
+    }
+
     container.addChild(visualElement);
 
     // Add health bar for destructible objects if damaged
@@ -215,5 +245,48 @@ export const rebuildLayers = (refs, options) => {
     } else {
       objBehindRef.addChild(container);
     }
+  }
+
+  // Create dark overlays for unrevealed secret zones
+  // Below player overlay (for secrets with renderAbovePlayer: false)
+  if (secretOverlayTilesBelow.size > 0 && secretLayerRef?.below) {
+    const overlay = new Graphics();
+    secretOverlayTilesBelow.forEach((filterColor, idx) => {
+      const x = (idx % mapWidth) * tileSize;
+      const y = Math.floor(idx / mapWidth) * tileSize;
+
+      const match = filterColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const a = match[4] ? parseFloat(match[4]) : 1;
+
+        overlay.rect(x, y, tileSize, tileSize);
+        overlay.fill({ color: (r << 16) | (g << 8) | b, alpha: a });
+      }
+    });
+    secretLayerRef.below.addChild(overlay);
+  }
+
+  // Above player overlay (for secrets with renderAbovePlayer: true)
+  if (secretOverlayTilesAbove.size > 0 && secretLayerRef?.above) {
+    const overlay = new Graphics();
+    secretOverlayTilesAbove.forEach((filterColor, idx) => {
+      const x = (idx % mapWidth) * tileSize;
+      const y = Math.floor(idx / mapWidth) * tileSize;
+
+      const match = filterColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const a = match[4] ? parseFloat(match[4]) : 1;
+
+        overlay.rect(x, y, tileSize, tileSize);
+        overlay.fill({ color: (r << 16) | (g << 8) | b, alpha: a });
+      }
+    });
+    secretLayerRef.above.addChild(overlay);
   }
 };

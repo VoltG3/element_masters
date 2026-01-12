@@ -305,7 +305,7 @@ export const Viewport = ({
                                         position: 'absolute',
                                         width: '100%',
                                         height: '100%',
-                                        background: secretObj.filterColor || 'rgba(0, 0, 0, 0.5)',
+                                        background: secretObj.filterColorInEditor || secretObj.filterColor || 'rgba(0, 0, 0, 0.5)',
                                         zIndex: 4,
                                         display: 'flex',
                                         alignItems: 'center',
