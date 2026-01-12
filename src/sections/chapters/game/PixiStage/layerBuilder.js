@@ -124,6 +124,14 @@ export const rebuildLayers = (refs, options) => {
 
     // Apply filter if rendering on secret layer
     if (renderOnSecretLayer) {
+      // Add dark backing to block background image for tiles with alpha
+      // Both open.area (always) and secret.area (when revealed) need backing
+      // Add to bgRef (same layer as tiles) to keep it BELOW objects
+      const backing = new Graphics();
+      backing.rect(x, y, tileSize, tileSize);
+      backing.fill({ color: 0x000000, alpha: 0.8 }); // Dark backing to block background
+      bgRef.addChild(backing);
+
       sprite.alpha = 0.4; // darken the tile
       // Add to secret layer (below player always for tiles)
       if (secretLayerRef?.below) {

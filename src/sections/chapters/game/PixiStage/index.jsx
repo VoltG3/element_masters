@@ -88,7 +88,7 @@ const PixiStage = ({
   const oxyEnabledRef = useRef(oxygenBarEnabled !== false);
   const lavaEnabledRef = useRef(lavaBarEnabled !== false);
   const overlayLayerRef = useRef(null);
-  const underwaterRef = useRef({ g: null, time: 0 });
+  const underwaterRef = useRef({ g: null, time: 0, targetAlpha: 0, currentAlpha: 0 });
   const waterFramesRef = useRef(null);
   const lavaFramesRef = useRef(null);
   const overlayHBRef = useRef(null);
@@ -394,20 +394,70 @@ const PixiStage = ({
         try { waterFxRef.current?.update(dt); } catch {}
         try { lavaSteamRef.current?.update(dt); } catch {}
 
-        // Underwater overlay
+        // Underwater/lava overlay with smooth fade-in/out
         try {
           const u = underwaterRef.current;
           const sNow = playerStateRef.current || {};
+
+          // Safety check: ensure graphics object exists and is attached
+          if (u && (!u.g || u.g.destroyed)) {
+            const overlayL = overlayLayerRef.current;
+            if (overlayL) {
+              const g = new Graphics();
+              overlayL.addChild(g);
+              u.g = g;
+              u.currentAlpha = 0;
+              u.targetAlpha = 0;
+              u.time = 0;
+            }
+          }
+
           if (u && u.g) {
-            const submerged = !!(sNow && sNow.headUnderWater && sNow.liquidType === 'water');
-            if (submerged) {
+            // Check if player is in water/lava (regardless of head position)
+            const liquidType = sNow.liquidType;
+            const inLiquid = !!(sNow && sNow.inWater && (liquidType === 'water' || liquidType === 'lava'));
+
+            // Determine overlay color based on liquid type
+            let overlayColor = 0x1d4875; // water (blue)
+            if (liquidType === 'lava') {
+              overlayColor = 0x8b2e0f; // lava (dark orange-red)
+            }
+
+            if (inLiquid) {
               u.time += dt;
-              const pulse = 0.12 + 0.06 * Math.sin(u.time * 0.0025);
+              // Target alpha with pulse effect
+              const pulseBase = 0.12 + 0.06 * Math.sin(u.time * 0.0025);
+              u.targetAlpha = pulseBase;
+
+              // Smooth fade-in: gradually approach target alpha
+              const fadeSpeed = 0.01; // Faster fade-in for immediate visibility
+              const alphaDiff = u.targetAlpha - u.currentAlpha;
+              u.currentAlpha += alphaDiff * Math.min(1, dt * fadeSpeed);
+
+              // Update color if liquid type changed (only when needed to avoid constant redraw)
+              if (!u.g.visible || u.lastLiquidType !== liquidType) {
+                u.g.clear();
+                u.g.rect(0, 0, mapWidth * tileSize, mapHeight * tileSize);
+                u.g.fill({ color: overlayColor, alpha: 1 });
+                u.lastLiquidType = liquidType;
+              }
+
               u.g.visible = true;
-              u.g.alpha = pulse;
-            } else if (u.g.visible) {
-              u.g.alpha *= 0.85;
-              if (u.g.alpha < 0.01) { u.g.alpha = 0; u.g.visible = false; }
+              u.g.alpha = u.currentAlpha;
+            } else {
+              // Smooth fade-out
+              u.targetAlpha = 0;
+              const fadeOutSpeed = 0.008; // Faster fade-out
+              const alphaDiff = u.targetAlpha - u.currentAlpha;
+              u.currentAlpha += alphaDiff * Math.min(1, dt * fadeOutSpeed);
+              u.g.alpha = u.currentAlpha;
+
+              if (u.currentAlpha < 0.01) {
+                u.currentAlpha = 0;
+                u.g.alpha = 0;
+                u.g.visible = false;
+                u.time = 0; // Reset time for next submersion
+              }
             }
           }
 
@@ -580,15 +630,21 @@ const PixiStage = ({
                 playerHealthBarRef.current = playerComponents.healthBar;
             }
 
-            // Rebuild liquid regions
-            try {
-                if (liquidSystemRef.current) liquidSystemRef.current.destroy();
-                if (liquidLayerRef.current) {
-                    liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
-                    liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
-                }
-            } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
-            try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
+            // Rebuild liquid regions only if tileMapData changed (not just revealedSecrets)
+            // This prevents liquid "jumping" when revealing secrets
+            const tileDataString = JSON.stringify(tileMapData);
+            const prevTileDataString = liquidSystemRef.current?._lastTileData;
+            if (tileDataString !== prevTileDataString) {
+                try {
+                    if (liquidSystemRef.current) liquidSystemRef.current.destroy();
+                    if (liquidLayerRef.current) {
+                        liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+                        liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+                        liquidSystemRef.current._lastTileData = tileDataString; // Track what we built
+                    }
+                } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
+                try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
+            }
 
             // Upload to GPU to avoid lazy initialization warnings
             if (app.renderer && app.renderer.prepare) {
