@@ -15,11 +15,10 @@ import styled from 'styled-components';
 
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
 import map1 from '../../../assets/maps/Temp_01.json';
-import map2 from '../../../assets/maps/Temp_02.json';
-import map3 from '../../../assets/maps/Temp_03.json';
+
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2, map3];
+const BUILT_IN_MAPS = [map1];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -428,6 +427,8 @@ export default function Game() {
                 maxLavaResist={playerState.maxLavaResist}
                 iceResist={playerState.iceResist}
                 maxIceResist={playerState.maxIceResist}
+                strength={playerState.strength}
+                maxStrength={playerState.maxStrength}
                 inWater={playerState.inWater}
                 liquidType={playerState.liquidType}
                 onIce={playerState.onIce}

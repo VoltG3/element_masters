@@ -35,6 +35,8 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
       objDef.type === 'entity' || 
       objDef.subtype === 'tank' || 
       objDef.subtype === 'platform' ||
+      objDef.subtype === 'pushable' ||
+      objDef.isPushable ||
       (objDef.name && objDef.name.toLowerCase().includes('entities.'))
     );
 

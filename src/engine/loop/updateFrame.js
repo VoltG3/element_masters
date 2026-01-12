@@ -33,7 +33,7 @@ export function updateFrame(ctx, timestamp) {
   const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
   const { checkCollision, isWaterAt, getLiquidSample } = helpers;
-  const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, updateProjectiles, setPlayer, onGameOver } = actions;
+  const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, playSfx, updateProjectiles, setPlayer, onGameOver } = actions;
 
   // Keep RAF alive even if init not finished yet
   if (!isInitialized.current || !mapData) {
@@ -143,6 +143,62 @@ export function updateFrame(ctx, timestamp) {
     acceleration: isSlippery ? (currentIceRes > 0 ? 0.15 : surface.acceleration) : surface.acceleration
   });
   x = mh.x; vx = mh.vx; direction = mh.direction;
+
+  // 1.1) Pushable objects logic (Stone pushing)
+  let isPushing = false;
+  let pushTarget = null;
+  
+  const currentStrength = gameState.current.strength || 30;
+  const isAlreadyAtMax = currentStrength >= 99;
+  const lastPushTime = gameState.current.lastPushTime || 0;
+  const gracePeriod = 300; // ms, kurā strength nesamazinās pat ja kontakts pazūd uz brīdi
+
+  if (entitiesRef.current) {
+    // Ja jau stumjam ar pilnu jaudu, esam pielaidīgāki pret attālumu (histerēze), 
+    // lai kompensētu nelielas fizikas dzinēja nobīdes.
+    const pushDist = isAlreadyAtMax ? 15 : 5;
+    const overlapDist = isAlreadyAtMax ? 12 : 5;
+
+    for (const ent of entitiesRef.current) {
+      if (ent.subtype === 'pushable' || ent.def?.isPushable) {
+        // Pārbaudām vai spēlētājs ir blakus akmenim
+        const isNextToLeft = (x + width + pushDist > ent.x) && (x + width <= ent.x + overlapDist) && (y + height > ent.y + 2) && (y < ent.y + ent.height - 2);
+        const isNextToRight = (x - pushDist < ent.x + ent.width) && (x >= ent.x + ent.width - overlapDist) && (y + height > ent.y + 2) && (y < ent.y + ent.height - 2);
+
+        if ((isNextToLeft && keys.d) || (isNextToRight && keys.a)) {
+          isPushing = true;
+          pushTarget = ent;
+          break;
+        }
+      }
+    }
+  }
+
+  if (isPushing) {
+    gameState.current.strength = Math.min(100, currentStrength + (65 * dt) / 1000); // Aug par ~65% sekundē
+    if (gameState.current.strength >= 100 && pushTarget) {
+      // Pastumjam akmeni
+      const pushForce = 2.0;
+      pushTarget.vx = (x < pushTarget.x ? 1 : -1) * pushForce;
+      gameState.current.lastPushTime = timestamp; 
+      
+      // Atskaņojam skaņu
+      if (pushTarget.def?.sounds?.push && (!pushTarget.lastPushSoundTime || timestamp - pushTarget.lastPushSoundTime > 450)) {
+        playSfx(pushTarget.def.sounds.push, 0.3);
+        pushTarget.lastPushSoundTime = timestamp;
+      }
+    }
+  } else {
+    // Pārbaudām grace periodu pirms sākam samazināt spēku
+    const timeSincePush = timestamp - lastPushTime;
+    if (timeSincePush > gracePeriod) {
+      if (currentStrength > 30) {
+        gameState.current.strength = Math.max(30, currentStrength - (35 * dt) / 1000);
+      } else {
+        gameState.current.strength = 30;
+      }
+    }
+  }
 
   // 2) Vertical physics
   const vp = applyVerticalPhysics({
@@ -338,7 +394,9 @@ export function updateFrame(ctx, timestamp) {
       TILE_SIZE,
       checkCollision,
       isWaterAt,
+      getLiquidSample,
       spawnProjectile,
+      playSfx,
       constants,
       registryItems: ctx.registryItems
     }, Math.min(dt, 100)); // Ierobežojam deltaMs uz 100ms, lai izvairītos no milzīgiem lēcieniem

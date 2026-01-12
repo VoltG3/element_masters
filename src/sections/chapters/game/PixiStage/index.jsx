@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Application, Container, Graphics, Assets } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
@@ -15,7 +15,10 @@ import { syncEntities, cleanupEntities } from './entityManager';
 import { rebuildLayers } from './layerBuilder';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
-Assets.setPreferences?.({ skipCacheIdWarning: true });
+Assets.setPreferences?.({
+  skipCacheIdWarning: true,
+  preferCreateImageBitmap: false, // Prevents WebGL warning: texImage: Alpha-premult and y-flip are deprecated
+});
 
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
@@ -49,6 +52,8 @@ const PixiStage = ({
   lavaEmbersEnabled = true,
   isEditor = false,
 }) => {
+  const [isPixiReady, setIsPixiReady] = useState(false);
+
   const mountRef = useRef(null);
   const appRef = useRef(null);
   const parallaxRef = useRef(null);
@@ -64,6 +69,7 @@ const PixiStage = ({
   const objFrontRef = useRef(null);
   const secretLayerRef = useRef(null);
   const playerRef = useRef(null);
+  const playerLayerRef = useRef(null);
   const playerSpriteRefs = useRef({ def: null, hit: null });
   const playerHealthBarRef = useRef(null);
   const playerStateRef = useRef(null);
@@ -203,6 +209,7 @@ const PixiStage = ({
       objFrontRef.current = objFront;
       secretLayerRef.current = { below: secretBelowLayer, above: secretAboveLayer };
       weatherLayerRef.current = weatherLayer;
+      playerLayerRef.current = playerLayer;
       liquidLayerRef.current = liquidLayer;
       fogLayerRef.current = fogLayer;
       projectilesLayerRef.current = projLayer;
@@ -288,31 +295,17 @@ const PixiStage = ({
         });
         app.canvas.addEventListener('webglcontextrestored', () => {
           console.info('WebGL context restored');
-          rebuildLayers(
-            { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-            { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
-          );
-          rebuildParallax();
-          try {
-            if (liquidSystemRef.current) liquidSystemRef.current.destroy();
-            liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
-            liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
-          } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
-          try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
+          // No need to manually rebuild here as the main useEffect will catch app state or we can just trigger a state change if needed.
+          // But Pixi v8 often recovers automatically. To be safe, we can force a rebuild by just waiting for next tick.
         });
       }
-
-      // First draw
-      rebuildLayers(
-        { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
-      );
 
       // Initialize liquid system
       try {
         if (liquidSystemRef.current) liquidSystemRef.current.destroy();
-        liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
-        liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+        if (liquidLayerRef.current) {
+          liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+        }
       } catch (e) { console.warn('LiquidRegionSystem init failed:', e); }
 
       // FX systems
@@ -320,12 +313,14 @@ const PixiStage = ({
       try { lavaSteamRef.current = new LavaSteamFX(liquidFxLayer); } catch {}
       try {
         lavaEmbersRef.current = new LavaEmbers(liquidLayerRef.current, { mapWidth, mapHeight, tileSize }, () => (embersEnabledRef.current ? 100 : 0));
-        lavaEmbersRef.current.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
       } catch {}
 
       rebuildParallax();
 
-      // Ticker
+      // Finalize initialization by setting appRef
+      // This will trigger the second useEffect to build layers and player
+      appRef.current = app;
+      setIsPixiReady(true);
       app.ticker.add(() => {
         const s = playerStateRef.current;
         if (s && playerRef.current) {
@@ -535,30 +530,81 @@ const PixiStage = ({
     cleanupEntities(entitySpritesRef.current);
     clearTextureCache();
   };
-  }, [mapWidth, mapHeight, tileSize, playerVisuals]);
+  }, []);
 
   // Rebuild layers when map data changes
   useEffect(() => {
     const app = appRef.current;
     if (!app) return;
 
-    if (bgRef.current && objBehindRef.current && objFrontRef.current) {
-      rebuildLayers(
-        { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-        { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
-      );
+    let active = true;
 
-      // Rebuild liquid regions
-      try {
-        if (liquidSystemRef.current) liquidSystemRef.current.destroy();
-        if (liquidLayerRef.current) {
-          liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
-          liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+    const runRebuild = async () => {
+        // Collect all textures to preload
+        const urlSet = new Set();
+        const addUrl = (u) => { if (typeof u === 'string' && u.length) urlSet.add(u); };
+        registryItems.forEach((def) => {
+            addUrl(def?.texture);
+            if (Array.isArray(def?.textures)) def.textures.forEach(addUrl);
+        });
+        if (playerVisuals) {
+            addUrl(playerVisuals.texture);
+            if (Array.isArray(playerVisuals.textures)) playerVisuals.textures.forEach(addUrl);
         }
-      } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
-      try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
-    }
-  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets, objectMetadata]);
+
+        const urls = Array.from(urlSet);
+        if (urls.length) {
+            await Assets.load(urls);
+        }
+
+        if (!active || !appRef.current) return;
+
+        if (bgRef.current && objBehindRef.current && objFrontRef.current) {
+            rebuildLayers(
+                { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
+                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
+            );
+
+            // Rebuild player visuals if visuals changed or player not created yet
+            const pLayer = playerLayerRef.current;
+            if (pLayer) {
+                if (playerRef.current) {
+                    pLayer.removeChild(playerRef.current);
+                    try { playerRef.current.destroy({ children: true }); } catch {}
+                }
+                
+                const playerComponents = createPlayerContainer(playerVisuals, registryItems, playerStateRef.current, tileSize);
+                pLayer.addChild(playerComponents.container);
+                playerRef.current = playerComponents.container;
+                playerSpriteRefs.current = playerComponents.sprites;
+                playerHealthBarRef.current = playerComponents.healthBar;
+            }
+
+            // Rebuild liquid regions
+            try {
+                if (liquidSystemRef.current) liquidSystemRef.current.destroy();
+                if (liquidLayerRef.current) {
+                    liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+                    liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
+                }
+            } catch (e) { console.warn('LiquidRegionSystem rebuild failed:', e); }
+            try { lavaEmbersRef.current?.rebuildSurfaces({ mapWidth, mapHeight, tileSize, tileMapData, registryItems }); } catch {}
+
+            // Upload to GPU to avoid lazy initialization warnings
+            if (app.renderer && app.renderer.prepare) {
+                try {
+                    await app.renderer.prepare.upload(app.stage);
+                } catch (e) {
+                    // Prepare might fail in some edge cases or context loss
+                }
+            }
+        }
+    };
+
+    runRebuild();
+
+    return () => { active = false; };
+  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets, objectMetadata, playerVisuals, isPixiReady]);
 
   // Weather systems lifecycle
   useEffect(() => {

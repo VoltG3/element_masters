@@ -4,6 +4,8 @@
   "speed": 4.5,
   "jumpHeight": 1.2,
   "maxHealth": 100,
+  "strength": 30,
+  "maxStrength": 100,
   "defaultAnimation": "player_default",
   "deadAnimation": "player_dead",
   "targetAnimation": "player_target"

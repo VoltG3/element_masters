@@ -23,12 +23,23 @@ export const rebuildLayers = (refs, options) => {
 
   if (!bgRef || !objBehindRef || !objFrontRef) return;
 
-  // Clear previous
-  bgRef.removeChildren();
-  objBehindRef.removeChildren();
-  objFrontRef.removeChildren();
-  secretLayerRef?.below?.removeChildren();
-  secretLayerRef?.above?.removeChildren();
+  // Clear previous and destroy old children to prevent memory leaks/ticker buildup
+  const safeDestroy = (container) => {
+    if (!container) return;
+    const children = container.removeChildren();
+    children.forEach(child => {
+      try {
+        // Destroy child but KEEP textures in cache
+        child.destroy({ children: true, texture: false });
+      } catch (e) {}
+    });
+  };
+
+  safeDestroy(bgRef);
+  safeDestroy(objBehindRef);
+  safeDestroy(objFrontRef);
+  safeDestroy(secretLayerRef?.below);
+  safeDestroy(secretLayerRef?.above);
 
   // Helper: resolve registry item by id
   const getDef = (id) => getRegItem(registryItems, id);
@@ -113,7 +124,7 @@ export const rebuildLayers = (refs, options) => {
     const id = objectMapData[i];
     if (!id || id.includes('player')) continue;
     const def = getDef(id);
-    if (!def || def.type === 'entity' || def.subtype === 'platform') continue;
+    if (!def || def.type === 'entity' || def.subtype === 'platform' || def.subtype === 'pushable' || def.isPushable) continue;
 
     const meta = (objectMetadata && objectMetadata[i]) || {};
     const maxH = def.maxHealth || 100;

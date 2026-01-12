@@ -18,6 +18,8 @@ const initialState = {
   animation: 'idle',
   health: 90,
   maxHealth: MAX_HEALTH,
+  strength: 30,
+  maxStrength: 100,
   ammo: 0,
   oxygen: MAX_OXYGEN,
   maxOxygen: MAX_OXYGEN,
@@ -72,6 +74,9 @@ const playerSlice = createSlice({
     setLavaResist: (state, action) => {
       state.lavaResist = Math.max(0, Math.min(state.maxLavaResist, action.payload));
     },
+    setStrength: (state, action) => {
+      state.strength = Math.max(0, Math.min(state.maxStrength, action.payload));
+    },
     setProjectiles: (state, action) => {
       state.projectiles = action.payload;
     },
@@ -111,6 +116,7 @@ export const {
   addAmmo,
   setOxygen,
   setLavaResist,
+  setStrength,
   setProjectiles,
   addProjectile,
   removeProjectile,

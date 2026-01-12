@@ -14,10 +14,14 @@ export function updateEntities(ctx, deltaMs) {
     mapHeight,
     TILE_SIZE,
     checkCollision,
+    isWaterAt,
+    getLiquidSample,
     spawnProjectile,
+    playSfx,
     constants,
     objectData,
-    mapData
+    mapData,
+    registryItems
   } = ctx;
 
   if (!entitiesRef.current || entitiesRef.current.length === 0) return;
@@ -58,6 +62,95 @@ export function updateEntities(ctx, deltaMs) {
 
     const def = entity.def;
     
+    // 1.5. Pushable objektu (Akmeņu) fizika
+    if (entity.subtype === 'pushable' || def?.isPushable) {
+      // Šķidruma noteikšana
+      const liquidSample = getLiquidSample ? getLiquidSample({
+        x: entity.x,
+        y: entity.y,
+        width: entity.width,
+        height: entity.height,
+        TILE_SIZE,
+        mapWidth,
+        mapHeight
+      }) : { inLiquid: false };
+
+      const inLiquid = liquidSample.inLiquid;
+      const liquidType = liquidSample.type;
+
+      // Skaņas, ja iekrīt šķidrumā
+      if (inLiquid && !entity.prevInLiquid) {
+        if (liquidType === 'water' && def.sounds?.water_splash) {
+          playSfx(def.sounds.water_splash, 0.4);
+        } else if (liquidType === 'lava' && def.sounds?.lava_splash) {
+          playSfx(def.sounds.lava_splash, 0.4);
+        }
+      }
+      entity.prevInLiquid = inLiquid;
+
+      // Horizontālā kustība ar berzi
+      if (Math.abs(entity.vx) > 0.01) {
+        const friction = inLiquid ? 0.7 : 0.85;
+        entity.vx *= friction;
+        
+        const nextX = entity.x + entity.vx;
+        if (!checkCollision(nextX, entity.y, mapWidth, mapHeight, entity.width, entity.height)) {
+          entity.x = nextX;
+        } else {
+          entity.vx = 0;
+        }
+      } else {
+        entity.vx = 0;
+      }
+
+      // Vertikālā fizika
+      if (inLiquid && liquidType === 'lava') {
+        // Lēna slīkšana lavā
+        const sinkingSpeed = def.sinkingSpeed || 0.2;
+        entity.vy = sinkingSpeed;
+        entity.y += entity.vy;
+        entity.isGrounded = false;
+        
+        // Pārbaudām vai neesam izgājuši cauri zemei lavā
+        if (checkCollision(entity.x, entity.y, mapWidth, mapHeight, entity.width, entity.height)) {
+           // Atstumjam atpakaļ, ja atduras pret dibenu
+           entity.y -= entity.vy;
+           entity.vy = 0;
+           entity.isGrounded = true;
+        }
+      } else {
+        // Standarta gravitācija (ūdenī lēnāka)
+        const vp = applyVerticalPhysics({
+          keys: {}, 
+          x: entity.x,
+          y: entity.y,
+          vy: entity.vy || 0,
+          isGrounded: entity.isGrounded,
+          animation: 'idle',
+          GRAVITY: inLiquid ? GRAVITY * 0.3 : GRAVITY,
+          TERMINAL_VELOCITY,
+          JUMP_FORCE: 0,
+          TILE_SIZE,
+          width: entity.width,
+          height: entity.height,
+          mapWidth,
+          mapHeight,
+          checkCollision,
+          isWaterAt,
+          vx: entity.vx
+        });
+        entity.y = vp.y;
+        entity.vy = vp.vy;
+        entity.isGrounded = vp.isGrounded;
+      }
+
+      // Animācija akmenim parasti ir statiska
+      entity.animation = 'idle';
+      entity.currentSpriteIndex = def.spriteSheet?.animations?.idle?.[0] || 0;
+
+      return entity;
+    }
+
     // Platformu loģika
     if (entity.subtype === 'platform') {
       const speed = def.speed || 1.5;

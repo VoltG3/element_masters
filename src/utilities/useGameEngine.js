@@ -52,6 +52,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         maxLavaResist: MAX_LAVA_RESIST,
         iceResist: MAX_ICE_RESIST,
         maxIceResist: MAX_ICE_RESIST,
+        strength: 30,
+        maxStrength: 100,
+        lastPushTime: 0,
         isWinning: false,
         winCounter: 0,
         projectiles: [] // Active projectiles for rendering
@@ -247,6 +250,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                             def.type === 'entity' || 
                             def.subtype === 'tank' || 
                             def.subtype === 'platform' ||
+                            def.isPushable ||
                             (def.name && def.name.toLowerCase().includes('entities.'))
                         );
 
@@ -262,14 +266,14 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                                 vx: 0,
                                 vy: 0,
                                 health: def.maxHealth || 100,
-                                direction: def.subtype === 'platform' ? 1 : -1,
-                                animation: def.subtype === 'platform' ? 'idle' : 'move',
+                                direction: def.subtype === 'platform' ? 1 : (def.isPushable ? 1 : -1),
+                                animation: (def.subtype === 'platform' || def.isPushable) ? 'idle' : 'move',
                                 animFrame: 0,
                                 animTimer: 0,
                                 isGrounded: false,
                                 shootCooldown: 0,
                                 currentSpriteIndex: 0,
-                                subtype: def.subtype
+                                subtype: def.subtype || (def.isPushable ? 'pushable' : null)
                             });
                         }
                     }
@@ -310,6 +314,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         maxOxygen: MAX_OXYGEN,
                         lavaResist: MAX_LAVA_RESIST,
                         maxLavaResist: MAX_LAVA_RESIST,
+                        strength: Number(registryPlayer?.strength) || 30,
+                        maxStrength: Number(registryPlayer?.maxStrength) || 100,
+                        lastPushTime: 0,
                         isWinning: false,
                         winCounter: 0
                     };
@@ -337,7 +344,10 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         oxygen: MAX_OXYGEN,
                         maxOxygen: MAX_OXYGEN,
                         lavaResist: MAX_LAVA_RESIST,
-                        maxLavaResist: MAX_LAVA_RESIST
+                        maxLavaResist: MAX_LAVA_RESIST,
+                        strength: 30,
+                        maxStrength: 100,
+                        lastPushTime: 0
                     };
                     setPlayer({ ...gameState.current, projectiles: [], entities: entitiesRef.current });
                     isInitialized.current = true; // allow loop to work even without start position
@@ -353,7 +363,10 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     oxygen: MAX_OXYGEN,
                     maxOxygen: MAX_OXYGEN,
                     lavaResist: MAX_LAVA_RESIST,
-                    maxLavaResist: MAX_LAVA_RESIST
+                    maxLavaResist: MAX_LAVA_RESIST,
+                    strength: 30,
+                    maxStrength: 100,
+                    lastPushTime: 0
                 };
                 setPlayer({ ...gameState.current, projectiles: [], entities: entitiesRef.current });
                 isInitialized.current = true;
@@ -458,6 +471,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     checkSecretsWrapper(x, y, width, height, mapWidth, mapHeight),
                 spawnProjectile: (originX, originY, direction, ownerId) =>
                     spawnProjectile(originX, originY, direction, ownerId),
+                playSfx: (url, volume) => playShotSfx(url, volume),
                 updateProjectiles: (deltaMs, mapWidth, mapHeight) =>
                     updateProjectiles({ 
                         projectilesRef, 

@@ -50,10 +50,13 @@ const BarWrapper = styled.div`
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
 `;
 
-const BarFill = styled.div`
+const BarFill = styled.div.attrs(props => ({
+    style: {
+        width: `${props.$percent}%`,
+        backgroundColor: props.$color,
+    },
+}))`
     height: 100%;
-    width: ${props => props.$percent}%;
-    background-color: ${props => props.$color};
     transition: width 0.3s ease;
 `;
 
@@ -80,6 +83,8 @@ const GameHeader = ({
     maxLavaResist = 100,
     iceResist = 100,
     maxIceResist = 100,
+    strength = 30,
+    maxStrength = 100,
     inWater = false,
     liquidType = null,
     onIce = false
@@ -88,10 +93,14 @@ const GameHeader = ({
     const oxyPercent = Math.max(0, Math.min(100, (oxygen / maxOxygen) * 100));
     const lavaPercent = Math.max(0, Math.min(100, (lavaResist / maxLavaResist) * 100));
     const icePercent = Math.max(0, Math.min(100, (iceResist / maxIceResist) * 100));
+    const strengthPercent = Math.max(0, Math.min(100, (strength / maxStrength) * 100));
 
     const showOxy = inWater || liquidType === 'water' || oxyPercent < 100;
     const showLava = liquidType === 'lava' || lavaPercent < 100;
     const showIce = onIce || icePercent < 100;
+    const showStrength = strengthPercent > 30; // Rādīt tikai kad sāk augt vai ja gribam vienmēr? 
+    // Uzdevumā teikts "jāpievieno vēlviena līnija", pieņemsim ka rādām vienmēr vai kad nepieciešams.
+    // Bet ja default ir 30%, tad varbūt labāk rādīt vienmēr.
 
     return (
         <HeaderContainer>
@@ -124,6 +133,12 @@ const GameHeader = ({
                         <BarLabel>ICE: {Math.round(icePercent)}%</BarLabel>
                         <BarFill $percent={icePercent} $color="#a5f3fc" />
                     </BarWrapper>
+
+                    {/* Strength Bar */}
+                    <BarWrapper>
+                        <BarLabel>STRENGTH: {Math.round(strengthPercent)}%</BarLabel>
+                        <BarFill $percent={strengthPercent} $color="#eab308" />
+                    </BarWrapper>
                 </BarsContainer>
             </RightSection>
         </HeaderContainer>
@@ -140,6 +155,8 @@ GameHeader.propTypes = {
     maxLavaResist: PropTypes.number,
     iceResist: PropTypes.number,
     maxIceResist: PropTypes.number,
+    strength: PropTypes.number,
+    maxStrength: PropTypes.number,
     inWater: PropTypes.bool,
     liquidType: PropTypes.string,
     onIce: PropTypes.bool

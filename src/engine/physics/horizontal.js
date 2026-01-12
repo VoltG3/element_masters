@@ -34,14 +34,22 @@ export function moveHorizontal({
   }
 
   const proposedX = x + vx;
-  if (checkCollision(proposedX, state.y ?? 0, mapWidth, mapHeight)) {
-    if (vx > 0) {
-      // Snap to left edge of the blocking tile
-      x = Math.floor((proposedX + width) / TILE_SIZE) * TILE_SIZE - width;
-    } else if (vx < 0) {
-      // Snap to right edge of the blocking tile
-      x = Math.ceil(proposedX / TILE_SIZE) * TILE_SIZE;
+  const py = state.y ?? 0;
+  if (checkCollision(proposedX, py, mapWidth, mapHeight)) {
+    // Precīza apstāšanās pie šķēršļa (tiles vai entītijas) bez rupja snapping pie TILE_SIZE
+    const step = 0.5;
+    const sign = Math.sign(vx);
+    let safeX = x;
+    
+    for (let d = step; d < Math.abs(vx); d += step) {
+      const nextX = x + d * sign;
+      if (!checkCollision(nextX, py, mapWidth, mapHeight)) {
+        safeX = nextX;
+      } else {
+        break;
+      }
     }
+    x = safeX;
     vx = 0;
   } else {
     x = proposedX;

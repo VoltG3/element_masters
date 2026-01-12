@@ -1,0 +1,22 @@
+{
+  "id": "stone_0001",
+  "name": "interactable.stone",
+  "type": "interactable",
+  "subtype": "pushable",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/interactables/stone_0001.png",
+  "collision": true,
+  "renderAbovePlayer": false,
+  "isPushable": true,
+  "sinkingSpeed": 0.2,
+  "sounds": {
+    "water_splash": "/assets/sounds/interactables/stone_water.mp3",
+    "lava_splash": "/assets/sounds/interactables/stone_lava.mp3",
+    "push": "/assets/sounds/interactables/stone_push.mp3"
+  },
+  "physics": {
+    "gravity": true,
+    "buoyancy": false
+  }
+}
