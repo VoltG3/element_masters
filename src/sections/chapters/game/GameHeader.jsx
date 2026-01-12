@@ -112,7 +112,7 @@ const GameHeader = ({
                 <BarsContainer style={{ gap: '12px' }}>
                     {/* HP Bar */}
                     <BarWrapper>
-                        <BarLabel>HP: {Math.round(health)}%</BarLabel>
+                        <BarLabel>HP: {Math.round(hpPercent)}%</BarLabel>
                         <BarFill $percent={hpPercent} $color="#ff3232" />
                     </BarWrapper>
 

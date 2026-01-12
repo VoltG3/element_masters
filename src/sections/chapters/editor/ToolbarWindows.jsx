@@ -172,7 +172,7 @@ export const ToolbarWindows = ({
                         background: item.filterColor || 'rgba(0, 0, 0, 0.5)',
                         color: '#fff', fontSize: 8, textAlign: 'center', lineHeight: 1.1, fontWeight: 'bold'
                     }}>
-                        {item.subtype === 'above' ? 'ABOVE' : 'BELOW'}
+                        {item.editorIcon || (item.subtype === 'above' ? 'ABOVE' : 'BELOW')}
                     </div>
                 ) : editorIcon ? (
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>

@@ -74,7 +74,7 @@ export const Toolbar = ({
                         background: item.filterColor || 'rgba(0, 0, 0, 0.5)',
                         color: '#fff', fontSize: 8, textAlign: 'center', lineHeight: 1.1, fontWeight: 'bold'
                     }}>
-                        {item.subtype === 'above' ? 'ABOVE' : 'BELOW'}
+                        {item.editorIcon || (item.subtype === 'above' ? 'ABOVE' : 'BELOW')}
                     </div>
                 ) : hasImage ? (
                     <AnimatedItem

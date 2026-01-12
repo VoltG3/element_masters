@@ -315,7 +315,7 @@ export const Viewport = ({
                                         fontWeight: 'bold',
                                         pointerEvents: 'none'
                                     }}>
-                                        {secretObj.subtype === 'above' ? 'A' : 'B'}
+                                        {secretObj.editorIcon || '?'}
                                     </div>
                                 )}
 

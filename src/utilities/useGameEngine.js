@@ -372,7 +372,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                 isInitialized.current = true;
             }
         }
-    }, [mapData, objectData]);
+    }, [mapData]); // objectData removed - item collection shouldn't trigger re-initialization
 
     // Helper function for collisions (AABB Collision) with blocks (tile layer) — delegates to GameEngine/collision
     const checkCollision = (newX, newY, mapWidth, mapHeightParam, widthOverride, heightOverride) => {

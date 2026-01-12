@@ -14,11 +14,12 @@ import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
 
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
-import map1 from '../../../assets/maps/Temp_01.json';
+import map1 from '../../../assets/maps/Areas.json';
+import map9 from '../../../assets/maps/Temp_01.json';
 
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1];
+const BUILT_IN_MAPS = [map1, map9];
 
 // Styled Components
 const GameContainer = styled.div`
