@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { getRegistry } from '../../../engine/registry';
 import { TILE_SIZE } from '../../../constants/gameConstants';
-import { saveMap, loadMap, clearMap, resizeMapData } from './mapOperations';
-import { getFloodFillIndices, floodFill, paintTile } from './paintingTools';
+import { saveMap, loadMap, clearMap, resizeMapData } from './tools/mapOperations';
+import { getFloodFillIndices, floodFill, paintTile } from './tools/paintingTools';
 import { loadBackgroundOptions, loadMusicOptions } from './assetLoaders';
 import { Viewport } from './Viewport';
-import { NewMapModal } from './NewMapModal';
-import { ToolbarWindows } from './ToolbarWindows';
+import { NewMapModal } from './tools/NewMapModal';
+import { NavigationScene } from './NavigationScene';
+import { NavigationTools } from './NavigationTools';
 import { useGameEngine } from '../../../utilities/useGameEngine';
 import PixiStage from '../game/PixiStage';
 
@@ -50,8 +51,14 @@ export const Editor = () => {
     const [createdAt, setCreatedAt] = useState(null);
     const [highlightedIndex, setHighlightedIndex] = useState(null);
     const [isNewMapModalOpen, setIsNewMapModalOpen] = useState(false);
+    const [isResizeWindowOpen, setIsResizeWindowOpen] = useState(false);
     const [tempMapName, setTempMapName] = useState("");
     const [tempCreatorName, setTempCreatorName] = useState("");
+    const [activePanel, setActivePanel] = useState(null); // 'map', 'tools', 'palette', 'background', 'music', 'stats', 'props'
+
+    const togglePanel = (panel) => {
+        setActivePanel(prev => prev === panel ? null : panel);
+    };
 
     // 2. NOŅEM ŠO RINDIŅU (tā vairs nav vajadzīga šeit):
     // const registryItems = getRegistry() || [];
@@ -545,7 +552,7 @@ export const Editor = () => {
     const objectsCount = objectMapData.filter(o => o !== null).length;
 
     return (
-        <div className="editor-wrapper" style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
+        <div className="editor-wrapper" style={{ position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <NewMapModal
                 isOpen={isNewMapModalOpen}
                 tempMapName={tempMapName}
@@ -557,25 +564,19 @@ export const Editor = () => {
             />
 
             <div className="editor-container" style={{
-                display: 'flex', height: '100%', flexDirection: 'row',
+                display: 'flex', flex: 1, flexDirection: 'column',
                 filter: isNewMapModalOpen ? 'blur(4px) brightness(0.7)' : 'none',
                 transition: 'filter 0.2s ease',
-                pointerEvents: isNewMapModalOpen ? 'none' : 'auto'
+                pointerEvents: isNewMapModalOpen ? 'none' : 'auto',
+                overflow: 'hidden'
             }}>
-                <ToolbarWindows
+                <NavigationTools
                     mapName={mapName}
                     creatorName={creatorName}
-                    openNewMapModal={openNewMapModal}
-                    saveMap={handleSaveMap} // 4. Izmanto jauno handleSaveMap
-                    loadMap={(event) => loadMap({
-                        event, setMapWidth, setMapHeight, setMapName, setCreatorName,
-                        setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
-                        setBackgroundParallaxFactor, setSelectedBackgroundMusic,
-                        setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
-                    })}
+                    activePanel={activePanel}
+                    togglePanel={togglePanel}
                     showGrid={showGrid}
                     setShowGrid={setShowGrid}
-                    clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata })}
                     isPlayMode={isPlayMode}
                     handlePlay={handlePlay}
                     handlePause={handlePause}
@@ -587,101 +588,137 @@ export const Editor = () => {
                     activeLayer={activeLayer}
                     selection={selection}
                     moveSelection={moveSelection}
-                    setSelection={setSelection}
                     selectionMode={selectionMode}
                     setSelectionMode={setSelectionMode}
                     commitSelection={commitSelection}
                     cancelSelection={cancelSelection}
                     selectedTile={selectedTile}
                     handlePaletteSelect={handlePaletteSelect}
-                    blocks={blocks}
-                    liquids={liquids}
-                    entities={entities}
-                    items={items}
-                    decorations={decorations}
-                    interactables={interactables}
-                    hazards={hazards}
-                    secrets={secrets}
-                    backgroundOptions={backgroundOptions}
-                    selectedBackgroundImage={selectedBackgroundImage}
-                    setSelectedBackgroundImage={setSelectedBackgroundImage}
                     selectedBackgroundColor={selectedBackgroundColor}
                     setSelectedBackgroundColor={setSelectedBackgroundColor}
-                    backgroundParallaxFactor={backgroundParallaxFactor}
-                    setBackgroundParallaxFactor={setBackgroundParallaxFactor}
-                    musicOptions={musicOptions}
-                    selectedBackgroundMusic={selectedBackgroundMusic}
-                    setSelectedBackgroundMusic={setSelectedBackgroundMusic}
-                    totalTiles={totalTiles}
-                    filledBlocks={filledBlocks}
-                    emptyBlocks={emptyBlocks}
-                    objectsCount={objectsCount}
-                    mapWidth={mapWidth}
-                    mapHeight={mapHeight}
-                    tileMapData={tileMapData}
-                    objectMapData={objectMapData}
-                    objectMetadata={objectMetadata}
-                    setObjectMetadata={setObjectMetadata}
-                    registryItems={registryItems}
-                    onMapResize={handleMapResize}
-                    highlightedIndex={highlightedIndex}
-                    setHighlightedIndex={setHighlightedIndex}
                 />
-
-                {!isPlayMode ? (
-                    <Viewport
+                <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+                    <NavigationScene
+                        mapName={mapName}
+                        creatorName={creatorName}
+                        handleMapResize={handleMapResize}
+                        isResizeWindowOpen={isResizeWindowOpen}
+                        setIsResizeWindowOpen={setIsResizeWindowOpen}
+                        openNewMapModal={openNewMapModal}
+                        saveMap={handleSaveMap}
+                        loadMap={(event) => loadMap({
+                            event, setMapWidth, setMapHeight, setMapName, setCreatorName,
+                            setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
+                            setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+                            setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
+                        })}
+                        clearMap={() => clearMap({ mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata })}
+                        isPlayMode={isPlayMode}
+                        activeTool={activeTool}
+                        setActiveTool={setActiveTool}
+                        brushSize={brushSize}
+                        setBrushSize={setBrushSize}
+                        activeLayer={activeLayer}
+                        selection={selection}
+                        moveSelection={moveSelection}
+                        setSelection={setSelection}
+                        selectionMode={selectionMode}
+                        setSelectionMode={setSelectionMode}
+                        commitSelection={commitSelection}
+                        cancelSelection={cancelSelection}
+                        selectedTile={selectedTile}
+                        handlePaletteSelect={handlePaletteSelect}
+                        blocks={blocks}
+                        liquids={liquids}
+                        entities={entities}
+                        items={items}
+                        decorations={decorations}
+                        interactables={interactables}
+                        hazards={hazards}
+                        secrets={secrets}
+                        backgroundOptions={backgroundOptions}
+                        selectedBackgroundImage={selectedBackgroundImage}
+                        setSelectedBackgroundImage={setSelectedBackgroundImage}
+                        selectedBackgroundColor={selectedBackgroundColor}
+                        setSelectedBackgroundColor={setSelectedBackgroundColor}
+                        backgroundParallaxFactor={backgroundParallaxFactor}
+                        setBackgroundParallaxFactor={setBackgroundParallaxFactor}
+                        musicOptions={musicOptions}
+                        selectedBackgroundMusic={selectedBackgroundMusic}
+                        setSelectedBackgroundMusic={setSelectedBackgroundMusic}
+                        totalTiles={totalTiles}
+                        filledBlocks={filledBlocks}
+                        emptyBlocks={emptyBlocks}
+                        objectsCount={objectsCount}
                         mapWidth={mapWidth}
                         mapHeight={mapHeight}
-                        selectedBackgroundUrl={selectedBackgroundUrl}
-                        selectedBackgroundColor={selectedBackgroundColor}
-                        selectedBackgroundImage={selectedBackgroundImage}
-                        showGrid={showGrid}
-                        activeLayer={activeLayer}
-                        activeTool={activeTool}
                         tileMapData={tileMapData}
                         objectMapData={objectMapData}
-                        secretMapData={secretMapData}
                         objectMetadata={objectMetadata}
+                        setObjectMetadata={setObjectMetadata}
                         registryItems={registryItems}
-                        hoverIndex={hoverIndex}
                         highlightedIndex={highlightedIndex}
-                        brushSize={brushSize}
-                        bucketPreviewIndices={bucketPreviewIndices}
-                        selection={selection}
-                        previewPosition={previewPosition}
-                        dragStart={dragStart}
-                        isDragging={isDragging}
-                        handleGridMouseDown={handleGridMouseDown}
-                        handleGridMouseEnter={handleGridMouseEnter}
-                        handleGridMouseUp={handleGridMouseUp}
-                        handleGridMouseLeave={handleGridMouseLeave}
-                        setIsDragging={setIsDragging}
+                        setHighlightedIndex={setHighlightedIndex}
+                        activePanel={activePanel}
+                        setActivePanel={setActivePanel}
+                        togglePanel={togglePanel}
                     />
-                ) : (
-                    <div style={{ flex: 1, position: 'relative', backgroundColor: '#000' }}>
-                        <PixiStage
+
+                    {!isPlayMode ? (
+                        <Viewport
                             mapWidth={mapWidth}
                             mapHeight={mapHeight}
-                            tileSize={TILE_SIZE}
+                            selectedBackgroundUrl={selectedBackgroundUrl}
+                            selectedBackgroundColor={selectedBackgroundColor}
+                            selectedBackgroundImage={selectedBackgroundImage}
+                            showGrid={showGrid}
+                            activeLayer={activeLayer}
+                            activeTool={activeTool}
                             tileMapData={tileMapData}
-                            objectMapData={playModeObjectData}
-                            secretMapData={playModeSecretData}
-                            revealedSecrets={revealedSecrets}
-                            registryItems={registryItems}
-                            playerState={gameEngineState}
-                            playerVisuals={playerVisuals}
+                            objectMapData={objectMapData}
+                            secretMapData={secretMapData}
                             objectMetadata={objectMetadata}
-                            backgroundImage={selectedBackgroundImage}
-                            backgroundColor={selectedBackgroundColor}
-                            backgroundParallaxFactor={backgroundParallaxFactor}
-                            projectiles={gameEngineState?.projectiles || EMPTY_ARRAY}
-                            healthBarEnabled={true}
-                            oxygenBarEnabled={true}
-                            lavaBarEnabled={true}
-                            isEditor={true}
+                            registryItems={registryItems}
+                            hoverIndex={hoverIndex}
+                            highlightedIndex={highlightedIndex}
+                            brushSize={brushSize}
+                            bucketPreviewIndices={bucketPreviewIndices}
+                            selection={selection}
+                            previewPosition={previewPosition}
+                            dragStart={dragStart}
+                            isDragging={isDragging}
+                            handleGridMouseDown={handleGridMouseDown}
+                            handleGridMouseEnter={handleGridMouseEnter}
+                            handleGridMouseUp={handleGridMouseUp}
+                            handleGridMouseLeave={handleGridMouseLeave}
+                            setIsDragging={setIsDragging}
                         />
-                    </div>
-                )}
+                    ) : (
+                        <div style={{ flex: 1, position: 'relative', backgroundColor: '#000' }}>
+                            <PixiStage
+                                mapWidth={mapWidth}
+                                mapHeight={mapHeight}
+                                tileSize={TILE_SIZE}
+                                tileMapData={tileMapData}
+                                objectMapData={playModeObjectData}
+                                secretMapData={playModeSecretData}
+                                revealedSecrets={revealedSecrets}
+                                registryItems={registryItems}
+                                playerState={gameEngineState}
+                                playerVisuals={playerVisuals}
+                                objectMetadata={objectMetadata}
+                                backgroundImage={selectedBackgroundImage}
+                                backgroundColor={selectedBackgroundColor}
+                                backgroundParallaxFactor={backgroundParallaxFactor}
+                                projectiles={gameEngineState?.projectiles || EMPTY_ARRAY}
+                                healthBarEnabled={true}
+                                oxygenBarEnabled={true}
+                                lavaBarEnabled={true}
+                                isEditor={true}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
-import saveFile from '../../../utilities/saveFile';
-import errorHandler from '../../../services/errorHandler';
+import saveFile from '../../../../utilities/saveFile';
+import errorHandler from '../../../../services/errorHandler';
 
 export const saveMap = async ({
     mapWidth,

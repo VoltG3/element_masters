@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export const PaletteSection = ({ title, children, isOpenDefault = false }) => {
+export const NavigationElements = ({ title, children, isOpenDefault = false }) => {
     const [isOpen, setIsOpen] = useState(isOpenDefault);
     return (
         <div style={{ marginBottom: '5px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#fff' }}>

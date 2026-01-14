@@ -82,57 +82,58 @@ export const DraggableWindow = ({
                 left: currentPosition.x,
                 top: currentPosition.y,
                 width: defaultWidth,
-                backgroundColor: '#f8f8f8',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                zIndex: 10,
+                backgroundColor: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 1002,
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: '80vh'
+                maxHeight: '80vh',
+                overflow: 'hidden'
             }}
         >
             {/* Window Header */}
             <div
                 onMouseDown={handleMouseDown}
                 style={{
-                    padding: '8px 10px',
-                    backgroundColor: '#e0e0e0',
-                    borderTopLeftRadius: '4px',
-                    borderTopRightRadius: '4px',
+                    padding: '12px 15px',
+                    backgroundColor: '#fff',
                     cursor: isDragging ? 'grabbing' : 'grab',
                     fontWeight: 'bold',
-                    fontSize: '13px',
+                    fontSize: '18px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     userSelect: 'none',
-                    borderBottom: '1px solid #ccc'
+                    borderBottom: '2px solid #eee',
+                    color: '#333'
                 }}
             >
                 <span>{title}</span>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setIsMinimized(!isMinimized);
                         }}
                         style={{
-                            background: '#ffc107',
-                            border: 'none',
-                            borderRadius: '2px',
-                            width: '18px',
-                            height: '18px',
+                            background: '#f0f0f0',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            width: '24px',
+                            height: '24px',
                             cursor: 'pointer',
-                            fontSize: '12px',
+                            fontSize: '14px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: 0
+                            padding: 0,
+                            color: '#333'
                         }}
                         title={isMinimized ? "Maximize" : "Minimize"}
                     >
-                        {isMinimized ? '▢' : '−'}
+                        {isMinimized ? '□' : '−'}
                     </button>
                     <button
                         onClick={(e) => {
@@ -140,14 +141,14 @@ export const DraggableWindow = ({
                             setIsClosed(true);
                         }}
                         style={{
-                            background: '#f44336',
-                            border: 'none',
-                            borderRadius: '2px',
-                            width: '18px',
-                            height: '18px',
+                            background: '#f0f0f0',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            width: '24px',
+                            height: '24px',
                             cursor: 'pointer',
-                            color: '#fff',
-                            fontSize: '12px',
+                            color: '#333',
+                            fontSize: '14px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -164,7 +165,7 @@ export const DraggableWindow = ({
             {!isMinimized && (
                 <div
                     style={{
-                        padding: '10px',
+                        padding: '15px',
                         overflowY: 'auto',
                         flex: 1
                     }}

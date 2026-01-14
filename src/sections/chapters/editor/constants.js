@@ -6,7 +6,7 @@ export const baseButtonStyle = {
     border: '1px solid #333',
     padding: '0 10px',
     height: '28px',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#f0f0f0',
     marginRight: '5px',
     marginBottom: '5px',
     fontSize: '13px',
