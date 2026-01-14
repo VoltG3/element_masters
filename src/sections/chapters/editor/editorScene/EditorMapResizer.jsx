@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export const MapResizer = ({
+export const EditorMapResizer = ({
     mapWidth,
     mapHeight,
     onResize

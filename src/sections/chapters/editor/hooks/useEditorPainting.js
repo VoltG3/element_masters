@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getFloodFillIndices, floodFill, paintTile as paintTileUtil } from '../tools/paintingTools';
+import { getFloodFillIndices, floodFill, paintTile as paintTileUtil } from '../editorTools/paintingTools';
 
 export const useEditorPainting = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, 

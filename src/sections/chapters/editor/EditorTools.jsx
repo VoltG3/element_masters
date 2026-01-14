@@ -1,7 +1,7 @@
 import React from 'react';
-import { HeaderTools } from './tools/HeaderTools';
+import { HeaderTools } from './editorTools/HeaderTools';
 
-export const NavigationTools = ({ 
+export const EditorTools = ({
     mapName, 
     creatorName, 
     activePanel, 

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { getRegistry } from '../../../engine/registry';
 import { TILE_SIZE } from '../../../constants/gameConstants';
-import { resizeMapData } from './tools/mapOperations';
+import { resizeMapData } from './editorTools/mapOperations';
 import { loadBackgroundOptions, loadMusicOptions } from './assetLoaders';
 import { Viewport } from './Viewport';
-import { NewMapModal } from './tools/NewMapModal';
-import { NavigationScene } from './NavigationScene';
-import { NavigationTools } from './NavigationTools';
+import { NewMapModal } from './editorTools/NewMapModal';
+import { EditorScene } from './EditorScene';
+import { EditorTools } from './EditorTools';
 import PixiStage from '../game/PixiStage';
 
 // Custom Hooks
@@ -176,7 +176,7 @@ export const Editor = () => {
                 pointerEvents: isNewMapModalOpen ? 'none' : 'auto',
                 overflow: 'hidden'
             }}>
-                <NavigationTools
+                <EditorTools
                     mapName={mapName}
                     creatorName={creatorName}
                     activePanel={activePanel}
@@ -205,7 +205,7 @@ export const Editor = () => {
                 />
                 
                 <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
-                    <NavigationScene
+                    <EditorScene
                         mapName={mapName}
                         creatorName={creatorName}
                         handleMapResize={handleMapResize}

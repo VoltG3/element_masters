@@ -11,7 +11,7 @@ import './index.css'
 import App from './App'
 import Home from "./sections/chapters/home"
 import Game from "./sections/chapters/game"
-import {Editor} from "./sections/chapters/editor/index"
+import {Editor} from "./sections/chapters/editor/Editor"
 import Crystals from "./sections/chapters/crystals"
 import Repository from "./sections/chapters/repository"
 

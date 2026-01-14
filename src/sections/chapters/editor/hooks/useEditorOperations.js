@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { saveMap, loadMap, clearMap } from '../tools/mapOperations';
+import { saveMap, loadMap, clearMap } from '../editorTools/mapOperations';
 
 export const useEditorOperations = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,

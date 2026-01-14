@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationElements } from '../NavigationElements';
+import { EditorElements } from '../EditorElements';
 import AnimatedItem from '../../../../utilities/AnimatedItem';
 
 export const PalettePanel = ({ 
@@ -84,53 +84,53 @@ export const PalettePanel = ({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <NavigationElements title="Blocks (Background)" isOpenDefault={true}>
+            <EditorElements title="Blocks (Background)" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Liquids (Blocks)" isOpenDefault={false}>
+            <EditorElements title="Liquids (Blocks)" isOpenDefault={false}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Entities (Objects)" isOpenDefault={true}>
+            <EditorElements title="Entities (Objects)" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Decorations" isOpenDefault={true}>
+            <EditorElements title="Decorations" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {decorations && decorations.map(d => renderPaletteItem(d, 'purple', 'object'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Items (Objects)" isOpenDefault={true}>
+            <EditorElements title="Items (Objects)" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {items.map(i => renderPaletteItem(i, 'green', 'object'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Interactables" isOpenDefault={true}>
+            <EditorElements title="Interactables" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Hazards" isOpenDefault={true}>
+            <EditorElements title="Hazards" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
 
-            <NavigationElements title="Secrets" isOpenDefault={false}>
+            <EditorElements title="Secrets" isOpenDefault={false}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
                 </div>
-            </NavigationElements>
+            </EditorElements>
         </div>
     );
 };

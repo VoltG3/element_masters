@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { DraggableWindow } from './DraggableWindow';
-import { MapResizer } from './scene/MapResizer';
-import { Minimap } from './tools/Minimap';
+import { DraggableWindow } from './editorElements/DraggableWindow';
+import { EditorMapResizer } from './editorScene/EditorMapResizer';
+import { Minimap } from './editorTools/Minimap';
 import { sidebarButtonStyle, activeSidebarButtonStyle, panelHeaderStyle } from './constants';
 
 // Panels
-import { OperationsPanel } from './scene/OperationsPanel';
-import { PalettePanel } from './scene/PalettePanel';
-import { BackgroundPanel } from './scene/BackgroundPanel';
-import { MusicPanel } from './scene/MusicPanel';
-import { StatisticsPanel } from './scene/StatisticsPanel';
-import { ObjectPropsPanel } from './scene/ObjectPropsPanel';
+import { OperationsPanel } from './editorScene/OperationsPanel';
+import { PalettePanel } from './editorScene/PalettePanel';
+import { BackgroundPanel } from './editorScene/BackgroundPanel';
+import { MusicPanel } from './editorScene/MusicPanel';
+import { StatisticsPanel } from './editorScene/StatisticsPanel';
+import { ObjectPropsPanel } from './editorScene/ObjectPropsPanel';
 
-export const NavigationScene = ({
+export const EditorScene = ({
     mapName,
     creatorName,
     handleMapResize,
@@ -270,7 +270,7 @@ export const NavigationScene = ({
                     isOpenDefault={true}
                     onClose={() => setIsResizeWindowOpen(false)}
                 >
-                    <MapResizer
+                    <EditorMapResizer
                         mapWidth={mapWidth}
                         mapHeight={mapHeight}
                         onResize={handleMapResize}
