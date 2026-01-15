@@ -32,6 +32,7 @@ export const EditorElements = ({
     interactables,
     hazards,
     secrets,
+    obstacles,
     totalTiles,
     filledBlocks,
     emptyBlocks,
@@ -123,6 +124,7 @@ export const EditorElements = ({
                                 interactables={interactables}
                                 hazards={hazards}
                                 secrets={secrets}
+                                obstacles={obstacles}
                                 handlePaletteSelect={handlePaletteSelect}
                                 selectedTile={selectedTile}
                             />

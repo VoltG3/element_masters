@@ -1,15 +1,15 @@
 import styled from 'styled-components';
 
-export const ElementEditorButton = styled.button`
+export const SceneEditorButton = styled.button`
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    background-color: ${props => props.$active ? '#2196F3' : '#333'};
+    background-color: ${props => props.$active ? '#e3de0a' : '#333'};
     color: #fff;
-    border: 1px solid ${props => props.$active ? '#1E88E5' : '#444'};
+    border: 1px solid ${props => props.$active ? '#1E88E5' : '#fff'};
     border-radius: 4px;
     margin-bottom: 10px;
     font-size: 20px;
@@ -20,12 +20,13 @@ export const ElementEditorButton = styled.button`
     outline: none;
 
     &:hover {
-        background-color: ${props => props.$active ? '#1E88E5' : '#444'};
+        background-color: ${props => props.$active ? '#fdfa9b' : '#444'};
         transform: scale(1.05);
     }
 
     &:active {
         transform: scale(0.95);
+        border: solid 1px #fff;
     }
 `;
 

@@ -4,7 +4,7 @@ import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
 import { BackgroundPanel } from './editorScene/BackgroundPanel';
 import { MusicPanel } from './editorScene/MusicPanel';
-import { ElementEditorButton, RightSidebarContainer } from './styles/EditorSceneButtonStyle';
+import { SceneEditorButton, RightSidebarContainer } from './styles/EditorSceneButtonStyle';
 
 export const EditorScene = ({
     handleMapResize,
@@ -36,11 +36,11 @@ export const EditorScene = ({
         <div style={{ display: 'contents' }}>
             {/* Right side buttons */}
             <RightSidebarContainer>
-                <ElementEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Minimap">🗺️</ElementEditorButton>
-                <ElementEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title="Background">🖼️</ElementEditorButton>
-                <ElementEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">🎼</ElementEditorButton>
-                <ElementEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title="Settings">🛠️</ElementEditorButton>
-                <ElementEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title="Resize Map">📐</ElementEditorButton>
+                <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Minimap">🗺️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title="Background">🖼️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">🎼</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title="Settings">🛠️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title="Resize Map">📐</SceneEditorButton>
             </RightSidebarContainer>
 
             {/* Floating Windows */}

@@ -13,6 +13,7 @@ export const PalettePanel = ({
     interactables, 
     hazards, 
     secrets, 
+    obstacles,
     handlePaletteSelect, 
     selectedTile 
 }) => {
@@ -145,6 +146,20 @@ export const PalettePanel = ({
                 <CollapsiblePanel title="Secrets" isOpenDefault={true}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                    </div>
+                </CollapsiblePanel>
+            )}
+
+            {category === 'obstacles' && (
+                <CollapsiblePanel title="Obstacles" isOpenDefault={true}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {obstacles && obstacles.length > 0 ? (
+                            obstacles.map(o => renderPaletteItem(o, 'brown', 'object'))
+                        ) : (
+                            <div style={{ padding: '10px', fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
+                                No obstacles available yet
+                            </div>
+                        )}
                     </div>
                 </CollapsiblePanel>
             )}

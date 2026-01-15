@@ -70,7 +70,7 @@ export const Editor = () => {
 
     // Use Custom Hooks
     const { 
-        blocks, liquids, entities, decorations, items, interactables, hazards, secrets 
+        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, obstacles 
     } = useEditorRegistry(registryItems);
 
     const {
@@ -224,6 +224,7 @@ export const Editor = () => {
                         interactables={interactables}
                         hazards={hazards}
                         secrets={secrets}
+                        obstacles={obstacles}
                         totalTiles={totalTiles}
                         filledBlocks={filledBlocks}
                         emptyBlocks={emptyBlocks}

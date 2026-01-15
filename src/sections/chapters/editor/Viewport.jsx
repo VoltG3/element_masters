@@ -90,7 +90,7 @@ export const Viewport = ({
                         const objObj = dObjId ? registryItems.find(r => r.id === dObjId) : null;
                         const secretObj = dSecId ? registryItems.find(r => r.id === dSecId) : null;
 
-                        let borderStyle = showGrid ? '0.5px solid rgba(128,128,128,0.5)' : 'none';
+                        let borderStyle = showGrid ? '0.5px dashed rgba(255, 255, 255, 0.3)' : 'none';
                         let bgStyle = 'transparent';
 
                         if (activeTool === 'brush' && hoverIndex !== null) {
