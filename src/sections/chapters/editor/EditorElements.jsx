@@ -11,8 +11,6 @@ import {
 // Panels
 import { OperationsPanel } from './editorElements/OperationsPanel';
 import { PalettePanel } from './editorElements/PalettePanel';
-import { BackgroundPanel } from './editorElements/BackgroundPanel';
-import { MusicPanel } from './editorElements/MusicPanel';
 import { StatisticsPanel } from './editorElements/StatisticsPanel';
 import { ObjectPropsPanel } from './editorElements/ObjectPropsPanel';
 
@@ -34,15 +32,6 @@ export const EditorElements = ({
     interactables,
     hazards,
     secrets,
-    backgroundOptions,
-    selectedBackgroundImage,
-    setSelectedBackgroundImage,
-    selectedBackgroundColor,
-    backgroundParallaxFactor,
-    setBackgroundParallaxFactor,
-    musicOptions,
-    selectedBackgroundMusic,
-    setSelectedBackgroundMusic,
     totalTiles,
     filledBlocks,
     emptyBlocks,
@@ -62,8 +51,6 @@ export const EditorElements = ({
     const panelTitles = {
         map: 'Operations',
         palette: 'Palette',
-        background: 'Background',
-        music: 'Music',
         stats: 'Statistics',
         props: 'Object Properties'
     };
@@ -74,8 +61,6 @@ export const EditorElements = ({
             <SidebarContainer>
                 <ElementEditorButton onClick={() => togglePanel('map')} $active={activePanel === 'map'} title="Map Controls">⚙️</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('palette')} $active={activePanel === 'palette'} title="Palette">🧱</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('background')} $active={activePanel === 'background'} title="Background">🖼️</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('music')} $active={activePanel === 'music'} title="Music">🎵</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('stats')} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('props')} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
             </SidebarContainer>
@@ -118,24 +103,6 @@ export const EditorElements = ({
                             />
                         )}
 
-                        {activePanel === 'background' && (
-                            <BackgroundPanel 
-                                backgroundOptions={backgroundOptions}
-                                selectedBackgroundImage={selectedBackgroundImage}
-                                setSelectedBackgroundImage={setSelectedBackgroundImage}
-                                selectedBackgroundColor={selectedBackgroundColor}
-                                backgroundParallaxFactor={backgroundParallaxFactor}
-                                setBackgroundParallaxFactor={setBackgroundParallaxFactor}
-                            />
-                        )}
-
-                        {activePanel === 'music' && (
-                            <MusicPanel 
-                                musicOptions={musicOptions}
-                                selectedBackgroundMusic={selectedBackgroundMusic}
-                                setSelectedBackgroundMusic={setSelectedBackgroundMusic}
-                            />
-                        )}
 
                         {activePanel === 'stats' && (
                             <StatisticsPanel 

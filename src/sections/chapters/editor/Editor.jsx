@@ -224,16 +224,6 @@ export const Editor = () => {
                         interactables={interactables}
                         hazards={hazards}
                         secrets={secrets}
-                        backgroundOptions={backgroundOptions}
-                        selectedBackgroundImage={selectedBackgroundImage}
-                        setSelectedBackgroundImage={setSelectedBackgroundImage}
-                        selectedBackgroundColor={selectedBackgroundColor}
-                        setSelectedBackgroundColor={setSelectedBackgroundColor}
-                        backgroundParallaxFactor={backgroundParallaxFactor}
-                        setBackgroundParallaxFactor={setBackgroundParallaxFactor}
-                        musicOptions={musicOptions}
-                        selectedBackgroundMusic={selectedBackgroundMusic}
-                        setSelectedBackgroundMusic={setSelectedBackgroundMusic}
                         totalTiles={totalTiles}
                         filledBlocks={filledBlocks}
                         emptyBlocks={emptyBlocks}
@@ -261,6 +251,16 @@ export const Editor = () => {
                         objectMapData={objectMapData}
                         objectMetadata={objectMetadata}
                         registryItems={registryItems}
+                        backgroundOptions={backgroundOptions}
+                        selectedBackgroundImage={selectedBackgroundImage}
+                        setSelectedBackgroundImage={setSelectedBackgroundImage}
+                        selectedBackgroundColor={selectedBackgroundColor}
+                        setSelectedBackgroundColor={setSelectedBackgroundColor}
+                        backgroundParallaxFactor={backgroundParallaxFactor}
+                        setBackgroundParallaxFactor={setBackgroundParallaxFactor}
+                        musicOptions={musicOptions}
+                        selectedBackgroundMusic={selectedBackgroundMusic}
+                        setSelectedBackgroundMusic={setSelectedBackgroundMusic}
                     />
 
                     {!isPlayMode ? (

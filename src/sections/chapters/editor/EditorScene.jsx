@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { DraggableWindow } from './editorScene/DraggableWindow';
 import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
+import { BackgroundPanel } from './editorScene/BackgroundPanel';
+import { MusicPanel } from './editorScene/MusicPanel';
 import { ElementEditorButton, RightSidebarContainer } from './styles/EditorSceneButtonStyle';
 
 export const EditorScene = ({
@@ -13,21 +15,35 @@ export const EditorScene = ({
     tileMapData,
     objectMapData,
     objectMetadata,
-    registryItems
+    registryItems,
+    backgroundOptions,
+    selectedBackgroundImage,
+    setSelectedBackgroundImage,
+    selectedBackgroundColor,
+    setSelectedBackgroundColor,
+    backgroundParallaxFactor,
+    setBackgroundParallaxFactor,
+    musicOptions,
+    selectedBackgroundMusic,
+    setSelectedBackgroundMusic
 }) => {
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isBackgroundOpen, setIsBackgroundOpen] = useState(false);
+    const [isMusicOpen, setIsMusicOpen] = useState(false);
 
     return (
         <div style={{ display: 'contents' }}>
             {/* Right side buttons */}
             <RightSidebarContainer>
                 <ElementEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Minimap">🗺️</ElementEditorButton>
+                <ElementEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title="Background">🖼️</ElementEditorButton>
+                <ElementEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">🎼</ElementEditorButton>
                 <ElementEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title="Settings">🛠️</ElementEditorButton>
                 <ElementEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title="Resize Map">📐</ElementEditorButton>
             </RightSidebarContainer>
 
-            {/* Floating Windows (Minimap / Settings) */}
+            {/* Floating Windows */}
             {isMinimapOpen && (
                 <DraggableWindow
                     title="Minimap"
@@ -43,6 +59,41 @@ export const EditorScene = ({
                         objectMapData={objectMapData}
                         objectMetadata={objectMetadata}
                         registryItems={registryItems}
+                    />
+                </DraggableWindow>
+            )}
+
+            {isBackgroundOpen && (
+                <DraggableWindow
+                    title="Background"
+                    defaultPosition={{ x: window.innerWidth - 340, y: 80 }}
+                    defaultWidth={320}
+                    isOpenDefault={true}
+                    onClose={() => setIsBackgroundOpen(false)}
+                >
+                    <BackgroundPanel 
+                        backgroundOptions={backgroundOptions}
+                        selectedBackgroundImage={selectedBackgroundImage}
+                        setSelectedBackgroundImage={setSelectedBackgroundImage}
+                        selectedBackgroundColor={selectedBackgroundColor}
+                        backgroundParallaxFactor={backgroundParallaxFactor}
+                        setBackgroundParallaxFactor={setBackgroundParallaxFactor}
+                    />
+                </DraggableWindow>
+            )}
+
+            {isMusicOpen && (
+                <DraggableWindow
+                    title="Music"
+                    defaultPosition={{ x: window.innerWidth - 340, y: 300 }}
+                    defaultWidth={320}
+                    isOpenDefault={true}
+                    onClose={() => setIsMusicOpen(false)}
+                >
+                    <MusicPanel 
+                        musicOptions={musicOptions}
+                        selectedBackgroundMusic={selectedBackgroundMusic}
+                        setSelectedBackgroundMusic={setSelectedBackgroundMusic}
                     />
                 </DraggableWindow>
             )}
