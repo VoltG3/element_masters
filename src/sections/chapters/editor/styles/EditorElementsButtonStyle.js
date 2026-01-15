@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+/*
+* Container*/
 export const SidebarContainer = styled.div`
     width: 60px;
     height: 100%;

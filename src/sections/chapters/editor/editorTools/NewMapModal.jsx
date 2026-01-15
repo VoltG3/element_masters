@@ -1,5 +1,6 @@
 import React from 'react';
-import { buttonStyle } from '../styles/EditorToolsButtonStyle';
+import { ToolsEditorButton } from '../styles/EditorToolsButtonStyle';
+import { CloseButton } from '../styles/EditorElementsButtonStyle';
 
 export const NewMapModal = ({
     isOpen,
@@ -31,7 +32,7 @@ export const NewMapModal = ({
                     alignItems: 'center'
                 }}>
                     <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#333' }}>Create New Map</h3>
-                    <button onClick={onClose} style={{ ...buttonStyle, margin: 0 }}>✕</button>
+                    <CloseButton onClick={onClose}>✕</CloseButton>
                 </div>
 
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -56,8 +57,12 @@ export const NewMapModal = ({
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                        <button onClick={onClose} style={{ ...buttonStyle, backgroundColor: '#f0f0f0', margin: 0 }}>Cancel</button>
-                        <button onClick={confirmNewMap} style={{ ...buttonStyle, backgroundColor: '#4CAF50', color: 'white', borderColor: '#4CAF50', margin: 0 }}>Create</button>
+                        <ToolsEditorButton onClick={onClose} $variant="secondary" $small>
+                            Cancel
+                        </ToolsEditorButton>
+                        <ToolsEditorButton onClick={confirmNewMap} $variant="play" $small>
+                            Create
+                        </ToolsEditorButton>
                     </div>
                 </div>
             </div>

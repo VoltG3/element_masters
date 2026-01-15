@@ -63,6 +63,11 @@ export const Viewport = ({
                         gridTemplateColumns: `repeat(${mapWidth}, 32px)`,
                         gridTemplateRows: `repeat(${mapHeight}, 32px)`,
                         gap: '0px', border: '1px solid #444', backgroundColor: 'transparent',
+                        backgroundImage: showGrid ? `
+                            linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
+                        ` : 'none',
+                        backgroundSize: '32px 32px',
                         position: 'relative', cursor: activeTool === 'bucket' ? 'cell' : 'default',
                         zIndex: 1
                     }}>
@@ -90,7 +95,7 @@ export const Viewport = ({
                         const objObj = dObjId ? registryItems.find(r => r.id === dObjId) : null;
                         const secretObj = dSecId ? registryItems.find(r => r.id === dSecId) : null;
 
-                        let borderStyle = showGrid ? '0.5px dashed rgba(255, 255, 255, 0.3)' : 'none';
+                        let borderStyle = 'none';
                         let bgStyle = 'transparent';
 
                         if (activeTool === 'brush' && hoverIndex !== null) {

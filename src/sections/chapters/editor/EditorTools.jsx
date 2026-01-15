@@ -1,26 +1,17 @@
 import React from 'react';
 import { 
-    panelHeaderStyle, 
-    buttonStyle, 
-    activeButtonStyle,
-    toolButtonStyle,
-    activeToolButtonStyle,
-    playButtonStyle,
-    pauseButtonStyle,
-    headerBarStyle,
-    toolsGroupStyle,
-    toolsInnerGroupStyle,
-    layerIndicatorStyle,
-    brushSizeButtonStyle,
-    activeBrushSizeButtonStyle,
-    confirmButtonStyle,
-    cancelButtonStyle,
-    bgColorContainerStyle,
-    bgColorInputStyle,
-    infoContainerStyle,
-    infoItemStyle,
-    infoLabelStyle,
-    infoValueStyle
+    headerBarStyle, 
+    toolsGroupStyle, 
+    toolsInnerGroupStyle, 
+    layerIndicatorStyle, 
+    bgColorContainerStyle, 
+    bgColorInputStyle, 
+    infoContainerStyle, 
+    infoItemStyle, 
+    infoLabelStyle, 
+    infoValueStyle, 
+    ToolsEditorButton,
+    toolButtonStyle
 } from './styles/EditorToolsButtonStyle';
 
 export const EditorTools = ({
@@ -57,8 +48,8 @@ export const EditorTools = ({
             fontSize: '12px',
             fontWeight: 'bold',
             color: isActive ? '#fff' : color,
-            backgroundColor: isActive ? color : '#f0f0f0',
-            borderColor: isActive ? color : '#333'
+            backgroundColor: isActive ? color : '#333',
+            borderColor: isActive ? color : '#555'
         };
     };
 
@@ -77,14 +68,6 @@ export const EditorTools = ({
         };
     };
 
-    const hoverStyle = (e, active = false) => {
-        e.currentTarget.style.backgroundColor = active ? '#aaa' : '#ccc';
-    };
-    
-    const unhoverStyle = (e, active = false) => {
-        e.currentTarget.style.backgroundColor = active ? '#aaa' : '#f0f0f0';
-    };
-
     return (
         <div style={{ display: 'contents' }}>
             {/* Main Header Bar */}
@@ -92,28 +75,24 @@ export const EditorTools = ({
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {!isPlayMode && (
                         <div style={toolsGroupStyle}>
-                            {/* Active Layer Indicator */}
-                            <div style={getLayerIndicatorStyle()}>
-                                Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Secrets')}
-                            </div>
+
 
                             <div style={{ display: 'flex', gap: '2px' }}>
-                                <button onClick={() => setActiveTool('brush')} style={activeTool === 'brush' ? activeToolButtonStyle : toolButtonStyle} title="Brush (B)">🖌️</button>
-                                <button onClick={() => setActiveTool('bucket')} style={activeTool === 'bucket' ? activeToolButtonStyle : toolButtonStyle} title="Fill Bucket (F)">🪣</button>
-                                <button onClick={() => setActiveTool('move')} style={activeTool === 'move' ? activeToolButtonStyle : toolButtonStyle} title="Move Selection (M)">✋</button>
+                                <ToolsEditorButton onClick={() => setActiveTool('brush')} $active={activeTool === 'brush'} $square title="Brush (B)">🖌️</ToolsEditorButton>
+                                <ToolsEditorButton onClick={() => setActiveTool('bucket')} $active={activeTool === 'bucket'} $square title="Fill Bucket (F)">🪣</ToolsEditorButton>
+                                <ToolsEditorButton onClick={() => setActiveTool('move')} $active={activeTool === 'move'} $square title="Move Selection (M)">✋</ToolsEditorButton>
                             </div>
 
                             {activeTool === 'brush' && (
                                 <div style={toolsInnerGroupStyle}>
-                                    {[1, 2, 3, 4, 5].map(size => (
-                                        <button key={size} onClick={() => setBrushSize(size)}
-                                            style={brushSize === size ? activeBrushSizeButtonStyle : brushSizeButtonStyle}
-                                            onMouseEnter={hoverStyle}
-                                            onMouseLeave={(e) => unhoverStyle(e, brushSize === size)}
-                                        >
-                                            {size}
-                                        </button>
-                                    ))}
+                                    {['I', 'II', 'III', 'IV', 'V'].map((roman, idx) => {
+                                        const size = idx + 1;
+                                        return (
+                                            <ToolsEditorButton key={size} onClick={() => setBrushSize(size)} $active={brushSize === size} $square title={`Brush Size ${size}`}>
+                                                {roman}
+                                            </ToolsEditorButton>
+                                        );
+                                    })}
                                 </div>
                             )}
 
@@ -125,29 +104,25 @@ export const EditorTools = ({
 
                             {activeTool === 'move' && (
                                 <div style={toolsInnerGroupStyle}>
-                                    <button onClick={() => setSelectionMode('cut')} style={selectionMode === 'cut' ? activeButtonStyle : buttonStyle} title="Cut Selection">✂️</button>
-                                    <button onClick={() => setSelectionMode('copy')} style={selectionMode === 'copy' ? activeButtonStyle : buttonStyle} title="Copy Selection">📋</button>
-                                    
+                                    <ToolsEditorButton onClick={() => setSelectionMode('cut')} $active={selectionMode === 'cut'} $square title="Cut Selection">✂️</ToolsEditorButton>
+                                    <ToolsEditorButton onClick={() => setSelectionMode('copy')} $active={selectionMode === 'copy'} $square title="Copy Selection">📋</ToolsEditorButton>
+                                    <ToolsEditorButton onClick={commitSelection} $square title="Paste Selection">📥</ToolsEditorButton>
                                     {selection && (
-                                        <div style={{ display: 'flex', gap: '2px' }}>
-                                            <button onClick={commitSelection} style={confirmButtonStyle} title="Confirm Selection">✓</button>
-                                            <button onClick={cancelSelection} style={cancelButtonStyle} title="Cancel Selection">✕</button>
-                                        </div>
+                                        <ToolsEditorButton onClick={commitSelection} $square title="Confirm Selection">✓</ToolsEditorButton>
                                     )}
                                 </div>
                             )}
                         </div>
                     )}
 
-                    <button 
+                    <ToolsEditorButton 
                         onClick={() => setShowGrid(!showGrid)} 
-                        style={showGrid ? activeButtonStyle : buttonStyle}
-                        onMouseEnter={hoverStyle}
-                        onMouseLeave={(e) => unhoverStyle(e, showGrid)}
+                        $active={showGrid}
+                        $square
                         title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
                     >
-                        <span style={{ fontSize: '18px', lineHeight: 1 }}>{showGrid ? '▦' : '▢'}</span>
-                    </button>
+                        {showGrid ? '▦' : '▢'}
+                    </ToolsEditorButton>
 
                     {!isPlayMode && (
                         <div style={bgColorContainerStyle}>
@@ -161,45 +136,44 @@ export const EditorTools = ({
                         </div>
                     )}
 
-                    <div style={{ marginLeft: '8px', paddingLeft: '8px', borderLeft: '1px solid #ddd', display: 'flex', gap: '4px' }}>
+                    <div style={{ marginLeft: '8px', paddingLeft: '8px', borderLeft: '1px solid #444', display: 'flex', gap: '4px' }}>
                         {!isPlayMode ? (
-                            <button 
+                            <ToolsEditorButton 
                                 onClick={handlePlay} 
-                                style={playButtonStyle}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#45a049'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
+                                $variant="play"
+                                $small
                                 title="Play Map"
                             >
-                                <span style={{ fontSize: '15px' }}>▶</span>
+                                <span>▶</span>
                                 <span>Play</span>
-                            </button>
+                            </ToolsEditorButton>
                         ) : (
                             <>
-                                <button 
+                                <ToolsEditorButton 
                                     onClick={handlePause} 
-                                    style={pauseButtonStyle}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fb8c00'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF9800'}
+                                    $variant="pause"
+                                    $small
                                     title="Pause/Editor"
                                 >
-                                    <span style={{ fontSize: '15px' }}>⏸</span>
+                                    <span>⏸</span>
                                     <span>Pause</span>
-                                </button>
-                                <button 
+                                </ToolsEditorButton>
+                                <ToolsEditorButton 
                                     onClick={handleReset} 
-                                    style={activeButtonStyle}
-                                    onMouseEnter={hoverStyle}
-                                    onMouseLeave={(e) => unhoverStyle(e, true)}
+                                    $small
                                     title="Reset State"
                                 >
-                                    <span style={{ fontSize: '15px' }}>↻</span>
+                                    <span>↻</span>
                                     <span>Reset</span>
-                                </button>
+                                </ToolsEditorButton>
                             </>
                         )}
                     </div>
                 </div>
-
+                {/* Active Layer Indicator */}
+                <div style={getLayerIndicatorStyle()}>
+                    Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Secrets')}
+                </div>
                 <div style={infoContainerStyle}>
                     <div style={infoItemStyle}>
                         <span style={infoLabelStyle}>Map:</span>
