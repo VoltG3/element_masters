@@ -51,6 +51,7 @@ const PixiStage = ({
   waterSplashesEnabled = true,
   lavaEmbersEnabled = true,
   isEditor = false,
+  showGrid = false,
 }) => {
   const [isPixiReady, setIsPixiReady] = useState(false);
 
@@ -100,9 +101,12 @@ const PixiStage = ({
   const splashesEnabledRef = useRef(waterSplashesEnabled !== false);
   const embersEnabledRef = useRef(lavaEmbersEnabled !== false);
   const waterStateRef = useRef({ inWater: false, headUnder: false, vy: 0 });
+  const gridRef = useRef(null);
+  const showGridRef = useRef(showGrid);
 
   // Keep latest state in refs for ticker
   useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
+  useEffect(() => { showGridRef.current = showGrid; }, [showGrid]);
   useEffect(() => { projectilesPropRef.current = Array.isArray(projectiles) ? projectiles : []; }, [projectiles]);
   useEffect(() => { hbEnabledRef.current = healthBarEnabled !== false; }, [healthBarEnabled]);
   useEffect(() => { oxyEnabledRef.current = oxygenBarEnabled !== false; }, [oxygenBarEnabled]);
@@ -215,6 +219,10 @@ const PixiStage = ({
       projectilesLayerRef.current = projLayer;
       entitiesLayerRef.current = entitiesLayer;
       overlayLayerRef.current = overlayLayer;
+    
+      const gridGraphics = new Graphics();
+      gridRef.current = gridGraphics;
+      overlayLayer.addChild(gridGraphics);
       parallaxRef.current = parallaxLayer;
 
       // Add all layers to stage
@@ -322,6 +330,21 @@ const PixiStage = ({
       appRef.current = app;
       setIsPixiReady(true);
       app.ticker.add(() => {
+        if (gridRef.current) {
+          gridRef.current.clear();
+          if (showGridRef.current) {
+            for (let x = 0; x <= mapWidth; x++) {
+              gridRef.current.moveTo(x * tileSize, 0);
+              gridRef.current.lineTo(x * tileSize, mapHeight * tileSize);
+            }
+            for (let y = 0; y <= mapHeight; y++) {
+              gridRef.current.moveTo(0, y * tileSize);
+              gridRef.current.lineTo(mapWidth * tileSize, y * tileSize);
+            }
+            gridRef.current.stroke({ width: 0.5, color: 0xffffff, alpha: 0.2 });
+          }
+        }
+
         const s = playerStateRef.current;
         if (s && playerRef.current) {
           updatePlayerSprite(

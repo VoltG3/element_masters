@@ -11,7 +11,8 @@ import {
     infoLabelStyle, 
     infoValueStyle, 
     ToolsEditorButton,
-    toolButtonStyle
+    EraserButtonContainer,
+    EraserButtonInner
 } from './styles/EditorToolsButtonStyle';
 
 export const EditorTools = ({
@@ -39,17 +40,22 @@ export const EditorTools = ({
     selectedTile,
     handlePaletteSelect,
     selectedBackgroundColor,
-    setSelectedBackgroundColor
+    setSelectedBackgroundColor,
+    showBackgroundImage,
+    setShowBackgroundImage
 }) => {
-    const getEraserButtonStyle = (layer, color) => {
+    const getEraserData = (layer) => {
         const isActive = selectedTile === null && activeLayer === layer;
+        const colors = {
+            tile: { bg: '#e6f7ff', text: '#1890ff' },
+            object: { bg: '#fff1f0', text: '#f5222d' },
+            secret: { bg: '#f9f0ff', text: '#722ed1' }
+        };
+        const active = colors[layer] || colors.tile;
         return {
-            ...toolButtonStyle,
-            fontSize: '12px',
-            fontWeight: 'bold',
-            color: isActive ? '#fff' : color,
-            backgroundColor: isActive ? color : '#333',
-            borderColor: isActive ? color : '#555'
+            isActive,
+            bgColor: active.bg,
+            textColor: active.text
         };
     };
 
@@ -72,108 +78,219 @@ export const EditorTools = ({
         <div style={{ display: 'contents' }}>
             {/* Main Header Bar */}
             <div style={headerBarStyle}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {!isPlayMode && (
-                        <div style={toolsGroupStyle}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {!isPlayMode && (
+                            <div style={toolsGroupStyle}>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <ToolsEditorButton onClick={() => setActiveTool('brush')} $active={activeTool === 'brush'} $square title="Brush (B)">🖌️</ToolsEditorButton>
+                                    <ToolsEditorButton onClick={() => setActiveTool('bucket')} $active={activeTool === 'bucket'} $square title="Fill Bucket (F)">🪣</ToolsEditorButton>
+                                    <ToolsEditorButton onClick={() => setActiveTool('move')} $active={activeTool === 'move'} $square title="Move Selection (M)">✋</ToolsEditorButton>
+                                </div>
 
-
-                            <div style={{ display: 'flex', gap: '2px' }}>
-                                <ToolsEditorButton onClick={() => setActiveTool('brush')} $active={activeTool === 'brush'} $square title="Brush (B)">🖌️</ToolsEditorButton>
-                                <ToolsEditorButton onClick={() => setActiveTool('bucket')} $active={activeTool === 'bucket'} $square title="Fill Bucket (F)">🪣</ToolsEditorButton>
-                                <ToolsEditorButton onClick={() => setActiveTool('move')} $active={activeTool === 'move'} $square title="Move Selection (M)">✋</ToolsEditorButton>
-                            </div>
-
-                            {activeTool === 'brush' && (
                                 <div style={toolsInnerGroupStyle}>
                                     {['I', 'II', 'III', 'IV', 'V'].map((roman, idx) => {
                                         const size = idx + 1;
+                                        const isDisabled = activeTool !== 'brush';
                                         return (
-                                            <ToolsEditorButton key={size} onClick={() => setBrushSize(size)} $active={brushSize === size} $square title={`Brush Size ${size}`}>
+                                            <ToolsEditorButton 
+                                                key={size} 
+                                                onClick={() => !isDisabled && setBrushSize(size)} 
+                                                $active={brushSize === size && !isDisabled} 
+                                                $square 
+                                                title={isDisabled ? "Brush size (Only for Brush tool)" : `Brush Size ${size}`}
+                                                style={{ 
+                                                    opacity: isDisabled ? 0.4 : 1,
+                                                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                    position: 'relative'
+                                                }}
+                                            >
                                                 {roman}
+                                                {isDisabled && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        width: '100%',
+                                                        height: '2px',
+                                                        backgroundColor: '#f5222d',
+                                                        transform: 'rotate(-45deg)',
+                                                        top: '50%',
+                                                        left: 0,
+                                                        zIndex: 1
+                                                    }} />
+                                                )}
                                             </ToolsEditorButton>
                                         );
                                     })}
                                 </div>
-                            )}
 
-                            <div style={toolsInnerGroupStyle}>
-                                <button onClick={() => handlePaletteSelect(null, 'tile')} style={getEraserButtonStyle('tile', 'blue')} title="Erase Blocks">⌫B</button>
-                                <button onClick={() => handlePaletteSelect(null, 'object')} style={getEraserButtonStyle('object', 'red')} title="Erase Objects">⌫O</button>
-                                <button onClick={() => handlePaletteSelect(null, 'secret')} style={getEraserButtonStyle('secret', 'purple')} title="Erase Secrets">⌫S</button>
-                            </div>
-
-                            {activeTool === 'move' && (
                                 <div style={toolsInnerGroupStyle}>
-                                    <ToolsEditorButton onClick={() => setSelectionMode('cut')} $active={selectionMode === 'cut'} $square title="Cut Selection">✂️</ToolsEditorButton>
-                                    <ToolsEditorButton onClick={() => setSelectionMode('copy')} $active={selectionMode === 'copy'} $square title="Copy Selection">📋</ToolsEditorButton>
-                                    <ToolsEditorButton onClick={commitSelection} $square title="Paste Selection">📥</ToolsEditorButton>
+                                    {['tile', 'object', 'secret'].map(layer => {
+                                        const { isActive, bgColor, textColor } = getEraserData(layer);
+                                        return (
+                                            <EraserButtonContainer 
+                                                key={layer}
+                                                onClick={() => handlePaletteSelect(null, layer)}
+                                                $active={isActive}
+                                                title={`Erase ${layer === 'tile' ? 'Blocks' : (layer === 'object' ? 'Objects' : 'Secrets')}`}
+                                            >
+                                                <EraserButtonInner $bgColor={bgColor} $textColor={textColor} $active={isActive}>
+                                                    ⌫{layer === 'tile' ? 'B' : (layer === 'object' ? 'O' : 'S')}
+                                                </EraserButtonInner>
+                                            </EraserButtonContainer>
+                                        );
+                                    })}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <ToolsEditorButton 
+                                        onClick={() => setShowBackgroundImage(!showBackgroundImage)} 
+                                        $active={showBackgroundImage}
+                                        $square
+                                        title={showBackgroundImage ? "Hide Background Image" : "Show Background Image"}
+                                    >
+                                        🖼️
+                                    </ToolsEditorButton>
+
+                                    <ToolsEditorButton 
+                                        onClick={() => setShowGrid(!showGrid)} 
+                                        $active={showGrid}
+                                        $square
+                                        title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
+                                    >
+                                        <span style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {showGrid ? '▦' : '▢'}
+                                        </span>
+                                    </ToolsEditorButton>
+                                </div>
+
+                                <div style={toolsInnerGroupStyle}>
+                                    {['cut', 'copy'].map(mode => {
+                                        const isDisabled = activeTool !== 'move';
+                                        return (
+                                            <ToolsEditorButton 
+                                                key={mode}
+                                                onClick={() => !isDisabled && setSelectionMode(mode)} 
+                                                $active={selectionMode === mode && !isDisabled} 
+                                                $square 
+                                                title={isDisabled ? `${mode === 'cut' ? 'Cut' : 'Copy'} (Only for Move tool)` : `${mode === 'cut' ? 'Cut' : 'Copy'} Selection`}
+                                                style={{ 
+                                                    opacity: isDisabled ? 0.4 : 1,
+                                                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                    position: 'relative'
+                                                }}
+                                            >
+                                                {mode === 'cut' ? '✂️' : '📋'}
+                                                {isDisabled && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        width: '100%',
+                                                        height: '2px',
+                                                        backgroundColor: '#f5222d',
+                                                        transform: 'rotate(-45deg)',
+                                                        top: '50%',
+                                                        left: 0,
+                                                        zIndex: 1
+                                                    }} />
+                                                )}
+                                            </ToolsEditorButton>
+                                        );
+                                    })}
+                                    <ToolsEditorButton 
+                                        onClick={commitSelection} 
+                                        $square 
+                                        title={activeTool !== 'move' ? "Paste (Only for Move tool)" : "Paste Selection"}
+                                        style={{ 
+                                            opacity: activeTool !== 'move' ? 0.4 : 1,
+                                            cursor: activeTool !== 'move' ? 'not-allowed' : 'pointer',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        📥
+                                        {activeTool !== 'move' && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                width: '100%',
+                                                height: '2px',
+                                                backgroundColor: '#f5222d',
+                                                transform: 'rotate(-45deg)',
+                                                top: '50%',
+                                                left: 0,
+                                                zIndex: 1
+                                            }} />
+                                        )}
+                                    </ToolsEditorButton>
                                     {selection && (
-                                        <ToolsEditorButton onClick={commitSelection} $square title="Confirm Selection">✓</ToolsEditorButton>
+                                        <div style={{ display: 'flex', gap: '5px', marginLeft: '5px', borderLeft: '1px solid #ccc', paddingLeft: '5px' }}>
+                                            <ToolsEditorButton onClick={commitSelection} $square title="Confirm Selection (Enter)" style={{ backgroundColor: '#e6f7ff', color: '#1890ff' }}>✓</ToolsEditorButton>
+                                            <ToolsEditorButton onClick={cancelSelection} $square title="Cancel Selection (Esc)" style={{ backgroundColor: '#fff1f0', color: '#f5222d' }}>✕</ToolsEditorButton>
+                                        </div>
                                     )}
                                 </div>
-                            )}
-                        </div>
-                    )}
+                            </div>
+                        )}
 
-                    <ToolsEditorButton 
-                        onClick={() => setShowGrid(!showGrid)} 
-                        $active={showGrid}
-                        $square
-                        title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
-                    >
-                        {showGrid ? '▦' : '▢'}
-                    </ToolsEditorButton>
+                        {isPlayMode && (
+                             <ToolsEditorButton 
+                                onClick={() => setShowGrid(!showGrid)} 
+                                $active={showGrid}
+                                $square
+                                title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
+                            >
+                                <span style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {showGrid ? '▦' : '▢'}
+                                </span>
+                            </ToolsEditorButton>
+                        )}
+                    </div>
 
-                    {!isPlayMode && (
-                        <div style={bgColorContainerStyle}>
-                            <input 
-                                type="color" 
-                                value={selectedBackgroundColor}
-                                onChange={(e) => setSelectedBackgroundColor(e.target.value)}
-                                style={bgColorInputStyle} 
-                                title="Background Color"
-                            />
-                        </div>
-                    )}
 
-                    <div style={{ marginLeft: '8px', paddingLeft: '8px', borderLeft: '1px solid #444', display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {!isPlayMode && (
+                            <div style={bgColorContainerStyle}>
+                                <input 
+                                    type="color" 
+                                    value={selectedBackgroundColor}
+                                    onChange={(e) => setSelectedBackgroundColor(e.target.value)}
+                                    style={bgColorInputStyle} 
+                                    title="Background Color"
+                                />
+                            </div>
+                        )}
+
                         {!isPlayMode ? (
                             <ToolsEditorButton 
                                 onClick={handlePlay} 
                                 $variant="play"
-                                $small
+                                $square
                                 title="Play Map"
                             >
                                 <span>▶</span>
-                                <span>Play</span>
                             </ToolsEditorButton>
                         ) : (
                             <>
                                 <ToolsEditorButton 
                                     onClick={handlePause} 
                                     $variant="pause"
-                                    $small
+                                    $square
                                     title="Pause/Editor"
                                 >
                                     <span>⏸</span>
-                                    <span>Pause</span>
                                 </ToolsEditorButton>
                                 <ToolsEditorButton 
                                     onClick={handleReset} 
-                                    $small
+                                    $square
                                     title="Reset State"
                                 >
                                     <span>↻</span>
-                                    <span>Reset</span>
                                 </ToolsEditorButton>
                             </>
                         )}
                     </div>
-                </div>
+
                 {/* Active Layer Indicator */}
                 <div style={getLayerIndicatorStyle()}>
                     Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Secrets')}
                 </div>
+
                 <div style={infoContainerStyle}>
                     <div style={infoItemStyle}>
                         <span style={infoLabelStyle}>Map:</span>

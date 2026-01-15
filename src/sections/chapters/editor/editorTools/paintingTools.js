@@ -4,7 +4,7 @@ export const getFloodFillIndices = (startIndex, currentData, mapWidth, mapHeight
     const height = mapHeight;
     const stack = [startIndex];
     const visited = new Set();
-    const matchingIndices = [];
+    const matchingIndices = new Set();
 
     while (stack.length > 0) {
         const idx = stack.pop();
@@ -12,7 +12,7 @@ export const getFloodFillIndices = (startIndex, currentData, mapWidth, mapHeight
         visited.add(idx);
         if (idx < 0 || idx >= currentData.length) continue;
         if (currentData[idx] !== startId) continue;
-        matchingIndices.push(idx);
+        matchingIndices.add(idx);
 
         const x = idx % width;
         const y = Math.floor(idx / width);

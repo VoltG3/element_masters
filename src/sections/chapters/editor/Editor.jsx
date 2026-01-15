@@ -33,6 +33,7 @@ export const Editor = () => {
     const [objectMetadata, setObjectMetadata] = useState({});
     const [selectedTile, setSelectedTile] = useState(null);
     const [showGrid, setShowGrid] = useState(true);
+    const [showBackgroundImage, setShowBackgroundImage] = useState(true);
 
     // Tools & Modes State
     const [isDragging, setIsDragging] = useState(false);
@@ -144,8 +145,43 @@ export const Editor = () => {
     const handleGridMouseEnter = (index) => handleGridMouseMove(index);
     
     const handleGridMouseUp = (index) => {
+        if (activeTool === 'move' && isDragging && dragStart && index !== null) {
+            const hx = index % mapWidth;
+            const hy = Math.floor(index / mapWidth);
+            const x1 = Math.min(dragStart.x, hx);
+            const y1 = Math.min(dragStart.y, hy);
+            const x2 = Math.max(dragStart.x, hx);
+            const y2 = Math.max(dragStart.y, hy);
+            const w = x2 - x1 + 1;
+            const h = y2 - y1 + 1;
+
+            const tileData = [];
+            const objectData = [];
+            const secretData = [];
+
+            for (let y = y1; y <= y2; y++) {
+                for (let x = x1; x <= x2; x++) {
+                    const idx = y * mapWidth + x;
+                    tileData.push(tileMapData[idx]);
+                    objectData.push(objectMapData[idx]);
+                    secretData.push(secretMapData[idx]);
+                }
+            }
+
+            setSelection({
+                x: x1, y: y1, w, h,
+                originalX: x1, originalY: y1,
+                tileData, objectData, secretData
+            });
+            setPreviewPosition({ x: x1, y: y1 });
+            setOriginalMapData({
+                tileMap: [...tileMapData],
+                objectMap: [...objectMapData],
+                secretMap: [...secretMapData]
+            });
+            setDragStart(null);
+        }
         setIsDragging(false);
-        // Add more logic if needed
     };
 
     const handleGridMouseLeave = () => {
@@ -171,76 +207,80 @@ export const Editor = () => {
             />
 
             <div className="editor-container" style={{
-                display: 'flex', flex: 1, flexDirection: 'column',
+                display: 'flex', flex: 1, flexDirection: 'row',
                 filter: isNewMapModalOpen ? 'blur(4px) brightness(0.7)' : 'none',
                 transition: 'filter 0.2s ease',
                 pointerEvents: isNewMapModalOpen ? 'none' : 'auto',
                 overflow: 'hidden'
             }}>
-                <EditorTools
+                <EditorElements
                     mapName={mapName}
                     creatorName={creatorName}
-                    activePanel={activePanel}
-                    togglePanel={togglePanel}
-                    showGrid={showGrid}
-                    setShowGrid={setShowGrid}
+                    openNewMapModal={openNewMapModal}
+                    saveMap={handleSaveMap}
+                    loadMap={handleLoadMap}
+                    clearMap={handleClearMap}
                     isPlayMode={isPlayMode}
-                    handlePlay={handlePlay}
-                    handlePause={handlePause}
-                    handleReset={handleReset}
-                    activeTool={activeTool}
-                    setActiveTool={setActiveTool}
-                    brushSize={brushSize}
-                    setBrushSize={setBrushSize}
-                    activeLayer={activeLayer}
-                    selection={selection}
-                    moveSelection={moveSelection}
-                    selectionMode={selectionMode}
-                    setSelectionMode={setSelectionMode}
-                    commitSelection={commitSelection}
-                    cancelSelection={cancelSelection}
-                    selectedTile={selectedTile}
                     handlePaletteSelect={handlePaletteSelect}
-                    selectedBackgroundColor={selectedBackgroundColor}
-                    setSelectedBackgroundColor={setSelectedBackgroundColor}
+                    selectedTile={selectedTile}
+                    blocks={blocks}
+                    liquids={liquids}
+                    entities={entities}
+                    items={items}
+                    decorations={decorations}
+                    interactables={interactables}
+                    hazards={hazards}
+                    secrets={secrets}
+                    obstacles={obstacles}
+                    totalTiles={totalTiles}
+                    filledBlocks={filledBlocks}
+                    emptyBlocks={emptyBlocks}
+                    objectsCount={objectsCount}
+                    mapWidth={mapWidth}
+                    mapHeight={mapHeight}
+                    objectMapData={objectMapData}
+                    objectMetadata={objectMetadata}
+                    setObjectMetadata={setObjectMetadata}
+                    registryItems={registryItems}
+                    highlightedIndex={highlightedIndex}
+                    setHighlightedIndex={setHighlightedIndex}
+                    activePanel={activePanel}
+                    setActivePanel={setActivePanel}
+                    togglePanel={togglePanel}
                 />
-                
-                <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
-                    <EditorElements
+
+                <div style={{ display: 'flex', flex: 1, flexDirection: 'column', overflow: 'hidden' }}>
+                    <EditorTools
                         mapName={mapName}
                         creatorName={creatorName}
-                        openNewMapModal={openNewMapModal}
-                        saveMap={handleSaveMap}
-                        loadMap={handleLoadMap}
-                        clearMap={handleClearMap}
-                        isPlayMode={isPlayMode}
-                        handlePaletteSelect={handlePaletteSelect}
-                        selectedTile={selectedTile}
-                        blocks={blocks}
-                        liquids={liquids}
-                        entities={entities}
-                        items={items}
-                        decorations={decorations}
-                        interactables={interactables}
-                        hazards={hazards}
-                        secrets={secrets}
-                        obstacles={obstacles}
-                        totalTiles={totalTiles}
-                        filledBlocks={filledBlocks}
-                        emptyBlocks={emptyBlocks}
-                        objectsCount={objectsCount}
-                        mapWidth={mapWidth}
-                        mapHeight={mapHeight}
-                        objectMapData={objectMapData}
-                        objectMetadata={objectMetadata}
-                        setObjectMetadata={setObjectMetadata}
-                        registryItems={registryItems}
-                        highlightedIndex={highlightedIndex}
-                        setHighlightedIndex={setHighlightedIndex}
                         activePanel={activePanel}
-                        setActivePanel={setActivePanel}
                         togglePanel={togglePanel}
+                        showGrid={showGrid}
+                        setShowGrid={setShowGrid}
+                        isPlayMode={isPlayMode}
+                        handlePlay={handlePlay}
+                        handlePause={handlePause}
+                        handleReset={handleReset}
+                        activeTool={activeTool}
+                        setActiveTool={setActiveTool}
+                        brushSize={brushSize}
+                        setBrushSize={setBrushSize}
+                        activeLayer={activeLayer}
+                        selection={selection}
+                        moveSelection={moveSelection}
+                        selectionMode={selectionMode}
+                        setSelectionMode={setSelectionMode}
+                        commitSelection={commitSelection}
+                        cancelSelection={cancelSelection}
+                        selectedTile={selectedTile}
+                        handlePaletteSelect={handlePaletteSelect}
+                        selectedBackgroundColor={selectedBackgroundColor}
+                        setSelectedBackgroundColor={setSelectedBackgroundColor}
+                        showBackgroundImage={showBackgroundImage}
+                        setShowBackgroundImage={setShowBackgroundImage}
                     />
+                    
+                    <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
 
                     <EditorScene
                         handleMapResize={handleMapResize}
@@ -271,6 +311,7 @@ export const Editor = () => {
                             selectedBackgroundUrl={selectedBackgroundUrl}
                             selectedBackgroundColor={selectedBackgroundColor}
                             selectedBackgroundImage={selectedBackgroundImage}
+                            showBackgroundImage={showBackgroundImage}
                             showGrid={showGrid}
                             activeLayer={activeLayer}
                             activeTool={activeTool}
@@ -307,15 +348,17 @@ export const Editor = () => {
                                 playerState={gameEngineState}
                                 playerVisuals={playerVisuals}
                                 objectMetadata={objectMetadata}
-                                backgroundImage={selectedBackgroundImage}
+                                backgroundImage={showBackgroundImage ? selectedBackgroundImage : null}
                                 backgroundColor={selectedBackgroundColor}
                                 backgroundParallaxFactor={backgroundParallaxFactor}
                                 isPlayMode={true}
+                                showGrid={showGrid}
                             />
                         </div>
                     )}
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 };

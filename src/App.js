@@ -32,11 +32,14 @@ function App() {
             <SectionContent style={{ flexGrow: 1, width: '100%', overflow: 'auto' }}>
                 <Outlet />
             </SectionContent>
-            <div style={{ width: '100%', flexShrink: 0 }}>
-                <SectionFooter />
-            </div>
+
         </div>
       )
     }
 
 export default App
+/*
+ <div style={{ width: '100%', flexShrink: 0 }}>
+                <SectionFooter />
+            </div>
+* */

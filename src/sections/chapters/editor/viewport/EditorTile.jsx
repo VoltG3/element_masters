@@ -12,7 +12,8 @@ export const EditorTile = ({
     borderStyle,
     bgStyle,
     handleGridMouseDown,
-    handleGridMouseEnter
+    handleGridMouseEnter,
+    filter
 }) => {
     const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
     const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
@@ -38,23 +39,25 @@ export const EditorTile = ({
             }}>
             {/* Tile Layer */}
             {tileObj && (
-                isLiquidTile ? (
-                    <div style={{
-                        width: '100%', height: '100%',
-                        background: isWaterTile ? 'rgba(0, 0, 255, 0.5)' : (isLavaTile ? 'rgba(255, 69, 0, 0.7)' : 'rgba(0, 255, 255, 0.3)'),
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px'
-                    }}>
-                        {isWaterTile ? 'WATER' : (isLavaTile ? 'LAVA' : 'LIQ')}
-                    </div>
-                ) : (
-                    <AnimatedItem
-                        textures={tileObj.textures}
-                        texture={tileObj.texture}
-                        speed={tileObj.animationSpeed}
-                        spriteSheet={tileObj.spriteSheet}
-                        style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                    />
-                )
+                <div style={{ filter: filter ? filter('tile') : 'none', transition: 'filter 0.3s ease' }}>
+                    {isLiquidTile ? (
+                        <div style={{
+                            width: '32px', height: '32px',
+                            background: isWaterTile ? 'rgba(0, 0, 255, 0.5)' : (isLavaTile ? 'rgba(255, 69, 0, 0.7)' : 'rgba(0, 255, 255, 0.3)'),
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px'
+                        }}>
+                            {isWaterTile ? 'WATER' : (isLavaTile ? 'LAVA' : 'LIQ')}
+                        </div>
+                    ) : (
+                        <AnimatedItem
+                            textures={tileObj.textures}
+                            texture={tileObj.texture}
+                            speed={tileObj.animationSpeed}
+                            spriteSheet={tileObj.spriteSheet}
+                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                        />
+                    )}
+                </div>
             )}
 
             {/* Secret Layer */}
@@ -63,7 +66,8 @@ export const EditorTile = ({
                     position: 'absolute', inset: 0,
                     backgroundColor: secretObj.filterColorInEditor || secretObj.filterColor || 'rgba(128, 0, 128, 0.4)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: '8px', fontWeight: 'bold', zIndex: 2
+                    color: '#fff', fontSize: '8px', fontWeight: 'bold', zIndex: 2,
+                    filter: filter ? filter('secret') : 'none', transition: 'filter 0.3s ease'
                 }}>
                     {secretObj.editorIcon || 'SECRET'}
                 </div>
@@ -73,7 +77,8 @@ export const EditorTile = ({
             {objObj && (
                 <div style={{
                     position: 'absolute', inset: '2px', zIndex: 3,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    filter: filter ? filter('object') : 'none', transition: 'filter 0.3s ease'
                 }}>
                     {objObj.editorIcon ? (
                         <span style={{ fontSize: '20px' }}>{objObj.editorIcon}</span>

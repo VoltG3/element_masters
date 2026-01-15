@@ -8,6 +8,7 @@ export const Viewport = ({
     selectedBackgroundUrl,
     selectedBackgroundColor,
     selectedBackgroundImage,
+    showBackgroundImage,
     showGrid,
     activeLayer,
     activeTool,
@@ -28,15 +29,60 @@ export const Viewport = ({
     handleGridMouseEnter,
     handleGridMouseUp,
     handleGridMouseLeave,
-    setIsDragging
+    setIsDragging,
+    selectedTile
 }) => {
+    const isEraserActive = activeTool === 'brush' && selectedTile === null;
+    const isBrushActive = activeTool === 'brush';
+    const isBucketActive = activeTool === 'bucket';
+
+    const getLayerColor = (layer, alpha = 0.5) => {
+        if (layer === 'tile') return `rgba(24, 144, 255, ${alpha})`;
+        if (layer === 'object') return `rgba(245, 34, 45, ${alpha})`;
+        if (layer === 'secret') return `rgba(114, 46, 209, ${alpha})`;
+        return `rgba(255, 255, 255, ${alpha})`;
+    };
+
+    const getGridStyles = () => {
+        let color = 'rgba(255, 255, 255, 0.15)';
+        let visible = showGrid;
+
+        if (isEraserActive) {
+            color = getLayerColor(activeLayer, 0.4);
+            visible = true;
+        } else if (isBrushActive || isBucketActive) {
+            color = getLayerColor(activeLayer, 0.25);
+            visible = true; // Auto-show grid when using drawing tools
+        }
+
+        return {
+            backgroundImage: visible ? `
+                linear-gradient(to right, ${color} 1px, transparent 1px),
+                linear-gradient(to bottom, ${color} 1px, transparent 1px)
+            ` : 'none',
+            backgroundSize: '32px 32px'
+        };
+    };
+
+    const getLayerFilter = (layer) => {
+        if (!isEraserActive) return 'none';
+        return activeLayer === layer ? 'none' : 'grayscale(100%) opacity(0.2) blur(2px)';
+    };
+
+    const getOverlayColor = () => {
+        if (!isEraserActive) return 'transparent';
+        if (activeLayer === 'tile') return 'rgba(24, 144, 255, 0.25)'; // Blueish for blocks
+        if (activeLayer === 'object') return 'rgba(245, 34, 45, 0.25)'; // Reddish for objects
+        if (activeLayer === 'secret') return 'rgba(114, 46, 209, 0.25)'; // Purplish for secrets
+        return 'transparent';
+    };
     return (
         <div className="viewport"
             style={{
                 flex: 1, padding: '40px', backgroundColor: '#555',
                 overflow: 'auto', position: 'relative', userSelect: 'none'
             }}
-            onMouseUp={() => setIsDragging(false)}>
+            onMouseUp={() => handleGridMouseUp(hoverIndex)}>
             <div style={{ position: 'relative', width: 'fit-content' }} onMouseLeave={handleGridMouseLeave}>
                 
                 <ObjectLinks 
@@ -50,10 +96,30 @@ export const Viewport = ({
                     style={{
                         position: 'absolute', top: 0, left: 0,
                         width: mapWidth * 32, height: mapHeight * 32,
-                        backgroundImage: selectedBackgroundUrl ? `url(${selectedBackgroundUrl})` : 'none',
-                        backgroundColor: !selectedBackgroundUrl ? selectedBackgroundColor : 'transparent',
+                        backgroundImage: (selectedBackgroundUrl && showBackgroundImage && !isEraserActive) ? `url(${selectedBackgroundUrl})` : 'none',
+                        backgroundColor: (isEraserActive || !showBackgroundImage || !selectedBackgroundUrl) ? selectedBackgroundColor : 'transparent',
                         backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%',
                         zIndex: 0, pointerEvents: 'none'
+                    }}
+                />
+
+                <div
+                    style={{
+                        position: 'absolute', top: 0, left: 0,
+                        width: mapWidth * 32, height: mapHeight * 32,
+                        backgroundColor: getOverlayColor(),
+                        zIndex: 5, pointerEvents: 'none',
+                        transition: 'background-color 0.3s ease'
+                    }}
+                />
+
+                {/* Top Grid Overlay */}
+                <div
+                    style={{
+                        position: 'absolute', top: 0, left: 0,
+                        width: mapWidth * 32, height: mapHeight * 32,
+                        zIndex: 10, pointerEvents: 'none',
+                        ...getGridStyles()
                     }}
                 />
 
@@ -63,11 +129,6 @@ export const Viewport = ({
                         gridTemplateColumns: `repeat(${mapWidth}, 32px)`,
                         gridTemplateRows: `repeat(${mapHeight}, 32px)`,
                         gap: '0px', border: '1px solid #444', backgroundColor: 'transparent',
-                        backgroundImage: showGrid ? `
-                            linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                            linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
-                        ` : 'none',
-                        backgroundSize: '32px 32px',
                         position: 'relative', cursor: activeTool === 'bucket' ? 'cell' : 'default',
                         zIndex: 1
                     }}>
@@ -98,10 +159,15 @@ export const Viewport = ({
                         let borderStyle = 'none';
                         let bgStyle = 'transparent';
 
+                        const layerColor = getLayerColor(activeLayer, 1);
+
                         if (activeTool === 'brush' && hoverIndex !== null) {
                             const hx = hoverIndex % mapWidth;
                             const hy = Math.floor(hoverIndex / mapWidth);
-                            if (x >= hx && x < hx + brushSize && y >= hy && y < hy + brushSize) borderStyle = '2px solid red';
+                            if (x >= hx && x < hx + brushSize && y >= hy && y < hy + brushSize) {
+                                borderStyle = `1px dashed ${layerColor}`;
+                                if (isEraserActive) bgStyle = 'rgba(255, 0, 0, 0.1)';
+                            }
                         } else if (activeTool === 'bucket') {
                             if (bucketPreviewIndices.has(index)) { borderStyle = '1px dashed orange'; bgStyle = 'rgb(168,187,220)'; }
                             else if (hoverIndex === index) borderStyle = '2px solid orange';
@@ -143,6 +209,7 @@ export const Viewport = ({
                                 bgStyle={bgStyle}
                                 handleGridMouseDown={handleGridMouseDown}
                                 handleGridMouseEnter={handleGridMouseEnter}
+                                filter={getLayerFilter}
                             />
                         );
                     })}

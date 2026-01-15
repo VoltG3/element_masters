@@ -14,6 +14,7 @@ export const ToolsEditorButton = styled.button`
     border-radius: 4px;
     font-size: ${props => props.$small ? '14px' : '20px'};
     font-weight: ${props => props.$variant === 'play' || props.$variant === 'pause' ? 'bold' : 'normal'};
+    line-height: 1;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     transform: ${props => props.$active ? 'scale(1.05)' : 'none'};
@@ -58,19 +59,13 @@ export const headerBarStyle = {
 
 export const toolsGroupStyle = {
     display: 'flex',
-    gap: '8px',
-    borderRight: '1px solid #444',
-    paddingRight: '8px',
-    marginRight: '4px',
+    gap: '10px',
     alignItems: 'center'
 };
 
 export const toolsInnerGroupStyle = {
     display: 'flex',
-    gap: '2px',
-    marginLeft: '5px',
-    paddingLeft: '5px',
-    borderLeft: '1px solid #444'
+    gap: '10px'
 };
 
 export const layerIndicatorStyle = {
@@ -90,10 +85,7 @@ export const layerIndicatorStyle = {
 export const bgColorContainerStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '5px',
-    marginLeft: '4px',
-    paddingLeft: '8px',
-    borderLeft: '1px solid #444'
+    gap: '10px'
 };
 
 export const bgColorInputStyle = {
@@ -110,8 +102,9 @@ export const bgColorInputStyle = {
 
 export const infoContainerStyle = {
     display: 'flex',
-    gap: '20px',
-    alignItems: 'center',
+    flexDirection: 'column',
+    gap: '2px',
+    alignItems: 'flex-start',
     color: '#bbb',
     marginLeft: 'auto'
 };
@@ -132,6 +125,46 @@ export const infoValueStyle = {
     color: '#fff',
     fontSize: '12px'
 };
+
+export const EraserButtonContainer = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 1px solid ${props => props.$active ? '#e3de0a' : '#fff'};
+    padding: 4px;
+    cursor: pointer;
+    background-color: #333;
+    border-radius: 4px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: scale(1.05);
+        background-color: #444;
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+`;
+
+export const EraserButtonInner = styled.div`
+    width: 100%;
+    height: 100%;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: ${props => props.$active ? (props.$textColor || '#1890ff') : (props.$bgColor || '#f0f0f0')};
+    color: ${props => props.$active ? '#fff' : (props.$textColor || '#000')};
+    font-size: 11px;
+    font-weight: bold;
+    border: ${props => props.$active ? '1px solid #fff' : 'none'};
+    box-sizing: border-box;
+`;
 
 // Legacy support for small buttons (Erasers)
 export const toolButtonStyle = {
