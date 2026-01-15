@@ -20,13 +20,61 @@ export const baseButtonStyle = {
     transition: 'all 0.2s ease'
 };
 
-export const buttonStyle = { ...baseButtonStyle };
-
-export const activeButtonStyle = {
+export const baseActiveButtonStyle = {
     ...baseButtonStyle,
     backgroundColor: '#aaa',
     borderColor: '#000',
     fontWeight: 'bold'
+};
+
+export const buttonStyle = { 
+    ...baseButtonStyle,
+    margin: 0,
+    height: '28px',
+    fontSize: '11px',
+    padding: '0 10px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+};
+
+export const activeButtonStyle = {
+    ...baseActiveButtonStyle,
+    margin: 0,
+    height: '28px',
+    fontSize: '11px',
+    padding: '0 10px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+};
+
+export const toolButtonStyle = {
+    ...buttonStyle,
+    width: '28px',
+    height: '28px',
+    padding: 0,
+    fontSize: '16px'
+};
+
+export const activeToolButtonStyle = {
+    ...activeButtonStyle,
+    width: '28px',
+    height: '28px',
+    padding: 0,
+    fontSize: '16px'
+};
+
+export const playButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+    borderColor: '#388E3C'
+};
+
+export const pauseButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#FF9800',
+    color: '#fff',
+    borderColor: '#F57C00'
 };
 
 export const panelHeaderStyle = {
