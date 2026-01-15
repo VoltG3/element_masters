@@ -24,20 +24,25 @@ export const getFloodFillIndices = (startIndex, currentData, mapWidth, mapHeight
     return matchingIndices;
 };
 
-export const floodFill = (startIndex, targetId, getCurrentData, setCurrentData, mapWidth, mapHeight) => {
-    const currentData = getCurrentData();
+export const floodFill = (startIndex, targetId, currentData, mapWidth, mapHeight) => {
     const startId = currentData[startIndex];
-    if (startId === targetId) return;
+    if (startId === targetId) return currentData;
 
     const indices = getFloodFillIndices(startIndex, currentData, mapWidth, mapHeight);
     const newData = [...currentData];
     indices.forEach(idx => newData[idx] = targetId);
-    setCurrentData(newData);
+    return newData;
 };
 
-export const paintTile = (index, selectedTile, brushSize, mapWidth, mapHeight, getCurrentData, setCurrentData) => {
-    const currentData = getCurrentData();
-    const newData = [...currentData];
+export const paintTile = ({
+    index, brushSize, activeLayer, selectedTile,
+    mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
+    setTileMapData, setObjectMapData, setSecretMapData
+}) => {
+    const targetData = activeLayer === 'tile' ? tileMapData : (activeLayer === 'object' ? objectMapData : secretMapData);
+    const setTargetData = activeLayer === 'tile' ? setTileMapData : (activeLayer === 'object' ? setObjectMapData : setSecretMapData);
+    
+    const newData = [...targetData];
     const x = index % mapWidth;
     const y = Math.floor(index / mapWidth);
 
@@ -51,5 +56,5 @@ export const paintTile = (index, selectedTile, brushSize, mapWidth, mapHeight, g
             }
         }
     }
-    setCurrentData(newData);
+    setTargetData(newData);
 };

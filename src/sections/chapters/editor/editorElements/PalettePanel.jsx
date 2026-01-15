@@ -1,5 +1,5 @@
 import React from 'react';
-import { EditorElements } from '../EditorElements';
+import { CollapsiblePanel } from './CollapsiblePanel';
 import AnimatedItem from '../../../../utilities/AnimatedItem';
 
 export const PalettePanel = ({ 
@@ -84,53 +84,53 @@ export const PalettePanel = ({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <EditorElements title="Blocks (Background)" isOpenDefault={true}>
+            <CollapsiblePanel title="Blocks (Background)" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Liquids (Blocks)" isOpenDefault={false}>
+            <CollapsiblePanel title="Liquids (Blocks)" isOpenDefault={false}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Entities (Objects)" isOpenDefault={true}>
+            <CollapsiblePanel title="Entities (Objects)" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Decorations" isOpenDefault={true}>
+            <CollapsiblePanel title="Decorations" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {decorations && decorations.map(d => renderPaletteItem(d, 'purple', 'object'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Items (Objects)" isOpenDefault={true}>
+            <CollapsiblePanel title="Items (Objects)" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {items.map(i => renderPaletteItem(i, 'green', 'object'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Interactables" isOpenDefault={true}>
+            <CollapsiblePanel title="Interactables" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Hazards" isOpenDefault={true}>
+            <CollapsiblePanel title="Hazards" isOpenDefault={true}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
 
-            <EditorElements title="Secrets" isOpenDefault={false}>
+            <CollapsiblePanel title="Secrets" isOpenDefault={false}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {secrets && secrets.map(s => renderPaletteItem(s, 'purple', 'secret'))}
                 </div>
-            </EditorElements>
+            </CollapsiblePanel>
         </div>
     );
 };

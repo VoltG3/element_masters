@@ -6,6 +6,7 @@ import { loadBackgroundOptions, loadMusicOptions } from './assetLoaders';
 import { Viewport } from './Viewport';
 import { NewMapModal } from './editorTools/NewMapModal';
 import { EditorScene } from './EditorScene';
+import { EditorElements } from './EditorElements';
 import { EditorTools } from './EditorTools';
 import PixiStage from '../game/PixiStage';
 
@@ -57,9 +58,9 @@ export const Editor = () => {
     const musicOptions = useMemo(() => loadMusicOptions(), []);
 
     // Background State
-    const [selectedBackgroundImage, setSelectedBackgroundImage] = useState(backgroundOptions[0]?.metaPath || null);
+    const [selectedBackgroundImage, setSelectedBackgroundImage] = useState(null);
     const [backgroundParallaxFactor, setBackgroundParallaxFactor] = useState(0.3);
-    const [selectedBackgroundColor, setSelectedBackgroundColor] = useState('#87CEEB');
+    const [selectedBackgroundColor, setSelectedBackgroundColor] = useState('#99C1F1');
     const [selectedBackgroundMusic, setSelectedBackgroundMusic] = useState(null);
 
     const [playerPosition, setPlayerPosition] = useState({ x: 100, y: 100 });
@@ -105,7 +106,7 @@ export const Editor = () => {
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, 
         setTileMapData, setObjectMapData, setSecretMapData,
         activeTool, brushSize, activeLayer, selectedTile, selection, 
-        setSelection, setPreviewPosition, setOriginalMapData, setDragStart, setIsDragging
+        setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging
     );
 
     // Side Effects
@@ -205,31 +206,16 @@ export const Editor = () => {
                 />
                 
                 <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
-                    <EditorScene
+                    <EditorElements
                         mapName={mapName}
                         creatorName={creatorName}
-                        handleMapResize={handleMapResize}
-                        isResizeWindowOpen={isResizeWindowOpen}
-                        setIsResizeWindowOpen={setIsResizeWindowOpen}
                         openNewMapModal={openNewMapModal}
                         saveMap={handleSaveMap}
                         loadMap={handleLoadMap}
                         clearMap={handleClearMap}
                         isPlayMode={isPlayMode}
-                        activeTool={activeTool}
-                        setActiveTool={setActiveTool}
-                        brushSize={brushSize}
-                        setBrushSize={setBrushSize}
-                        activeLayer={activeLayer}
-                        selection={selection}
-                        moveSelection={moveSelection}
-                        setSelection={setSelection}
-                        selectionMode={selectionMode}
-                        setSelectionMode={setSelectionMode}
-                        commitSelection={commitSelection}
-                        cancelSelection={cancelSelection}
-                        selectedTile={selectedTile}
                         handlePaletteSelect={handlePaletteSelect}
+                        selectedTile={selectedTile}
                         blocks={blocks}
                         liquids={liquids}
                         entities={entities}
@@ -254,7 +240,6 @@ export const Editor = () => {
                         objectsCount={objectsCount}
                         mapWidth={mapWidth}
                         mapHeight={mapHeight}
-                        tileMapData={tileMapData}
                         objectMapData={objectMapData}
                         objectMetadata={objectMetadata}
                         setObjectMetadata={setObjectMetadata}
@@ -264,6 +249,18 @@ export const Editor = () => {
                         activePanel={activePanel}
                         setActivePanel={setActivePanel}
                         togglePanel={togglePanel}
+                    />
+
+                    <EditorScene
+                        handleMapResize={handleMapResize}
+                        isResizeWindowOpen={isResizeWindowOpen}
+                        setIsResizeWindowOpen={setIsResizeWindowOpen}
+                        mapWidth={mapWidth}
+                        mapHeight={mapHeight}
+                        tileMapData={tileMapData}
+                        objectMapData={objectMapData}
+                        objectMetadata={objectMetadata}
+                        registryItems={registryItems}
                     />
 
                     {!isPlayMode ? (

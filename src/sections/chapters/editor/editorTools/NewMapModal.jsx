@@ -1,5 +1,5 @@
 import React from 'react';
-import { buttonStyle } from '../constants';
+import { buttonStyle } from '../styles/EditorToolsButtonStyle';
 
 export const NewMapModal = ({
     isOpen,

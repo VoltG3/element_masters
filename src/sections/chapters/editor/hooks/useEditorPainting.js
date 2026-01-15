@@ -5,7 +5,7 @@ export const useEditorPainting = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, 
     setTileMapData, setObjectMapData, setSecretMapData,
     activeTool, brushSize, activeLayer, selectedTile, selection, 
-    setSelection, setPreviewPosition, setOriginalMapData, setDragStart, setIsDragging
+    setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging
 ) => {
     const [hoverIndex, setHoverIndex] = useState(null);
     const [bucketPreviewIndices, setBucketPreviewIndices] = useState(new Set());
@@ -39,8 +39,7 @@ export const useEditorPainting = (
             const newValue = selectedTile ? selectedTile.id : null;
             if (targetValue === newValue) return;
 
-            const indices = getFloodFillIndices(index, targetValue, targetData, mapWidth, mapHeight);
-            const newData = floodFill(targetValue, newValue, targetData, mapWidth, mapHeight, index);
+            const newData = floodFill(index, newValue, targetData, mapWidth, mapHeight);
             
             if (activeLayer === 'tile') setTileMapData(newData);
             else if (activeLayer === 'object') setObjectMapData(newData);
@@ -57,12 +56,13 @@ export const useEditorPainting = (
 
     const handleGridMouseMove = (index) => {
         setHoverIndex(index);
-        if (activeTool === 'bucket') {
+        if (activeTool === 'brush' && isDragging) {
+            paintTile(index);
+        } else if (activeTool === 'bucket') {
             if (bucketTimerRef.current) clearTimeout(bucketTimerRef.current);
             bucketTimerRef.current = setTimeout(() => {
                 const targetData = activeLayer === 'tile' ? tileMapData : (activeLayer === 'object' ? objectMapData : secretMapData);
-                const targetValue = targetData[index];
-                const indices = getFloodFillIndices(index, targetValue, targetData, mapWidth, mapHeight);
+                const indices = getFloodFillIndices(index, targetData, mapWidth, mapHeight);
                 setBucketPreviewIndices(indices);
             }, 10);
         }
