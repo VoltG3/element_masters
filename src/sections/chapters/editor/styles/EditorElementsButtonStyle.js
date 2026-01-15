@@ -1,3 +1,16 @@
+export const sidebarContainerStyle = {
+    width: '60px',
+    height: '100%',
+    backgroundColor: '#222',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingTop: '10px',
+    zIndex: 1001,
+    borderRight: '1px solid #000',
+    flexShrink: 0
+};
+
 export const sidebarButtonStyle = {
     width: '40px',
     height: '40px',
@@ -22,6 +35,18 @@ export const activeSidebarButtonStyle = {
     transform: 'scale(1.05)'
 };
 
+export const panelContainerStyle = {
+    width: '320px',
+    height: '100%',
+    backgroundColor: '#fff',
+    borderRight: '1px solid #ddd',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    zIndex: 1000,
+    transition: 'width 0.2s ease'
+};
+
 export const panelHeaderStyle = {
     padding: '8px 15px',
     backgroundColor: '#f0f0f0',
@@ -36,8 +61,25 @@ export const panelHeaderStyle = {
     color: '#333'
 };
 
-// Also needed for panels inside EditorElements
-export const baseButtonStyle = {
+export const panelBodyStyle = {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '15px'
+};
+
+export const closeButtonStyle = {
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '0 5px',
+    color: '#666',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+};
+
+const baseButtonStyle = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -60,3 +102,11 @@ export const baseButtonStyle = {
 };
 
 export const buttonStyle = { ...baseButtonStyle };
+
+export const operationButtonStyle = {
+    ...buttonStyle,
+    height: '40px',
+    width: '100%',
+    margin: 0,
+    gap: '8px'
+};

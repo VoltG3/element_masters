@@ -1,5 +1,5 @@
 import React from 'react';
-import { buttonStyle } from '../styles/EditorElementsButtonStyle';
+import { operationButtonStyle } from '../styles/EditorElementsButtonStyle';
 
 export const OperationsPanel = ({ 
     openNewMapModal, 
@@ -23,7 +23,7 @@ export const OperationsPanel = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <button 
                         onClick={openNewMapModal} 
-                        style={{ ...buttonStyle, height: '40px', width: '100%', margin: 0, gap: '8px' }}
+                        style={operationButtonStyle}
                         title="New Map"
                     >
                         <span style={{ fontSize: '18px' }}>📄</span>
@@ -31,14 +31,14 @@ export const OperationsPanel = ({
                     </button>
                     <button 
                         onClick={saveMap} 
-                        style={{ ...buttonStyle, height: '40px', width: '100%', margin: 0, gap: '8px' }}
+                        style={operationButtonStyle}
                         title="Save Map"
                     >
                         <span style={{ fontSize: '18px' }}>💾</span>
                         <span>Save</span>
                     </button>
                     <label 
-                        style={{ ...buttonStyle, height: '40px', width: '100%', margin: 0, gap: '8px', cursor: 'pointer' }}
+                        style={{ ...operationButtonStyle, cursor: 'pointer' }}
                         title="Load Map"
                     >
                         <span style={{ fontSize: '18px' }}>📂</span>
@@ -47,7 +47,7 @@ export const OperationsPanel = ({
                     </label>
                     <button 
                         onClick={clearMap} 
-                        style={{ ...buttonStyle, height: '40px', width: '100%', margin: 0, gap: '8px', color: '#d32f2f' }}
+                        style={{ ...operationButtonStyle, color: '#d32f2f' }}
                         title="Clear Map"
                     >
                         <span style={{ fontSize: '18px' }}>🗑️</span>

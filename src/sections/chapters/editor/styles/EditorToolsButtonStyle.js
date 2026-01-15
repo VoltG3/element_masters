@@ -1,4 +1,4 @@
-export const baseButtonStyle = {
+const baseButtonStyle = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -20,7 +20,7 @@ export const baseButtonStyle = {
     transition: 'all 0.2s ease'
 };
 
-export const baseActiveButtonStyle = {
+const baseActiveButtonStyle = {
     ...baseButtonStyle,
     backgroundColor: '#aaa',
     borderColor: '#000',
@@ -89,4 +89,118 @@ export const panelHeaderStyle = {
     height: '32px',
     boxSizing: 'border-box',
     color: '#333'
+};
+
+export const headerBarStyle = {
+    ...panelHeaderStyle,
+    zIndex: 1000,
+    position: 'relative'
+};
+
+export const toolsGroupStyle = {
+    display: 'flex',
+    gap: '8px',
+    borderRight: '1px solid #ddd',
+    paddingRight: '8px',
+    marginRight: '4px',
+    alignItems: 'center'
+};
+
+export const toolsInnerGroupStyle = {
+    display: 'flex',
+    gap: '2px',
+    marginLeft: '5px',
+    paddingLeft: '5px',
+    borderLeft: '1px solid #ddd'
+};
+
+export const layerIndicatorStyle = {
+    padding: '0 8px',
+    height: '28px',
+    borderRadius: '3px',
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '9px',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginRight: '8px',
+    whiteSpace: 'nowrap',
+    border: '1px solid'
+};
+
+export const brushSizeButtonStyle = {
+    ...buttonStyle,
+    width: '28px',
+    height: '28px',
+    padding: 0,
+    justifyContent: 'center',
+    fontSize: '13px'
+};
+
+export const activeBrushSizeButtonStyle = {
+    ...activeButtonStyle,
+    width: '28px',
+    height: '28px',
+    padding: 0,
+    justifyContent: 'center',
+    fontSize: '13px'
+};
+
+export const confirmButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#28a745',
+    color: '#fff',
+    borderColor: '#218838'
+};
+
+export const cancelButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#dc3545',
+    color: '#fff',
+    borderColor: '#c82333'
+};
+
+export const bgColorContainerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    marginLeft: '4px',
+    paddingLeft: '8px',
+    borderLeft: '1px solid #ddd'
+};
+
+export const bgColorInputStyle = {
+    width: '24px',
+    height: '24px',
+    border: '1px solid #333',
+    padding: '1px',
+    cursor: 'pointer',
+    backgroundColor: '#fff',
+    borderRadius: '3px',
+    boxSizing: 'border-box'
+};
+
+export const infoContainerStyle = {
+    display: 'flex',
+    gap: '20px',
+    alignItems: 'center',
+    color: '#666',
+    marginLeft: 'auto'
+};
+
+export const infoItemStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+};
+
+export const infoLabelStyle = {
+    fontSize: '11px',
+    textTransform: 'uppercase',
+    opacity: 0.7
+};
+
+export const infoValueStyle = {
+    color: '#000',
+    fontSize: '12px'
 };

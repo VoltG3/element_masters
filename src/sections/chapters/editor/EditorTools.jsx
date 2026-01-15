@@ -6,7 +6,21 @@ import {
     toolButtonStyle,
     activeToolButtonStyle,
     playButtonStyle,
-    pauseButtonStyle
+    pauseButtonStyle,
+    headerBarStyle,
+    toolsGroupStyle,
+    toolsInnerGroupStyle,
+    layerIndicatorStyle,
+    brushSizeButtonStyle,
+    activeBrushSizeButtonStyle,
+    confirmButtonStyle,
+    cancelButtonStyle,
+    bgColorContainerStyle,
+    bgColorInputStyle,
+    infoContainerStyle,
+    infoItemStyle,
+    infoLabelStyle,
+    infoValueStyle
 } from './styles/EditorToolsButtonStyle';
 
 export const EditorTools = ({
@@ -36,7 +50,7 @@ export const EditorTools = ({
     selectedBackgroundColor,
     setSelectedBackgroundColor
 }) => {
-    const eraserButtonStyle = (layer, color) => {
+    const getEraserButtonStyle = (layer, color) => {
         const isActive = selectedTile === null && activeLayer === layer;
         return {
             ...toolButtonStyle,
@@ -48,6 +62,21 @@ export const EditorTools = ({
         };
     };
 
+    const getLayerIndicatorStyle = () => {
+        const colors = {
+            tile: { bg: '#e6f7ff', border: '#91d5ff', text: '#1890ff' },
+            object: { bg: '#fff1f0', border: '#ffa39e', text: '#f5222d' },
+            secret: { bg: '#f9f0ff', border: '#d3adf7', text: '#722ed1' }
+        };
+        const active = colors[activeLayer] || colors.tile;
+        return {
+            ...layerIndicatorStyle,
+            backgroundColor: active.bg,
+            borderColor: active.border,
+            color: active.text
+        };
+    };
+
     const hoverStyle = (e, active = false) => {
         e.currentTarget.style.backgroundColor = active ? '#aaa' : '#ccc';
     };
@@ -56,37 +85,15 @@ export const EditorTools = ({
         e.currentTarget.style.backgroundColor = active ? '#aaa' : '#f0f0f0';
     };
 
-    const headerBarStyle = {
-        ...panelHeaderStyle,
-        backgroundColor: '#f0f0f0',
-        zIndex: 1000,
-        position: 'relative'
-    };
-
     return (
         <div style={{ display: 'contents' }}>
             {/* Main Header Bar */}
             <div style={headerBarStyle}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {!isPlayMode && (
-                        <div style={{ display: 'flex', gap: '8px', borderRight: '1px solid #ddd', paddingRight: '8px', marginRight: '4px', alignItems: 'center' }}>
+                        <div style={toolsGroupStyle}>
                             {/* Active Layer Indicator */}
-                            <div style={{ 
-                                padding: '0 8px', 
-                                height: '28px', 
-                                backgroundColor: activeLayer === 'tile' ? '#e6f7ff' : (activeLayer === 'object' ? '#fff1f0' : '#f9f0ff'),
-                                border: '1px solid',
-                                borderColor: activeLayer === 'tile' ? '#91d5ff' : (activeLayer === 'object' ? '#ffa39e' : '#d3adf7'),
-                                borderRadius: '3px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                fontSize: '9px',
-                                fontWeight: '800',
-                                color: activeLayer === 'tile' ? '#1890ff' : (activeLayer === 'object' ? '#f5222d' : '#722ed1'),
-                                textTransform: 'uppercase',
-                                marginRight: '8px',
-                                whiteSpace: 'nowrap'
-                            }}>
+                            <div style={getLayerIndicatorStyle()}>
                                 Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Secrets')}
                             </div>
 
@@ -97,31 +104,34 @@ export const EditorTools = ({
                             </div>
 
                             {activeTool === 'brush' && (
-                                <div style={{ display: 'flex', gap: '2px', marginLeft: '5px', paddingLeft: '5px', borderLeft: '1px solid #ddd' }}>
+                                <div style={toolsInnerGroupStyle}>
                                     {[1, 2, 3, 4, 5].map(size => (
                                         <button key={size} onClick={() => setBrushSize(size)}
-                                            style={{ ...(brushSize === size ? activeButtonStyle : buttonStyle), width: '28px', height: '28px', padding: 0, justifyContent: 'center', fontSize: '13px' }}>
+                                            style={brushSize === size ? activeBrushSizeButtonStyle : brushSizeButtonStyle}
+                                            onMouseEnter={hoverStyle}
+                                            onMouseLeave={(e) => unhoverStyle(e, brushSize === size)}
+                                        >
                                             {size}
                                         </button>
                                     ))}
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', gap: '2px', marginLeft: '5px', paddingLeft: '5px', borderLeft: '1px solid #ddd' }}>
-                                <button onClick={() => handlePaletteSelect(null, 'tile')} style={eraserButtonStyle('tile', 'blue')} title="Erase Blocks">⌫B</button>
-                                <button onClick={() => handlePaletteSelect(null, 'object')} style={eraserButtonStyle('object', 'red')} title="Erase Objects">⌫O</button>
-                                <button onClick={() => handlePaletteSelect(null, 'secret')} style={eraserButtonStyle('secret', 'purple')} title="Erase Secrets">⌫S</button>
+                            <div style={toolsInnerGroupStyle}>
+                                <button onClick={() => handlePaletteSelect(null, 'tile')} style={getEraserButtonStyle('tile', 'blue')} title="Erase Blocks">⌫B</button>
+                                <button onClick={() => handlePaletteSelect(null, 'object')} style={getEraserButtonStyle('object', 'red')} title="Erase Objects">⌫O</button>
+                                <button onClick={() => handlePaletteSelect(null, 'secret')} style={getEraserButtonStyle('secret', 'purple')} title="Erase Secrets">⌫S</button>
                             </div>
 
                             {activeTool === 'move' && (
-                                <div style={{ display: 'flex', gap: '4px', marginLeft: '5px', paddingLeft: '5px', borderLeft: '1px solid #ddd' }}>
+                                <div style={toolsInnerGroupStyle}>
                                     <button onClick={() => setSelectionMode('cut')} style={selectionMode === 'cut' ? activeButtonStyle : buttonStyle} title="Cut Selection">✂️</button>
                                     <button onClick={() => setSelectionMode('copy')} style={selectionMode === 'copy' ? activeButtonStyle : buttonStyle} title="Copy Selection">📋</button>
                                     
                                     {selection && (
                                         <div style={{ display: 'flex', gap: '2px' }}>
-                                            <button onClick={commitSelection} style={{ ...buttonStyle, backgroundColor: '#28a745', color: '#fff' }} title="Confirm Selection">✓</button>
-                                            <button onClick={cancelSelection} style={{ ...buttonStyle, backgroundColor: '#dc3545', color: '#fff' }} title="Cancel Selection">✕</button>
+                                            <button onClick={commitSelection} style={confirmButtonStyle} title="Confirm Selection">✓</button>
+                                            <button onClick={cancelSelection} style={cancelButtonStyle} title="Cancel Selection">✕</button>
                                         </div>
                                     )}
                                 </div>
@@ -141,22 +151,13 @@ export const EditorTools = ({
                     </button>
 
                     {!isPlayMode && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: '4px', paddingLeft: '8px', borderLeft: '1px solid #ddd' }}>
+                        <div style={bgColorContainerStyle}>
                             <span style={{ fontSize: '9px', color: '#666', fontWeight: '800', textTransform: 'uppercase' }}>BG Color:</span>
                             <input 
                                 type="color" 
                                 value={selectedBackgroundColor}
                                 onChange={(e) => setSelectedBackgroundColor(e.target.value)}
-                                style={{ 
-                                    width: '24px', 
-                                    height: '24px', 
-                                    border: '1px solid #333', 
-                                    padding: '1px', 
-                                    cursor: 'pointer',
-                                    backgroundColor: '#fff',
-                                    borderRadius: '3px',
-                                    boxSizing: 'border-box'
-                                }} 
+                                style={bgColorInputStyle} 
                                 title="Background Color"
                             />
                         </div>
@@ -201,14 +202,14 @@ export const EditorTools = ({
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', color: '#666', marginLeft: 'auto' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase', opacity: 0.7 }}>Map:</span>
-                        <span style={{ color: '#000', fontSize: '12px' }}>{mapName}</span>
+                <div style={infoContainerStyle}>
+                    <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>Map:</span>
+                        <span style={infoValueStyle}>{mapName}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase', opacity: 0.7 }}>By:</span>
-                        <span style={{ color: '#000', fontSize: '12px' }}>{creatorName}</span>
+                    <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>By:</span>
+                        <span style={infoValueStyle}>{creatorName}</span>
                     </div>
                 </div>
             </div>

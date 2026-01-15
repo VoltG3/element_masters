@@ -1,5 +1,13 @@
 import React from 'react';
-import { sidebarButtonStyle, activeSidebarButtonStyle, panelHeaderStyle } from './styles/EditorElementsButtonStyle';
+import { 
+    sidebarButtonStyle, 
+    activeSidebarButtonStyle, 
+    panelHeaderStyle,
+    sidebarContainerStyle,
+    panelContainerStyle,
+    panelBodyStyle,
+    closeButtonStyle
+} from './styles/EditorElementsButtonStyle';
 
 // Panels
 import { OperationsPanel } from './editorElements/OperationsPanel';
@@ -64,18 +72,7 @@ export const EditorElements = ({
     return (
         <div style={{ display: 'contents' }}>
             {/* Sidebar Left Icons */}
-            <div style={{
-                width: '60px',
-                height: '100%',
-                backgroundColor: '#222',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                paddingTop: '10px',
-                zIndex: 1001,
-                borderRight: '1px solid #000',
-                flexShrink: 0
-            }}>
+            <div style={sidebarContainerStyle}>
                 <div onClick={() => togglePanel('map')} style={activePanel === 'map' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Map Controls">⚙️</div>
                 <div onClick={() => togglePanel('palette')} style={activePanel === 'palette' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Palette">🧱</div>
                 <div onClick={() => togglePanel('background')} style={activePanel === 'background' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Background">🖼️</div>
@@ -86,38 +83,18 @@ export const EditorElements = ({
 
             {/* Sidebar Fixed Panel Content */}
             {activePanel && (
-                <div style={{
-                    width: '320px',
-                    height: '100%',
-                    backgroundColor: '#fff',
-                    borderRight: '1px solid #ddd',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexShrink: 0,
-                    zIndex: 1000,
-                    transition: 'width 0.2s ease'
-                }}>
+                <div style={panelContainerStyle}>
                     {/* Panel Header */}
                     <div style={panelHeaderStyle}>
                         <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>{panelTitles[activePanel]}</span>
                         <button 
                             onClick={() => setActivePanel(null)} 
-                            style={{ 
-                                border: 'none', 
-                                background: 'none', 
-                                cursor: 'pointer', 
-                                fontSize: '16px', 
-                                padding: '0 5px',
-                                color: '#666',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
+                            style={closeButtonStyle}
                         >✕</button>
                     </div>
 
                     {/* Panel Body */}
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '15px' }}>
+                    <div style={panelBodyStyle}>
                         {activePanel === 'map' && (
                             <OperationsPanel 
                                 openNewMapModal={openNewMapModal}

@@ -21,3 +21,13 @@ export const activeSidebarButtonStyle = {
     borderColor: '#1E88E5',
     transform: 'scale(1.05)'
 };
+
+export const rightSidebarStyle = {
+    position: 'absolute',
+    top: '70px',
+    right: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    zIndex: 1001
+};

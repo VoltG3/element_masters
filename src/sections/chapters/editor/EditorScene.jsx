@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DraggableWindow } from './editorScene/DraggableWindow';
 import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
-import { sidebarButtonStyle, activeSidebarButtonStyle } from './styles/EditorSceneButtonStyle';
+import { sidebarButtonStyle, activeSidebarButtonStyle, rightSidebarStyle } from './styles/EditorSceneButtonStyle';
 
 export const EditorScene = ({
     handleMapResize,
@@ -17,16 +17,6 @@ export const EditorScene = ({
 }) => {
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-    const rightSidebarStyle = {
-        position: 'absolute',
-        top: '70px',
-        right: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        zIndex: 1001
-    };
 
     return (
         <div style={{ display: 'contents' }}>
