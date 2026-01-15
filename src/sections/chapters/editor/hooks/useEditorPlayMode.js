@@ -7,7 +7,8 @@ const EMPTY_ARRAY = [];
 export const useEditorPlayMode = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
     selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
-    registryItems, playerPosition, setPlayerPosition, setObjectMetadata
+    registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
+    weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
 ) => {
     const [isPlayMode, setIsPlayMode] = useState(false);
     const [editorSnapshot, setEditorSnapshot] = useState(null);
@@ -23,13 +24,24 @@ export const useEditorPlayMode = (
             backgroundImage: selectedBackgroundImage,
             backgroundColor: selectedBackgroundColor,
             backgroundParallaxFactor: backgroundParallaxFactor,
-            objectMetadata: objectMetadata
+            objectMetadata: objectMetadata,
+            weather: {
+                rain: weatherRain,
+                snow: weatherSnow,
+                clouds: weatherClouds,
+                fog: weatherFog,
+                thunder: weatherThunder
+            }
         },
         layers: [
             { type: "tile", name: "background", data: tileMapData },
             { type: "object", name: "entities", data: playModeObjectData }
         ]
-    }), [mapWidth, mapHeight, selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, tileMapData, playModeObjectData, objectMetadata]);
+    }), [
+        mapWidth, mapHeight, selectedBackgroundImage, selectedBackgroundColor, 
+        backgroundParallaxFactor, tileMapData, playModeObjectData, objectMetadata,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
+    ]);
 
     const handleGameOver = useCallback(() => {
         setIsPlayMode(false);

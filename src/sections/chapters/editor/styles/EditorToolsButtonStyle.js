@@ -69,17 +69,19 @@ export const toolsInnerGroupStyle = {
 };
 
 export const layerIndicatorStyle = {
-    padding: '0 8px',
-    height: '32px',
-    borderRadius: '3px',
+    padding: '0 12px',
+    height: '40px',
+    borderRadius: '4px',
     display: 'flex',
     alignItems: 'center',
-    fontSize: '9px',
+    fontSize: '11px',
     fontWeight: '800',
     textTransform: 'uppercase',
-    marginRight: '8px',
+    marginRight: '15px',
+    marginLeft: '15px',
     whiteSpace: 'nowrap',
-    border: '1px solid'
+    border: '1px solid',
+    boxSizing: 'border-box'
 };
 
 export const bgColorContainerStyle = {
@@ -99,6 +101,44 @@ export const bgColorInputStyle = {
     boxSizing: 'border-box',
     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
 };
+
+export const PlayButtonContainer = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 1px solid #fff;
+    padding: 4px;
+    cursor: pointer;
+    background-color: #333;
+    border-radius: 4px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: scale(1.05);
+        background-color: #444;
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+`;
+
+export const PlayButtonInner = styled.div`
+    width: 100%;
+    height: 100%;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: ${props => props.$variant === 'play' ? '#4CAF50' : (props.$variant === 'pause' ? '#FF9800' : '#333')};
+    color: #fff;
+    font-size: 18px;
+    box-sizing: border-box;
+`;
 
 export const infoContainerStyle = {
     display: 'flex',

@@ -64,6 +64,13 @@ export const Editor = () => {
     const [selectedBackgroundColor, setSelectedBackgroundColor] = useState('#99C1F1');
     const [selectedBackgroundMusic, setSelectedBackgroundMusic] = useState(null);
 
+    // Weather State
+    const [weatherRain, setWeatherRain] = useState(0);
+    const [weatherSnow, setWeatherSnow] = useState(0);
+    const [weatherClouds, setWeatherClouds] = useState(0);
+    const [weatherFog, setWeatherFog] = useState(0);
+    const [weatherThunder, setWeatherThunder] = useState(0);
+
     const [playerPosition, setPlayerPosition] = useState({ x: 100, y: 100 });
 
     const selectedBgOption = backgroundOptions.find((bg) => bg.metaPath === selectedBackgroundImage) || backgroundOptions[0];
@@ -84,7 +91,8 @@ export const Editor = () => {
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
-        registryItems, playerPosition, setPlayerPosition, setObjectMetadata
+        registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
     );
 
     const {
@@ -97,7 +105,9 @@ export const Editor = () => {
         setSelectedBackgroundImage, setSelectedBackgroundColor,
         setBackgroundParallaxFactor, setSelectedBackgroundMusic,
         setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
-        setIsNewMapModalOpen, setTempMapName, setTempCreatorName
+        setIsNewMapModalOpen, setTempMapName, setTempCreatorName,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder
     );
 
     const {
@@ -302,6 +312,16 @@ export const Editor = () => {
                         musicOptions={musicOptions}
                         selectedBackgroundMusic={selectedBackgroundMusic}
                         setSelectedBackgroundMusic={setSelectedBackgroundMusic}
+                        weatherRain={weatherRain}
+                        setWeatherRain={setWeatherRain}
+                        weatherSnow={weatherSnow}
+                        setWeatherSnow={setWeatherSnow}
+                        weatherClouds={weatherClouds}
+                        setWeatherClouds={setWeatherClouds}
+                        weatherFog={weatherFog}
+                        setWeatherFog={setWeatherFog}
+                        weatherThunder={weatherThunder}
+                        setWeatherThunder={setWeatherThunder}
                     />
 
                     {!isPlayMode ? (
@@ -333,6 +353,11 @@ export const Editor = () => {
                             handleGridMouseUp={handleGridMouseUp}
                             handleGridMouseLeave={handleGridMouseLeave}
                             setIsDragging={setIsDragging}
+                            weatherRain={weatherRain}
+                            weatherSnow={weatherSnow}
+                            weatherClouds={weatherClouds}
+                            weatherFog={weatherFog}
+                            weatherThunder={weatherThunder}
                         />
                     ) : (
                         <div style={{ flex: 1, position: 'relative', backgroundColor: '#000' }}>

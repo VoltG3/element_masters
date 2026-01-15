@@ -11,7 +11,9 @@ export const useEditorOperations = (
     setSelectedBackgroundImage, setSelectedBackgroundColor,
     setBackgroundParallaxFactor, setSelectedBackgroundMusic,
     setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
-    setIsNewMapModalOpen, setTempMapName, setTempCreatorName
+    setIsNewMapModalOpen, setTempMapName, setTempCreatorName,
+    weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+    setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder
 ) => {
     const handleSaveMap = useCallback(() => {
         saveMap({
@@ -19,14 +21,16 @@ export const useEditorOperations = (
             mapName, creatorName, createdAt,
             selectedBackgroundImage, selectedBackgroundColor,
             backgroundParallaxFactor, selectedBackgroundMusic,
-            registryItems, setCreatedAt
+            registryItems, setCreatedAt,
+            weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
         });
     }, [
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
         mapName, creatorName, createdAt,
         selectedBackgroundImage, selectedBackgroundColor,
         backgroundParallaxFactor, selectedBackgroundMusic,
-        registryItems, setCreatedAt
+        registryItems, setCreatedAt,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
     ]);
 
     const handleLoadMap = useCallback((event) => {
@@ -34,13 +38,15 @@ export const useEditorOperations = (
             event, setMapWidth, setMapHeight, setMapName, setCreatorName,
             setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
             setBackgroundParallaxFactor, setSelectedBackgroundMusic,
-            setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
+            setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
+            setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder
         });
     }, [
         setMapWidth, setMapHeight, setMapName, setCreatorName,
         setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
         setBackgroundParallaxFactor, setSelectedBackgroundMusic,
-        setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
+        setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
+        setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder
     ]);
 
     const handleClearMap = useCallback(() => {

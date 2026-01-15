@@ -1,6 +1,7 @@
 import React from 'react';
 import { ObjectLinks } from './viewport/ObjectLinks';
 import { EditorTile } from './viewport/EditorTile';
+import PixiStage from '../game/PixiStage';
 
 export const Viewport = ({
     mapWidth,
@@ -30,7 +31,12 @@ export const Viewport = ({
     handleGridMouseUp,
     handleGridMouseLeave,
     setIsDragging,
-    selectedTile
+    selectedTile,
+    weatherRain,
+    weatherSnow,
+    weatherClouds,
+    weatherFog,
+    weatherThunder
 }) => {
     const isEraserActive = activeTool === 'brush' && selectedTile === null;
     const isBrushActive = activeTool === 'brush';
@@ -122,6 +128,33 @@ export const Viewport = ({
                         ...getGridStyles()
                     }}
                 />
+
+                {/* Weather Effects Overlay */}
+                {(weatherRain > 0 || weatherSnow > 0 || weatherClouds > 0 || weatherFog > 0 || weatherThunder > 0) && (
+                    <div
+                        style={{
+                            position: 'absolute', top: 0, left: 0,
+                            width: mapWidth * 32, height: mapHeight * 32,
+                            zIndex: 15, pointerEvents: 'none',
+                        }}
+                    >
+                        <PixiStage 
+                            mapWidth={mapWidth}
+                            mapHeight={mapHeight}
+                            tileSize={32}
+                            tileMapData={[]}
+                            objectMapData={[]}
+                            registryItems={registryItems}
+                            weatherRain={weatherRain}
+                            weatherSnow={weatherSnow}
+                            weatherClouds={weatherClouds}
+                            weatherFog={weatherFog}
+                            weatherThunder={weatherThunder}
+                            renderLayers={['weather']}
+                            pointerEvents="none"
+                        />
+                    </div>
+                )}
 
                 <div className="grid"
                     style={{

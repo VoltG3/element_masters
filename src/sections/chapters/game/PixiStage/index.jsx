@@ -52,6 +52,8 @@ const PixiStage = ({
   lavaEmbersEnabled = true,
   isEditor = false,
   showGrid = false,
+  renderLayers = null, // null means all layers, otherwise an array of layer names to show
+  pointerEvents = 'auto',
 }) => {
   const [isPixiReady, setIsPixiReady] = useState(false);
 
@@ -226,7 +228,27 @@ const PixiStage = ({
       parallaxRef.current = parallaxLayer;
 
       // Add all layers to stage
-      app.stage.addChild(bg, bgAnim, parallaxLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, overlayLayer);
+      const allLayersMap = {
+        background: [bg, bgAnim],
+        parallax: [parallaxLayer],
+        tiles: [bg, bgAnim], // Aliased for convenience
+        objects: [objBehind, objFront, secretBelowLayer, secretAboveLayer, entitiesLayer, projLayer],
+        player: [playerLayer],
+        weather: [weatherLayer, fogLayer],
+        liquids: [liquidLayer, liquidFxLayer],
+        overlay: [overlayLayer]
+      };
+
+      if (renderLayers) {
+        renderLayers.forEach(layerName => {
+          const layers = allLayersMap[layerName];
+          if (layers) layers.forEach(l => {
+            if (!app.stage.children.includes(l)) app.stage.addChild(l);
+          });
+        });
+      } else {
+        app.stage.addChild(bg, bgAnim, parallaxLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, overlayLayer);
+      }
 
       // Preload textures to avoid Assets cache warnings and ensure textures are ready
       try {
@@ -769,7 +791,7 @@ const PixiStage = ({
     rebuildParallax();
   }, [backgroundImage, backgroundColor, rebuildParallax]);
 
-  return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
+  return <div ref={mountRef} style={{ width: '100%', height: '100%', pointerEvents }} />;
 };
 
 PixiStage.propTypes = {
@@ -799,6 +821,8 @@ PixiStage.propTypes = {
   lavaBarEnabled: PropTypes.bool,
   waterSplashesEnabled: PropTypes.bool,
   lavaEmbersEnabled: PropTypes.bool,
+  renderLayers: PropTypes.arrayOf(PropTypes.string),
+  pointerEvents: PropTypes.string,
 };
 
 export default PixiStage;

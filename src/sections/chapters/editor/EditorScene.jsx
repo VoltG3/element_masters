@@ -4,6 +4,7 @@ import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
 import { BackgroundPanel } from './editorScene/BackgroundPanel';
 import { MusicPanel } from './editorScene/MusicPanel';
+import { WeatherPanel } from './editorScene/WeatherPanel';
 import { SceneEditorButton, RightSidebarContainer } from './styles/EditorSceneButtonStyle';
 
 export const EditorScene = ({
@@ -25,7 +26,17 @@ export const EditorScene = ({
     setBackgroundParallaxFactor,
     musicOptions,
     selectedBackgroundMusic,
-    setSelectedBackgroundMusic
+    setSelectedBackgroundMusic,
+    weatherRain,
+    setWeatherRain,
+    weatherSnow,
+    setWeatherSnow,
+    weatherClouds,
+    setWeatherClouds,
+    weatherFog,
+    setWeatherFog,
+    weatherThunder,
+    setWeatherThunder
 }) => {
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -38,7 +49,9 @@ export const EditorScene = ({
             <RightSidebarContainer>
                 <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Minimap">🗺️</SceneEditorButton>
                 <SceneEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title="Background">🖼️</SceneEditorButton>
-                <SceneEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">🎼</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">
+                    <span style={{ color: '#fff' }}>𝄞</span>
+                </SceneEditorButton>
                 <SceneEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title="Settings">🛠️</SceneEditorButton>
                 <SceneEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title="Resize Map">📐</SceneEditorButton>
             </RightSidebarContainer>
@@ -106,7 +119,18 @@ export const EditorScene = ({
                     isOpenDefault={true}
                     onClose={() => setIsSettingsOpen(false)}
                 >
-                    <div style={{ padding: '10px', textAlign: 'center', color: '#666' }}>empty</div>
+                    <WeatherPanel 
+                        weatherRain={weatherRain}
+                        setWeatherRain={setWeatherRain}
+                        weatherSnow={weatherSnow}
+                        setWeatherSnow={setWeatherSnow}
+                        weatherClouds={weatherClouds}
+                        setWeatherClouds={setWeatherClouds}
+                        weatherFog={weatherFog}
+                        setWeatherFog={setWeatherFog}
+                        weatherThunder={weatherThunder}
+                        setWeatherThunder={setWeatherThunder}
+                    />
                 </DraggableWindow>
             )}
 

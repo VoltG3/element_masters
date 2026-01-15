@@ -16,7 +16,12 @@ export const saveMap = async ({
     backgroundParallaxFactor,
     selectedBackgroundMusic,
     registryItems,
-    setCreatedAt
+    setCreatedAt,
+    weatherRain,
+    weatherSnow,
+    weatherClouds,
+    weatherFog,
+    weatherThunder
 }) => {
     const currentDate = new Date().toISOString();
     const createdDate = createdAt || currentDate;
@@ -44,6 +49,13 @@ export const saveMap = async ({
             backgroundColor: selectedBackgroundImage ? null : selectedBackgroundColor,
             backgroundParallaxFactor: backgroundParallaxFactor,
             backgroundMusic: selectedBackgroundMusic || null,
+            weather: {
+                rain: weatherRain || 0,
+                snow: weatherSnow || 0,
+                clouds: weatherClouds || 0,
+                fog: weatherFog || 0,
+                thunder: weatherThunder || 0
+            },
             objectMetadata: objectMetadata || {}
         },
         statistics: {
@@ -98,7 +110,12 @@ export const loadMap = ({
     setTileMapData,
     setObjectMapData,
     setSecretMapData,
-    setObjectMetadata
+    setObjectMetadata,
+    setWeatherRain,
+    setWeatherSnow,
+    setWeatherClouds,
+    setWeatherFog,
+    setWeatherThunder
 }) => {
     const fileReader = new FileReader();
     const file = event.target.files[0];
@@ -140,6 +157,20 @@ export const loadMap = ({
                         setObjectMetadata(loaded.meta.objectMetadata);
                     } else {
                         setObjectMetadata({});
+                    }
+
+                    if (loaded.meta.weather) {
+                        setWeatherRain(loaded.meta.weather.rain || 0);
+                        setWeatherSnow(loaded.meta.weather.snow || 0);
+                        setWeatherClouds(loaded.meta.weather.clouds || 0);
+                        setWeatherFog(loaded.meta.weather.fog || 0);
+                        setWeatherThunder(loaded.meta.weather.thunder || 0);
+                    } else {
+                        setWeatherRain(0);
+                        setWeatherSnow(0);
+                        setWeatherClouds(0);
+                        setWeatherFog(0);
+                        setWeatherThunder(0);
                     }
 
                     const bgLayer = loaded.layers.find(l => l.name === 'background');

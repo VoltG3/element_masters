@@ -55,15 +55,23 @@ export const ElementEditorButton = styled.button`
 `;
 
 export const PanelContainer = styled.div`
+    position: absolute;
+    left: 60px;
+    top: 60px;
     width: 320px;
-    height: 100%;
+    height: calc(100% - 60px);
     background-color: #fff;
     border-right: 1px solid #ddd;
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
-    z-index: 1000;
-    transition: width 0.2s ease;
+    z-index: 990;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.2);
+    
+    /* Animation settings */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    transform: ${props => props.$isOpen ? 'translateX(0)' : 'translateX(-110%)'};
+    opacity: ${props => props.$isOpen ? '1' : '0'};
+    pointer-events: ${props => props.$isOpen ? 'all' : 'none'};
 `;
 
 export const PanelHeader = styled.div`
