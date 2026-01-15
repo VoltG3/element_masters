@@ -9,13 +9,22 @@ export const useEditorRegistry = (registryItems) => {
         registryItems.filter(item => item.flags && item.flags.liquid), 
     [registryItems]);
 
-    const entities = useMemo(() => 
-        registryItems.filter(item => {
+    const entities = useMemo(() => {
+        const baseEntities = registryItems.filter(item => {
             if (!item.name || !item.name.toLowerCase().includes('entities.')) return false;
             if (item.isHiddenInEditor) return false;
             return !item.type || item.type === 'default' || item.type === 'entity' || item.subtype === 'tank';
-        }), 
-    [registryItems]);
+        });
+
+        const itemsToMove = registryItems.filter(item => 
+            item.name && 
+            item.name.startsWith('item.') && 
+            item.id !== 'hertz_item' && 
+            item.id !== 'fireball_ammo'
+        );
+
+        return [...baseEntities, ...itemsToMove];
+    }, [registryItems]);
 
     const decorations = useMemo(() => 
         registryItems.filter(item => {
@@ -27,7 +36,11 @@ export const useEditorRegistry = (registryItems) => {
     [registryItems]);
 
     const items = useMemo(() => 
-        registryItems.filter(item => item.name && item.name.startsWith('item.')), 
+        registryItems.filter(item => 
+            item.name && 
+            item.name.startsWith('item.') && 
+            (item.id === 'hertz_item' || item.id === 'fireball_ammo')
+        ), 
     [registryItems]);
 
     const interactables = useMemo(() => 

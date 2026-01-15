@@ -50,7 +50,15 @@ export const EditorElements = ({
 }) => {
     const panelTitles = {
         map: 'Operations',
-        palette: 'Palette',
+        blocks: 'Blocks',
+        liquids: 'Liquids (Blocks)',
+        decorations: 'Decorations',
+        entities: 'Entities (Objects)',
+        items: 'Items (Objects)',
+        interactables: 'Interactables',
+        hazards: 'Hazards',
+        secrets: 'Secrets',
+        obstacles: 'Obstacles',
         stats: 'Statistics',
         props: 'Object Properties'
     };
@@ -60,7 +68,15 @@ export const EditorElements = ({
             {/* Sidebar Left Icons */}
             <SidebarContainer>
                 <ElementEditorButton onClick={() => togglePanel('map')} $active={activePanel === 'map'} title="Map Controls">⚙️</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('palette')} $active={activePanel === 'palette'} title="Palette">🧱</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('blocks')} $active={activePanel === 'blocks'} title="Blocks">🧱</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('liquids')} $active={activePanel === 'liquids'} title="Liquids">💧</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('decorations')} $active={activePanel === 'decorations'} title="Decorations">🏺</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('entities')} $active={activePanel === 'entities'} title="Entities">👾</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('items')} $active={activePanel === 'items'} title="Items">✨</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('interactables')} $active={activePanel === 'interactables'} title="Interactables">🚪</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('hazards')} $active={activePanel === 'hazards'} title="Hazards">☠️</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('secrets')} $active={activePanel === 'secrets'} title="Secrets">🕵️</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('obstacles')} $active={activePanel === 'obstacles'} title="Obstacles">🌲</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('stats')} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('props')} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
             </SidebarContainer>
@@ -87,9 +103,18 @@ export const EditorElements = ({
                             />
                         )}
 
-                        {activePanel === 'palette' && (
+                        {(activePanel === 'blocks' || 
+                          activePanel === 'liquids' || 
+                          activePanel === 'decorations' || 
+                          activePanel === 'entities' || 
+                          activePanel === 'items' || 
+                          activePanel === 'interactables' || 
+                          activePanel === 'hazards' || 
+                          activePanel === 'secrets' ||
+                          activePanel === 'obstacles') && (
                             <PalettePanel 
                                 isPlayMode={isPlayMode}
+                                category={activePanel}
                                 blocks={blocks}
                                 liquids={liquids}
                                 entities={entities}

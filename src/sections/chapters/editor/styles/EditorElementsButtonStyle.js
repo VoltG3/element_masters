@@ -11,6 +11,15 @@ export const SidebarContainer = styled.div`
     z-index: 1001;
     border-right: 1px solid #000;
     flex-shrink: 0;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+    }
+    
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 `;
 
 export const ElementEditorButton = styled.button`
