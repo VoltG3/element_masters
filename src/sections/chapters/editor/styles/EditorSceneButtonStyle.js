@@ -1,33 +1,40 @@
-export const sidebarButtonStyle = {
-    width: '40px',
-    height: '40px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    backgroundColor: '#333',
-    color: '#fff',
-    border: '1px solid #444',
-    borderRadius: '4px',
-    marginBottom: '10px',
-    fontSize: '20px',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-};
+import styled from 'styled-components';
 
-export const activeSidebarButtonStyle = {
-    ...sidebarButtonStyle,
-    backgroundColor: '#2196F3',
-    borderColor: '#1E88E5',
-    transform: 'scale(1.05)'
-};
+export const ElementEditorButton = styled.button`
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background-color: ${props => props.$active ? '#2196F3' : '#333'};
+    color: #fff;
+    border: 1px solid ${props => props.$active ? '#1E88E5' : '#444'};
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 20px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transform: ${props => props.$active ? 'scale(1.05)' : 'none'};
+    padding: 0;
+    outline: none;
 
-export const rightSidebarStyle = {
-    position: 'absolute',
-    top: '70px',
-    right: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    zIndex: 1001
-};
+    &:hover {
+        background-color: ${props => props.$active ? '#1E88E5' : '#444'};
+        transform: scale(1.05);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+`;
+
+export const RightSidebarContainer = styled.div`
+    position: absolute;
+    top: 70px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1001;
+`;

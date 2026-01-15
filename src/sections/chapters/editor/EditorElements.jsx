@@ -1,12 +1,11 @@
 import React from 'react';
 import { 
-    sidebarButtonStyle, 
-    activeSidebarButtonStyle, 
-    panelHeaderStyle,
-    sidebarContainerStyle,
-    panelContainerStyle,
-    panelBodyStyle,
-    closeButtonStyle
+    SidebarContainer,
+    ElementEditorButton,
+    PanelContainer,
+    PanelHeader,
+    PanelBody,
+    CloseButton
 } from './styles/EditorElementsButtonStyle';
 
 // Panels
@@ -72,29 +71,26 @@ export const EditorElements = ({
     return (
         <div style={{ display: 'contents' }}>
             {/* Sidebar Left Icons */}
-            <div style={sidebarContainerStyle}>
-                <div onClick={() => togglePanel('map')} style={activePanel === 'map' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Map Controls">⚙️</div>
-                <div onClick={() => togglePanel('palette')} style={activePanel === 'palette' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Palette">🧱</div>
-                <div onClick={() => togglePanel('background')} style={activePanel === 'background' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Background">🖼️</div>
-                <div onClick={() => togglePanel('music')} style={activePanel === 'music' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Music">🎵</div>
-                <div onClick={() => togglePanel('stats')} style={activePanel === 'stats' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Statistics">📊</div>
-                <div onClick={() => togglePanel('props')} style={activePanel === 'props' ? activeSidebarButtonStyle : sidebarButtonStyle} title="Object Properties">📋</div>
-            </div>
+            <SidebarContainer>
+                <ElementEditorButton onClick={() => togglePanel('map')} $active={activePanel === 'map'} title="Map Controls">⚙️</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('palette')} $active={activePanel === 'palette'} title="Palette">🧱</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('background')} $active={activePanel === 'background'} title="Background">🖼️</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('music')} $active={activePanel === 'music'} title="Music">🎵</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('stats')} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('props')} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
+            </SidebarContainer>
 
             {/* Sidebar Fixed Panel Content */}
             {activePanel && (
-                <div style={panelContainerStyle}>
+                <PanelContainer>
                     {/* Panel Header */}
-                    <div style={panelHeaderStyle}>
-                        <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>{panelTitles[activePanel]}</span>
-                        <button 
-                            onClick={() => setActivePanel(null)} 
-                            style={closeButtonStyle}
-                        >✕</button>
-                    </div>
+                    <PanelHeader>
+                        <span>{panelTitles[activePanel]}</span>
+                        <CloseButton onClick={() => setActivePanel(null)}>✕</CloseButton>
+                    </PanelHeader>
 
                     {/* Panel Body */}
-                    <div style={panelBodyStyle}>
+                    <PanelBody>
                         {activePanel === 'map' && (
                             <OperationsPanel 
                                 openNewMapModal={openNewMapModal}
@@ -163,8 +159,8 @@ export const EditorElements = ({
                                 setObjectMetadata={setObjectMetadata}
                             />
                         )}
-                    </div>
-                </div>
+                    </PanelBody>
+                </PanelContainer>
             )}
         </div>
     );

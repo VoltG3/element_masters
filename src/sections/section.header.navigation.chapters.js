@@ -67,9 +67,13 @@ export function SectionHeaderNavigationChapters() {
                 { chapter_crystals }
             </NavLinkButton>
 
-            <NavLinkButton to="/repository" className={({ isActive }) => isActive ? "active" : ""}>
-                { chapter_repository }
-            </NavLinkButton>
+
         </nav>
     )
 }
+
+/*
+<NavLinkButton to="/repository" className={({ isActive }) => isActive ? "active" : ""}>
+                { chapter_repository }
+            </NavLinkButton>
+* */

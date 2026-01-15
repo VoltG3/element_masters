@@ -1,5 +1,5 @@
 import React from 'react';
-import { operationButtonStyle } from '../styles/EditorElementsButtonStyle';
+import { OperationButton, OperationLabel } from '../styles/EditorElementsButtonStyle';
 
 export const OperationsPanel = ({ 
     openNewMapModal, 
@@ -21,38 +21,23 @@ export const OperationsPanel = ({
                 gap: '10px' 
             }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <button 
-                        onClick={openNewMapModal} 
-                        style={operationButtonStyle}
-                        title="New Map"
-                    >
+                    <OperationButton onClick={openNewMapModal} title="New Map">
                         <span style={{ fontSize: '18px' }}>📄</span>
                         <span>New</span>
-                    </button>
-                    <button 
-                        onClick={saveMap} 
-                        style={operationButtonStyle}
-                        title="Save Map"
-                    >
+                    </OperationButton>
+                    <OperationButton onClick={saveMap} title="Save Map">
                         <span style={{ fontSize: '18px' }}>💾</span>
                         <span>Save</span>
-                    </button>
-                    <label 
-                        style={{ ...operationButtonStyle, cursor: 'pointer' }}
-                        title="Load Map"
-                    >
+                    </OperationButton>
+                    <OperationLabel title="Load Map">
                         <span style={{ fontSize: '18px' }}>📂</span>
                         <span>Load</span>
                         <input type="file" accept=".json,.txt" onChange={loadMap} style={{ display: 'none' }} />
-                    </label>
-                    <button 
-                        onClick={clearMap} 
-                        style={{ ...operationButtonStyle, color: '#d32f2f' }}
-                        title="Clear Map"
-                    >
+                    </OperationLabel>
+                    <OperationButton onClick={clearMap} $danger title="Clear Map">
                         <span style={{ fontSize: '18px' }}>🗑️</span>
                         <span>Clear</span>
-                    </button>
+                    </OperationButton>
                 </div>
             </div>
 

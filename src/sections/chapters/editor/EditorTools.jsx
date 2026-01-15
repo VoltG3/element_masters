@@ -147,12 +147,10 @@ export const EditorTools = ({
                         title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
                     >
                         <span style={{ fontSize: '18px', lineHeight: 1 }}>{showGrid ? '▦' : '▢'}</span>
-                        <span>Grid</span>
                     </button>
 
                     {!isPlayMode && (
                         <div style={bgColorContainerStyle}>
-                            <span style={{ fontSize: '9px', color: '#666', fontWeight: '800', textTransform: 'uppercase' }}>BG Color:</span>
                             <input 
                                 type="color" 
                                 value={selectedBackgroundColor}

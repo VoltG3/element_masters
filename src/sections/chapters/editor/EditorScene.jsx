@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DraggableWindow } from './editorScene/DraggableWindow';
 import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
-import { sidebarButtonStyle, activeSidebarButtonStyle, rightSidebarStyle } from './styles/EditorSceneButtonStyle';
+import { ElementEditorButton, RightSidebarContainer } from './styles/EditorSceneButtonStyle';
 
 export const EditorScene = ({
     handleMapResize,
@@ -21,11 +21,11 @@ export const EditorScene = ({
     return (
         <div style={{ display: 'contents' }}>
             {/* Right side buttons */}
-            <div style={rightSidebarStyle}>
-                <div onClick={() => setIsMinimapOpen(!isMinimapOpen)} style={isMinimapOpen ? activeSidebarButtonStyle : sidebarButtonStyle} title="Minimap">🗺️</div>
-                <div onClick={() => setIsSettingsOpen(!isSettingsOpen)} style={isSettingsOpen ? activeSidebarButtonStyle : sidebarButtonStyle} title="Settings">🛠️</div>
-                <div onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} style={isResizeWindowOpen ? activeSidebarButtonStyle : sidebarButtonStyle} title="Resize Map">📐</div>
-            </div>
+            <RightSidebarContainer>
+                <ElementEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Minimap">🗺️</ElementEditorButton>
+                <ElementEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title="Settings">🛠️</ElementEditorButton>
+                <ElementEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title="Resize Map">📐</ElementEditorButton>
+            </RightSidebarContainer>
 
             {/* Floating Windows (Minimap / Settings) */}
             {isMinimapOpen && (
