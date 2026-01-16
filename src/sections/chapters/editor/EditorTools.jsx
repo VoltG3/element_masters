@@ -96,19 +96,21 @@ export const EditorTools = ({
             <div style={headerBarStyle}>
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                     <div style={toolsGroupStyle}>
+
+                        {/* Brush - Bucket - Move */}
                         <div style={{ display: 'flex', gap: '10px' }}>
                             {[
                                 { id: 'brush', icon: '🖌️', title: 'Brush (B)' },
                                 { id: 'bucket', icon: '🪣', title: 'Fill Bucket (F)' },
                                 { id: 'move', icon: '✋', title: 'Move Selection (M)' }
                             ].map(tool => (
-                                <ToolsEditorButton 
+                                <ToolsEditorButton
                                     key={tool.id}
-                                    onClick={() => !isPlayMode && setActiveTool(tool.id)} 
-                                    $active={activeTool === tool.id && !isPlayMode} 
-                                    $square 
+                                    onClick={() => !isPlayMode && setActiveTool(tool.id)}
+                                    $active={activeTool === tool.id && !isPlayMode}
+                                    $square
                                     title={isPlayMode ? "Disabled in Play Mode" : tool.title}
-                                    style={{ 
+                                    style={{
                                         opacity: isPlayMode ? 0.4 : 1,
                                         cursor: isPlayMode ? 'not-allowed' : 'pointer',
                                         position: 'relative'
@@ -120,6 +122,50 @@ export const EditorTools = ({
                             ))}
                         </div>
 
+                        {/* Cut - Copy - Paste */}
+                        <div style={toolsInnerGroupStyle}>
+                            {['cut', 'copy'].map(mode => {
+                                const isDisabled = isPlayMode || activeTool !== 'move';
+                                return (
+                                    <ToolsEditorButton
+                                        key={mode}
+                                        onClick={() => !isDisabled && setSelectionMode(mode)}
+                                        $active={selectionMode === mode && !isDisabled}
+                                        $square
+                                        title={isPlayMode ? "Disabled in Play Mode" : (isDisabled ? `${mode === 'cut' ? 'Cut' : 'Copy'} (Only for Move tool)` : `${mode === 'cut' ? 'Cut' : 'Copy'} Selection`)}
+                                        style={{
+                                            opacity: isDisabled ? 0.4 : 1,
+                                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        {mode === 'cut' ? '✂️' : '📋'}
+                                        {isDisabled && <StrikeThrough />}
+                                    </ToolsEditorButton>
+                                );
+                            })}
+                            <ToolsEditorButton
+                                onClick={() => !isPlayMode && activeTool === 'move' && commitSelection()}
+                                $square
+                                title={isPlayMode ? "Disabled in Play Mode" : (activeTool !== 'move' ? "Paste (Only for Move tool)" : "Paste Selection")}
+                                style={{
+                                    opacity: (isPlayMode || activeTool !== 'move') ? 0.4 : 1,
+                                    cursor: (isPlayMode || activeTool !== 'move') ? 'not-allowed' : 'pointer',
+                                    position: 'relative'
+                                }}
+                            >
+                                📥
+                                {(isPlayMode || activeTool !== 'move') && <StrikeThrough />}
+                            </ToolsEditorButton>
+                            {selection && !isPlayMode && (
+                                <div style={{ display: 'flex', gap: '5px', marginLeft: '5px', borderLeft: '1px solid #ccc', paddingLeft: '5px' }}>
+                                    <ToolsEditorButton onClick={commitSelection} $square title="Confirm Selection (Enter)" style={{ backgroundColor: '#e6f7ff', color: '#1890ff' }}>✓</ToolsEditorButton>
+                                    <ToolsEditorButton onClick={cancelSelection} $square title="Cancel Selection (Esc)" style={{ backgroundColor: '#fff1f0', color: '#f5222d' }}>✕</ToolsEditorButton>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Size */}
                         <div style={toolsInnerGroupStyle}>
                             {['I', 'II', 'III', 'IV', 'V'].map((roman, idx) => {
                                 const size = idx + 1;
@@ -144,6 +190,7 @@ export const EditorTools = ({
                             })}
                         </div>
 
+                        {/* Layers: Block - Object - Sector */}
                         <div style={toolsInnerGroupStyle}>
                             {['tile', 'object', 'secret'].map(layer => {
                                 const { isActive, bgColor, textColor } = getEraserData(layer);
@@ -169,13 +216,14 @@ export const EditorTools = ({
                             })}
                         </div>
 
+                        {/* Background Immage */}
                         <div style={{ display: 'flex', gap: '10px' }}>
-                            <ToolsEditorButton 
-                                onClick={() => !isPlayMode && setShowBackgroundImage(!showBackgroundImage)} 
+                            <ToolsEditorButton
+                                onClick={() => !isPlayMode && setShowBackgroundImage(!showBackgroundImage)}
                                 $active={showBackgroundImage && !isPlayMode}
                                 $square
                                 title={isPlayMode ? "Disabled in Play Mode" : (showBackgroundImage ? "Hide Background Image" : "Show Background Image")}
-                                style={{ 
+                                style={{
                                     opacity: isPlayMode ? 0.4 : 1,
                                     cursor: isPlayMode ? 'not-allowed' : 'pointer',
                                     position: 'relative'
@@ -185,8 +233,9 @@ export const EditorTools = ({
                                 {isPlayMode && <StrikeThrough />}
                             </ToolsEditorButton>
 
-                            <ToolsEditorButton 
-                                onClick={() => setShowGrid(!showGrid)} 
+                            {/* Grid */}
+                            <ToolsEditorButton
+                                onClick={() => setShowGrid(!showGrid)}
                                 $active={showGrid}
                                 $square
                                 title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
@@ -197,70 +246,32 @@ export const EditorTools = ({
                             </ToolsEditorButton>
                         </div>
 
+                        {/* Background Color Picker */}
+                        <div style={bgColorContainerStyle}>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    type="color"
+                                    value={selectedBackgroundColor}
+                                    onChange={(e) => !isPlayMode && setSelectedBackgroundColor(e.target.value)}
+                                    style={{
+                                        ...bgColorInputStyle,
+                                        opacity: isPlayMode ? 0.4 : 1,
+                                        cursor: isPlayMode ? 'not-allowed' : 'pointer'
+                                    }}
+                                    title={isPlayMode ? "Disabled in Play Mode" : "Background Color"}
+                                    disabled={isPlayMode}
+                                />
+                                {isPlayMode && <StrikeThrough />}
+                            </div>
+                        </div>
+
+                        {/* Active Layer Indicator */}
                         <div style={toolsInnerGroupStyle}>
-                            {['cut', 'copy'].map(mode => {
-                                const isDisabled = isPlayMode || activeTool !== 'move';
-                                return (
-                                    <ToolsEditorButton 
-                                        key={mode}
-                                        onClick={() => !isDisabled && setSelectionMode(mode)} 
-                                        $active={selectionMode === mode && !isDisabled} 
-                                        $square 
-                                        title={isPlayMode ? "Disabled in Play Mode" : (isDisabled ? `${mode === 'cut' ? 'Cut' : 'Copy'} (Only for Move tool)` : `${mode === 'cut' ? 'Cut' : 'Copy'} Selection`)}
-                                        style={{ 
-                                            opacity: isDisabled ? 0.4 : 1,
-                                            cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                            position: 'relative'
-                                        }}
-                                    >
-                                        {mode === 'cut' ? '✂️' : '📋'}
-                                        {isDisabled && <StrikeThrough />}
-                                    </ToolsEditorButton>
-                                );
-                            })}
-                            <ToolsEditorButton 
-                                onClick={() => !isPlayMode && activeTool === 'move' && commitSelection()} 
-                                $square 
-                                title={isPlayMode ? "Disabled in Play Mode" : (activeTool !== 'move' ? "Paste (Only for Move tool)" : "Paste Selection")}
-                                style={{ 
-                                    opacity: (isPlayMode || activeTool !== 'move') ? 0.4 : 1,
-                                    cursor: (isPlayMode || activeTool !== 'move') ? 'not-allowed' : 'pointer',
-                                    position: 'relative'
-                                }}
-                            >
-                                📥
-                                {(isPlayMode || activeTool !== 'move') && <StrikeThrough />}
-                            </ToolsEditorButton>
-                            {selection && !isPlayMode && (
-                                <div style={{ display: 'flex', gap: '5px', marginLeft: '5px', borderLeft: '1px solid #ccc', paddingLeft: '5px' }}>
-                                    <ToolsEditorButton onClick={commitSelection} $square title="Confirm Selection (Enter)" style={{ backgroundColor: '#e6f7ff', color: '#1890ff' }}>✓</ToolsEditorButton>
-                                    <ToolsEditorButton onClick={cancelSelection} $square title="Cancel Selection (Esc)" style={{ backgroundColor: '#fff1f0', color: '#f5222d' }}>✕</ToolsEditorButton>
-                                </div>
-                            )}
+                            <div style={getLayerIndicatorStyle()}>
+                                Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Sectors')}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Active Layer Indicator */}
-                    <div style={getLayerIndicatorStyle()}>
-                        Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Sectors')}
-                    </div>
-
-                    <div style={bgColorContainerStyle}>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                            <input 
-                                type="color" 
-                                value={selectedBackgroundColor}
-                                onChange={(e) => !isPlayMode && setSelectedBackgroundColor(e.target.value)}
-                                style={{ 
-                                    ...bgColorInputStyle, 
-                                    opacity: isPlayMode ? 0.4 : 1,
-                                    cursor: isPlayMode ? 'not-allowed' : 'pointer'
-                                }} 
-                                title={isPlayMode ? "Disabled in Play Mode" : "Background Color"}
-                                disabled={isPlayMode}
-                            />
-                            {isPlayMode && <StrikeThrough />}
-                        </div>
                     </div>
                 </div>
 
