@@ -216,7 +216,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         // We use created_at/updated time or just the object reference itself if it's a completely new load
         // In Game/index.jsx loadMapData creates a new object {...activeMapData} for reset.
         const meta = mapData.meta || {};
-        const currentMapId = meta.date_map_last_updated || meta.date_map_created_at || mapData.name || 'default';
+        const currentMapId = meta.activeMapId || meta.date_map_last_updated || meta.date_map_created_at || mapData.name || 'default';
         const isNewMapLoad = currentMapId !== lastMapIdRef.current;
 
         // Ja spēle jau ir inicializēta UN tā ir tā pati karte, nemainām spēlētāja pozīciju

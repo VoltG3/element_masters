@@ -14,12 +14,12 @@ import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
 
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
-import map1 from '../../../assets/maps/Areas.json';
-import map9 from '../../../assets/maps/Temp_01.json';
+import map1 from '../../../assets/maps/Multiple_Worlds.json';
+
 
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map9];
+const BUILT_IN_MAPS = [map1];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -214,30 +214,17 @@ export default function Game() {
             if (targetMap) {
                 console.log(`Switching to map: ${targetMapId}, looking for trigger: ${triggerId}`);
                 
-                // Construct mapData in the format expected by loadMapData
-                // This is essentially converting the v2.0 map format back to what setActiveMap expects
-                const newMapToLoad = {
-                    ...activeMapData, // Keep project metadata
+                // Mēs varam vienkārši nodot visu projektu un pielikt spawnTriggerId
+                const projectToLoad = {
+                    ...activeMapData,
                     meta: {
                         ...activeMapData.meta,
-                        width: targetMap.mapWidth || targetMap.width,
-                        height: targetMap.mapHeight || targetMap.height,
-                        name: targetMap.name,
-                        backgroundImage: targetMap.selectedBackgroundImage || targetMap.backgroundImage,
-                        backgroundColor: targetMap.selectedBackgroundColor || targetMap.backgroundColor,
-                        backgroundMusic: targetMap.selectedBackgroundMusic || targetMap.backgroundMusic,
-                        objectMetadata: targetMap.objectMetadata || {},
-                        // Add a special hint for useGameEngine to find the trigger
-                        spawnTriggerId: triggerId 
-                    },
-                    layers: targetMap.layers || [
-                        { name: 'background', data: targetMap.tileMapData },
-                        { name: 'entities', data: targetMap.objectMapData },
-                        { name: 'secrets', data: targetMap.secretMapData }
-                    ]
+                        activeMapId: targetMapId,
+                        spawnTriggerId: triggerId
+                    }
                 };
                 
-                loadMapData(newMapToLoad);
+                loadMapData(projectToLoad);
             }
         } else if (action === 'objectDamage') {
             const { index, damage } = payload;
@@ -346,39 +333,64 @@ export default function Game() {
                 return;
             }
 
-            const w = mapData.meta?.width || mapData.width || 20;
-            const h = mapData.meta?.height || mapData.height || 15;
+            let effectiveMapData = mapData;
+            
+            // Atbalsts Version 2.0 (Multi-map project)
+            if (mapData.meta?.version === "2.0" && mapData.maps) {
+                const activeId = mapData.meta.activeMapId || Object.keys(mapData.maps)[0];
+                const activeMap = mapData.maps[activeId];
+                
+                if (activeMap) {
+                    // Konvertējam uz formātu, ko saprot dzinējs un setActiveMap
+                    effectiveMapData = {
+                        ...mapData, // Saglabājam visu projektu
+                        meta: {
+                            ...mapData.meta,
+                            width: activeMap.width,
+                            height: activeMap.height,
+                            name: activeMap.name,
+                            backgroundImage: activeMap.backgroundImage,
+                            backgroundColor: activeMap.backgroundColor,
+                            backgroundMusic: activeMap.backgroundMusic,
+                            backgroundParallaxFactor: activeMap.backgroundParallaxFactor,
+                            weather: activeMap.weather,
+                            objectMetadata: activeMap.objectMetadata || {},
+                            playerPosition: activeMap.playerPosition
+                        },
+                        layers: activeMap.layers || [
+                            { name: 'background', data: activeMap.tileMapData },
+                            { name: 'entities', data: activeMap.objectMapData },
+                            { name: 'secrets', data: activeMap.secretMapData }
+                        ]
+                    };
+                }
+            }
+
+            const w = effectiveMapData.meta?.width || effectiveMapData.width || 20;
+            const h = effectiveMapData.meta?.height || effectiveMapData.height || 15;
 
             let tileData = [];
             let objData = [];
             let secretData = [];
 
-            if (mapData.layers) {
-                const bgLayer = mapData.layers.find(l => l.name === 'background');
+            if (effectiveMapData.layers) {
+                const bgLayer = effectiveMapData.layers.find(l => l.name === 'background' || l.type === 'tile');
                 tileData = bgLayer ? bgLayer.data : Array(w * h).fill(null);
 
-                const objLayer = mapData.layers.find(l => l.name === 'entities');
+                const objLayer = effectiveMapData.layers.find(l => l.name === 'entities' || l.type === 'object');
                 objData = objLayer ? objLayer.data : Array(w * h).fill(null);
 
-                const secretLayer = mapData.layers.find(l => l.name === 'secrets');
+                const secretLayer = effectiveMapData.layers.find(l => l.name === 'secrets' || l.type === 'secret');
                 secretData = secretLayer ? secretLayer.data : Array(w * h).fill(null);
             } else {
-                tileData = mapData.tiles || Array(w * h).fill(null);
+                tileData = effectiveMapData.tiles || Array(w * h).fill(null);
                 objData = Array(w * h).fill(null);
                 secretData = Array(w * h).fill(null);
             }
 
-            // Debug logging
-            console.log('[DEBUG] Loading map with secrets:', {
-                hasSecretsLayer: !!mapData.layers?.find(l => l.name === 'secrets'),
-                secretDataLength: secretData?.length,
-                secretDataNonNull: secretData?.filter(s => s !== null).length,
-                secretDataSample: secretData?.filter(s => s !== null).slice(0, 5)
-            });
-
             // Update Redux store
             dispatch(setActiveMap({
-                mapData,
+                mapData: effectiveMapData,
                 tileMapData: tileData,
                 objectMapData: objData,
                 secretMapData: secretData,
@@ -390,7 +402,7 @@ export default function Game() {
 
             errorHandler.info('Map loaded successfully', {
                 component: 'Game',
-                mapName: mapData.meta?.name || 'Unknown',
+                mapName: effectiveMapData.meta?.name || 'Unknown',
                 dimensions: `${w}x${h}`
             });
         } catch (error) {

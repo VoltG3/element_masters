@@ -43,6 +43,8 @@ export const saveMap = async ({
             weather: map.weather || { rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 },
             objectMetadata: map.objectMetadata || {},
             playerPosition: map.playerPosition || null,
+            worldX: map.worldX || 0,
+            worldY: map.worldY || 0,
             statistics: {
                 total_tiles: map.mapWidth * map.mapHeight,
                 filled_tiles: filledBlocks,
@@ -138,7 +140,9 @@ export const loadMap = ({
                             backgroundParallaxFactor: m.backgroundParallaxFactor || 0.3,
                             selectedBackgroundMusic: m.backgroundMusic,
                             weather: m.weather || { rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 },
-                            playerPosition: m.playerPosition || null
+                            playerPosition: m.playerPosition || null,
+                            worldX: m.worldX || 0,
+                            worldY: m.worldY || 0
                         };
                     });
                     

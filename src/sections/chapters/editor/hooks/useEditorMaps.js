@@ -23,13 +23,20 @@ export const useEditorMaps = () => {
                 fog: 0,
                 thunder: 0
             },
-            playerPosition: { x: 100, y: 100 }
+            playerPosition: { x: 100, y: 100 },
+            worldX: 50,
+            worldY: 50
         }
     });
     const [activeMapId, setActiveMapId] = useState('main');
 
     const createMap = useCallback((type, name, width = 20, height = 15) => {
         const id = `map_${Date.now()}`;
+        
+        // Find a good spot for new map
+        const existingMaps = Object.values(maps);
+        const maxY = Math.max(...existingMaps.map(m => m.worldY || 0), 0);
+        
         const newMap = {
             id,
             name: name || (type === 'overworld' ? 'New Overworld' : 'New Underworld'),
@@ -51,7 +58,9 @@ export const useEditorMaps = () => {
                 fog: 0,
                 thunder: 0
             },
-            playerPosition: null // Only one map should have player eventually
+            playerPosition: null, // Only one map should have player eventually
+            worldX: 50,
+            worldY: maxY + 150
         };
 
         setMaps(prev => ({

@@ -409,6 +409,8 @@ export const Editor = () => {
                         activeMapId={activeMapId}
                         switchMap={switchMap}
                         createMap={handleCreateMap}
+                        deleteMap={deleteMap}
+                        updateMapData={updateMapData}
                     />
 
                     {!isPlayMode ? (
