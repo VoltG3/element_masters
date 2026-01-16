@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { TILE_SIZE } from '../../../../constants/gameConstants';
 import { useGameEngine } from '../../../../utilities/useGameEngine';
 
@@ -8,23 +8,57 @@ export const useEditorPlayMode = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
     selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
     registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
-    weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
+    weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+    maps, activeMapId, switchMap, spawnTriggerId
 ) => {
     const [isPlayMode, setIsPlayMode] = useState(false);
     const [editorSnapshot, setEditorSnapshot] = useState(null);
     const [revealedSecrets, setRevealedSecrets] = useState([]);
     const [playModeObjectData, setPlayModeObjectData] = useState([]);
     const [playModeSecretData, setPlayModeSecretData] = useState([]);
+    const lastSyncedMapIdRef = useRef(null);
+
+    // Stability for engine initialization - only changes when map changes or play mode is toggled
+    const engineInitId = useMemo(() => {
+        return isPlayMode ? `${activeMapId}_${Date.now()}` : null;
+    }, [isPlayMode, activeMapId]);
+
+    // Derived data to ensure useGameEngine gets fresh data even before useEffect syncs state.
+    // This prevents the engine from using old map data during initialization.
+    const currentPlayObjectData = useMemo(() => {
+        if (!isPlayMode) return EMPTY_ARRAY;
+        if (lastSyncedMapIdRef.current !== activeMapId) {
+            const playData = [...objectMapData];
+            let spawnIndex = playData.findIndex(id => id && id.includes('player'));
+            if (spawnIndex === -1 && (spawnTriggerId === null || spawnTriggerId === undefined)) {
+                const spawnX = Math.min(3, mapWidth - 1);
+                const spawnY = Math.min(3, mapHeight - 1);
+                spawnIndex = spawnY * mapWidth + spawnX;
+                playData[spawnIndex] = 'player';
+            }
+            return playData;
+        }
+        return playModeObjectData;
+    }, [isPlayMode, activeMapId, playModeObjectData, objectMapData, spawnTriggerId, mapWidth, mapHeight]);
+
+    const currentPlaySecretData = useMemo(() => {
+        if (!isPlayMode) return EMPTY_ARRAY;
+        if (lastSyncedMapIdRef.current !== activeMapId) return [...secretMapData];
+        return playModeSecretData;
+    }, [isPlayMode, activeMapId, playModeSecretData, secretMapData]);
 
     const mapDataForGame = useMemo(() => ({
         meta: {
             width: mapWidth,
             height: mapHeight,
             tileSize: TILE_SIZE,
+            activeMapId: activeMapId,
+            spawnTriggerId: spawnTriggerId,
             backgroundImage: selectedBackgroundImage,
             backgroundColor: selectedBackgroundColor,
             backgroundParallaxFactor: backgroundParallaxFactor,
             objectMetadata: objectMetadata,
+            date_map_last_updated: engineInitId, 
             weather: {
                 rain: weatherRain,
                 snow: weatherSnow,
@@ -33,15 +67,37 @@ export const useEditorPlayMode = (
                 thunder: weatherThunder
             }
         },
+        maps: maps, // Project maps for inter-map teleports
         layers: [
             { type: "tile", name: "background", data: tileMapData },
-            { type: "object", name: "entities", data: playModeObjectData }
+            { type: "object", name: "entities", data: currentPlayObjectData }
         ]
     }), [
-        mapWidth, mapHeight, selectedBackgroundImage, selectedBackgroundColor, 
-        backgroundParallaxFactor, tileMapData, playModeObjectData, objectMetadata,
-        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
+        mapWidth, mapHeight, activeMapId, spawnTriggerId, selectedBackgroundImage, selectedBackgroundColor, 
+        backgroundParallaxFactor, tileMapData, currentPlayObjectData, objectMetadata,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        isPlayMode, maps, engineInitId
     ]);
+
+    // Synchronize play mode state when map changes (e.g., during inter-map teleport)
+    useEffect(() => {
+        if (isPlayMode && lastSyncedMapIdRef.current !== activeMapId) {
+            const playData = [...objectMapData];
+            
+            let spawnIndex = playData.findIndex(id => id && id.includes('player'));
+            if (spawnIndex === -1 && (spawnTriggerId === null || spawnTriggerId === undefined)) {
+                const spawnX = Math.min(3, mapWidth - 1);
+                const spawnY = Math.min(3, mapHeight - 1);
+                spawnIndex = spawnY * mapWidth + spawnX;
+                playData[spawnIndex] = 'player';
+            }
+
+            setPlayModeObjectData(playData);
+            setPlayModeSecretData([...secretMapData]);
+            setRevealedSecrets([]);
+            lastSyncedMapIdRef.current = activeMapId;
+        }
+    }, [activeMapId, isPlayMode, objectMapData, secretMapData, mapWidth, mapHeight, spawnTriggerId]);
 
     const handleGameOver = useCallback(() => {
         setIsPlayMode(false);
@@ -56,6 +112,14 @@ export const useEditorPlayMode = (
                 newData[payload] = null;
                 return newData;
             });
+        } else if (newState === 'switchMap' && payload !== undefined) {
+            const { targetMapId, triggerId } = payload;
+            if (switchMap && targetMapId) {
+                // We keep play mode active when switching maps via teleport
+                switchMap(targetMapId, triggerId);
+                // Note: triggerId will be picked up from the next activeMap's meta.spawnTriggerId
+                // because switchMap updates the map data in Editor.jsx which then propagates back here.
+            }
         } else if (newState === 'objectDamage' && payload !== undefined) {
             const { index, damage } = payload;
             setObjectMetadata(prev => {
@@ -72,7 +136,7 @@ export const useEditorPlayMode = (
                 };
             });
         }
-    }, [playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata]);
+    }, [playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 
     const handleRevealSecret = useCallback((secretIndex) => {
         setRevealedSecrets(prev => [...prev, secretIndex]);
@@ -81,8 +145,8 @@ export const useEditorPlayMode = (
     const gameEngineState = useGameEngine(
         isPlayMode ? mapDataForGame : null,
         isPlayMode ? tileMapData : EMPTY_ARRAY,
-        isPlayMode ? playModeObjectData : EMPTY_ARRAY,
-        isPlayMode ? playModeSecretData : EMPTY_ARRAY,
+        isPlayMode ? currentPlayObjectData : EMPTY_ARRAY,
+        isPlayMode ? currentPlaySecretData : EMPTY_ARRAY,
         revealedSecrets,
         registryItems,
         handleGameOver,
@@ -111,6 +175,7 @@ export const useEditorPlayMode = (
         setPlayModeObjectData(playData);
         setPlayModeSecretData([...secretMapData]);
         setRevealedSecrets([]);
+        lastSyncedMapIdRef.current = activeMapId;
         setIsPlayMode(true);
     };
 
@@ -133,6 +198,7 @@ export const useEditorPlayMode = (
             setPlayModeSecretData([...editorSnapshot.secretMapData]);
             setObjectMetadata({ ...editorSnapshot.objectMetadata });
             setRevealedSecrets([]);
+            lastSyncedMapIdRef.current = activeMapId;
         }
     };
 
@@ -142,8 +208,9 @@ export const useEditorPlayMode = (
         handlePlay,
         handlePause,
         handleReset,
-        playModeObjectData,
-        playModeSecretData,
+        playModeObjectData: currentPlayObjectData,
+        playModeSecretData: currentPlaySecretData,
+        revealedSecrets,
         gameEngineState
     };
 };

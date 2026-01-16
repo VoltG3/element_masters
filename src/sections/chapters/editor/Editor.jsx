@@ -79,7 +79,7 @@ export const Editor = () => {
         maps, setMaps, activeMapId, setActiveMapId, createMap: createNewMap, updateMapData, deleteMap 
     } = useEditorMaps();
 
-    const switchMap = useCallback((newMapId) => {
+    const switchMap = useCallback((newMapId, spawnTriggerId = null) => {
         if (newMapId === activeMapId) return;
 
         // 1. Save current map data to store
@@ -120,6 +120,13 @@ export const Editor = () => {
                 setPlayerPosition(nextMap.playerPosition);
             }
             
+            // If we have a spawnTriggerId, we might want to store it temporarily
+            // so useEditorPlayMode can include it in mapDataForGame.meta
+            // But actually, we can just update the map data in the store with this triggerId.
+            if (spawnTriggerId !== null) {
+                updateMapData(newMapId, { ...nextMap, spawnTriggerId });
+            }
+
             setActiveMapId(newMapId);
         }
     }, [
@@ -167,12 +174,14 @@ export const Editor = () => {
     } = useEditorSelection(mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, setTileMapData, setObjectMapData, setSecretMapData);
 
     const {
-        isPlayMode, handlePlay, handlePause, handleReset, playModeObjectData, playModeSecretData, gameEngineState
+        isPlayMode, handlePlay, handlePause, handleReset, 
+        playModeObjectData, playModeSecretData, revealedSecrets, gameEngineState
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
         registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
-        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        maps, activeMapId, switchMap, maps[activeMapId]?.spawnTriggerId
     );
 
     const {
@@ -457,15 +466,21 @@ export const Editor = () => {
                                 tileMapData={tileMapData}
                                 objectMapData={playModeObjectData}
                                 secretMapData={playModeSecretData}
-                                revealedSecrets={[]}
+                                revealedSecrets={revealedSecrets || []}
                                 registryItems={registryItems}
                                 playerState={gameEngineState}
                                 playerVisuals={playerVisuals}
+                                projectiles={gameEngineState?.projectiles || []}
                                 objectMetadata={objectMetadata}
                                 backgroundImage={showBackgroundImage ? selectedBackgroundImage : null}
                                 backgroundColor={selectedBackgroundColor}
                                 backgroundParallaxFactor={backgroundParallaxFactor}
-                                isPlayMode={true}
+                                weatherRain={weatherRain}
+                                weatherSnow={weatherSnow}
+                                weatherClouds={weatherClouds}
+                                weatherFog={weatherFog}
+                                weatherThunder={weatherThunder}
+                                isEditor={false}
                                 showGrid={showGrid}
                             />
                         </div>
