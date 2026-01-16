@@ -15,6 +15,7 @@ const initialState = {
   objectTextureIndices: {}, // Track texture index per object position { index: textureIndex }
   mapWidth: 20,
   mapHeight: 15,
+  projectMaps: {}, // For Project v2.0 (multi-map)
   isLoading: false,
   error: null,
   isPaused: false,
@@ -31,12 +32,17 @@ const gameSlice = createSlice({
       state.tileMapData = tileMapData;
       state.objectMapData = objectMapData;
       state.secretMapData = secretMapData || [];
-      state.objectMetadata = mapData?.meta?.objectMetadata || {}; // Load initial metadata from map
+      state.objectMetadata = mapData?.meta?.objectMetadata || mapData?.objectMetadata || {}; // Load initial metadata from map
       state.revealedSecrets = []; // Reset revealed secrets on new map
       state.objectTextureIndices = {}; // Reset texture indices on new map
       state.mapWidth = mapWidth;
       state.mapHeight = mapHeight;
       state.isGameOver = false;
+
+      // If this is a project (v2.0) with multiple maps
+      if (mapData?.maps) {
+        state.projectMaps = mapData.maps;
+      }
     },
     updateObjectMap: (state, action) => {
       state.objectMapData = action.payload;

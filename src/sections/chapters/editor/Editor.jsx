@@ -338,6 +338,7 @@ export const Editor = () => {
                     activePanel={activePanel}
                     setActivePanel={setActivePanel}
                     togglePanel={togglePanel}
+                    maps={maps}
                 />
 
                 <div style={{ display: 'flex', flex: 1, flexDirection: 'column', overflow: 'hidden' }}>

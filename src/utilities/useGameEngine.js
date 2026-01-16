@@ -283,8 +283,22 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
 
             const objLayer = mapData.layers.find(l => l.name === 'entities');
             if (objLayer) {
-                // Search for player (anything containing 'player')
-                const startIndex = objLayer.data.findIndex(id => id && id.includes('player'));
+                // 1. Priority: spawnTriggerId hint (from inter-map teleport)
+                const spawnTriggerId = mapData.meta?.spawnTriggerId;
+                let startIndex = -1;
+
+                if (spawnTriggerId !== undefined && spawnTriggerId !== null) {
+                    startIndex = objLayer.data.findIndex((id, idx) => {
+                        if (!id || (!id.includes('target') && id !== 'portal_target')) return false;
+                        const meta = objectMetadataRef.current?.[idx] || mapData.meta?.objectMetadata?.[idx];
+                        return meta && meta.triggerId === spawnTriggerId;
+                    });
+                }
+
+                // 2. Fallback: Search for player (anything containing 'player')
+                if (startIndex === -1) {
+                    startIndex = objLayer.data.findIndex(id => id && id.includes('player'));
+                }
 
                 if (startIndex !== -1) {
                     let startX = (startIndex % mapW) * TILE_SIZE;

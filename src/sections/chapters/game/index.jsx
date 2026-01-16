@@ -206,6 +206,39 @@ export default function Game() {
             if (currentId) {
                 dispatch(updateObjectAtIndex({ index, newId: currentId + '_used' }));
             }
+        } else if (action === 'switchMap') {
+            const { targetMapId, triggerId } = payload;
+            const projectMaps = activeMapData?.maps || activeMapData?.projectMaps || {};
+            const targetMap = projectMaps[targetMapId];
+            
+            if (targetMap) {
+                console.log(`Switching to map: ${targetMapId}, looking for trigger: ${triggerId}`);
+                
+                // Construct mapData in the format expected by loadMapData
+                // This is essentially converting the v2.0 map format back to what setActiveMap expects
+                const newMapToLoad = {
+                    ...activeMapData, // Keep project metadata
+                    meta: {
+                        ...activeMapData.meta,
+                        width: targetMap.mapWidth || targetMap.width,
+                        height: targetMap.mapHeight || targetMap.height,
+                        name: targetMap.name,
+                        backgroundImage: targetMap.selectedBackgroundImage || targetMap.backgroundImage,
+                        backgroundColor: targetMap.selectedBackgroundColor || targetMap.backgroundColor,
+                        backgroundMusic: targetMap.selectedBackgroundMusic || targetMap.backgroundMusic,
+                        objectMetadata: targetMap.objectMetadata || {},
+                        // Add a special hint for useGameEngine to find the trigger
+                        spawnTriggerId: triggerId 
+                    },
+                    layers: targetMap.layers || [
+                        { name: 'background', data: targetMap.tileMapData },
+                        { name: 'entities', data: targetMap.objectMapData },
+                        { name: 'secrets', data: targetMap.secretMapData }
+                    ]
+                };
+                
+                loadMapData(newMapToLoad);
+            }
         } else if (action === 'objectDamage') {
             const { index, damage } = payload;
             const objId = objectMapData[index];

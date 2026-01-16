@@ -24,7 +24,28 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
   const currentMeta = metadata?.[index];
   
   if (objId.includes('portal') && currentMeta && currentMeta.triggerId !== undefined && currentMeta.triggerId !== null) {
-      // Find destination
+      // 1. Check for cross-map teleport
+      const targetMapId = currentMeta.targetMapId;
+      const maps = mapData?.maps || mapData?.projectMaps; // Try to find project maps
+
+      if (targetMapId && maps && maps[targetMapId]) {
+          // TELEPORT!
+          if (onStateUpdate) {
+              onStateUpdate('switchMap', {
+                  targetMapId: targetMapId,
+                  triggerId: currentMeta.triggerId
+              });
+              
+              // Play sound
+              try {
+                  const vol = Math.max(0, Math.min(1, objDef?.sfxVolume ?? 1));
+                  playShotSfx(objDef?.sfx || "/assets/sound/sfx/teleport.ogg", vol);
+              } catch {}
+              return;
+          }
+      }
+
+      // 2. Internal teleport (find destination on same map)
       for (let i = 0; i < objectLayerData.length; i++) {
           if (i === index) continue;
           const destId = objectLayerData[i];

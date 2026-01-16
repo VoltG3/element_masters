@@ -47,7 +47,8 @@ export const EditorElements = ({
     setHighlightedIndex,
     activePanel,
     setActivePanel,
-    togglePanel
+    togglePanel,
+    maps
 }) => {
     const [lastPanel, setLastPanel] = React.useState(null);
 
@@ -162,6 +163,7 @@ export const EditorElements = ({
                                     highlightedIndex={highlightedIndex}
                                     setHighlightedIndex={setHighlightedIndex}
                                     setObjectMetadata={setObjectMetadata}
+                                    maps={maps}
                                 />
                             )}
                         </PanelBody>

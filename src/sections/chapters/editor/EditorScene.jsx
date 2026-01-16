@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DraggableWindow } from './editorScene/DraggableWindow';
 import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
+import { WorldView } from './editorScene/WorldView';
 import { BackgroundPanel } from './editorScene/BackgroundPanel';
 import { MusicPanel } from './editorScene/MusicPanel';
 import { WeatherPanel } from './editorScene/WeatherPanel';
@@ -44,6 +45,7 @@ export const EditorScene = ({
     createMap
 }) => {
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
+    const [isWorldViewOpen, setIsWorldViewOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isBackgroundOpen, setIsBackgroundOpen] = useState(false);
     const [isMusicOpen, setIsMusicOpen] = useState(false);
@@ -53,6 +55,7 @@ export const EditorScene = ({
             {/* Right side buttons */}
             <RightSidebarContainer>
                 <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Maps & Minimap">🗺️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsWorldViewOpen(!isWorldViewOpen)} $active={isWorldViewOpen} title="Project World View">🌐</SceneEditorButton>
                 <SceneEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title="Background">🖼️</SceneEditorButton>
                 <SceneEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">
                     <span style={{ color: '#fff' }}>𝄞</span>
@@ -114,6 +117,33 @@ export const EditorScene = ({
                             ))}
                         </div>
                     </div>
+                </DraggableWindow>
+            )}
+
+            {isWorldViewOpen && (
+                <DraggableWindow
+                    title="Project World View"
+                    defaultPosition={{ x: 100, y: 100 }}
+                    defaultWidth={800}
+                    isOpenDefault={true}
+                    onClose={() => setIsWorldViewOpen(false)}
+                >
+                    <WorldView 
+                        maps={maps}
+                        activeMapId={activeMapId}
+                        switchMap={switchMap}
+                        registryItems={registryItems}
+                        // Current map live data
+                        currentMapData={{
+                            id: activeMapId,
+                            mapWidth,
+                            mapHeight,
+                            tileMapData,
+                            objectMapData,
+                            objectMetadata,
+                            selectedBackgroundColor
+                        }}
+                    />
                 </DraggableWindow>
             )}
 

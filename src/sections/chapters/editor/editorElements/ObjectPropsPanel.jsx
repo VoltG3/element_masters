@@ -7,8 +7,11 @@ export const ObjectPropsPanel = ({
     objectMetadata, 
     highlightedIndex, 
     setHighlightedIndex, 
-    setObjectMetadata 
+    setObjectMetadata,
+    maps
 }) => {
+    const mapList = Object.values(maps || {});
+
     return (
         <div style={{ padding: '0' }}>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
@@ -95,6 +98,35 @@ export const ObjectPropsPanel = ({
                                     placeholder="Enter ID (e.g. 1)"
                                 />
                             </div>
+
+                            {id.includes('portal') && !id.includes('target') && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Target Map:</label>
+                                    <select
+                                        value={metadata.targetMapId || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setObjectMetadata(prev => ({
+                                                ...prev,
+                                                [index]: { ...prev[index], targetMapId: val === '' ? null : val }
+                                            }));
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '4px 8px',
+                                            border: '1px solid #ccc',
+                                            borderRadius: '4px',
+                                            fontSize: '13px',
+                                            backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
+                                        }}
+                                    >
+                                        <option value="">Current Map</option>
+                                        {mapList.map(m => (
+                                            <option key={m.id} value={m.id}>{m.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
