@@ -11,8 +11,13 @@ export default class WeatherRain {
     this.particles = [];
     this.intensity = 0;
     const area = this.width * this.height;
-    // Reasonable particle cap depending on map area to keep FPS stable
-    this.maxParticles = Math.max(160, Math.floor(area / 2600));
+    // Reasonable particle cap depending on viewport area to keep FPS stable
+    this.maxParticles = 400; // Base for 1280x720
+  }
+
+  resize(width, height) {
+    const area = width * height;
+    this.maxParticles = Math.max(160, Math.floor(area / 2300));
   }
 
   setIntensity(v) {
@@ -25,8 +30,20 @@ export default class WeatherRain {
     // Draw a thin slanted line to mimic a raindrop motion blur
     g.rect(0, 0, 1.3, 9);
     g.fill({ color: 0x4aa3ff, alpha: 0.92 });
-    const x = Math.random() * this.width;
-    const y = -10 - Math.random() * 30;
+
+    // Get viewport info if available
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+    
+    let x, y;
+    if (viewport) {
+      // Spawn within viewport plus a small margin for slanted fall
+      x = viewport.x - 100 + Math.random() * (viewport.width + 200);
+      y = viewport.y - 10 - Math.random() * 30;
+    } else {
+      x = Math.random() * this.width;
+      y = -10 - Math.random() * 30;
+    }
+
     const speed = 520 + Math.random() * 520; // px/s, different speeds for depth
     const vx = (Math.random() * 60 - 30); // slight wind
     const vy = speed;
@@ -38,8 +55,18 @@ export default class WeatherRain {
   }
 
   update(dtMs) {
-    // adjust intensity dynamically
-    this.setIntensity(this.getIntensity());
+    // Get viewport info if available
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+
+    // Smooth intensity transition
+    const targetIntensity = Math.max(0, Math.min(100, this.getIntensity()));
+    if (Math.abs(targetIntensity - this.intensity) > 0.1) {
+      // Exponential smoothing (approx 2s to reach 95% of target)
+      const lerpFactor = 1 - Math.exp(-0.0015 * dtMs);
+      this.intensity += (targetIntensity - this.intensity) * lerpFactor;
+    } else if (this.intensity !== targetIntensity) {
+      this.intensity = targetIntensity;
+    }
 
     // Constant-density controller: keep active particles near target count
     const norm = Math.max(0, Math.min(1, this.intensity / 100));
@@ -127,7 +154,9 @@ export default class WeatherRain {
       p.g.y = p.y;
 
       // Off-screen cleanup
-      if (p.y > this.height + 40 || p.x < -40 || p.x > this.width + 40) {
+      const vY = viewport ? viewport.y : 0;
+      const vH = viewport ? viewport.height : this.height;
+      if (p.y > vY + vH + 100 || p.y > this.height + 40 || p.x < -40 || p.x > this.width + 40) {
         p.alive = false;
         toRemove.push(i);
       }

@@ -1,0 +1,13 @@
+{
+  "id": "weather_thunder_off",
+  "name": "weather.thunder_off",
+  "displayName": "Thunder Off",
+  "type": "weather_trigger",
+  "weatherType": "thunder",
+  "weatherAction": "off",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "🚫⚡",
+  "isHiddenInGame": true,
+  "collision": false
+}

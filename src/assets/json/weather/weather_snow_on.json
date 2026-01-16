@@ -1,0 +1,14 @@
+{
+  "id": "weather_snow_on",
+  "name": "weather.snow_on",
+  "displayName": "Snow On (0%)",
+  "type": "weather_trigger",
+  "weatherType": "snow",
+  "weatherAction": "on",
+  "hasIntensity": true,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "❄️",
+  "isHiddenInGame": true,
+  "collision": false
+}

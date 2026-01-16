@@ -164,6 +164,26 @@ export default function GameSettings() {
     } catch {}
   }, []);
 
+  // Listen for runtime settings updates from game engine or other sources
+  useEffect(() => {
+    const onSettingsUpdate = (e) => {
+      const patch = (e && e.detail) || {};
+      if (patch.weatherRain !== undefined) setRain(patch.weatherRain);
+      if (patch.weatherSnow !== undefined) setSnow(patch.weatherSnow);
+      if (patch.weatherClouds !== undefined) setClouds(patch.weatherClouds);
+      if (patch.weatherFog !== undefined) setFog(patch.weatherFog);
+      if (patch.weatherThunder !== undefined) setThunder(patch.weatherThunder);
+      if (patch.backgroundParallaxFactor !== undefined) setParallax(patch.backgroundParallaxFactor);
+      if (patch.healthBarEnabled !== undefined) setHealthBarEnabled(!!patch.healthBarEnabled);
+      if (patch.oxygenBarEnabled !== undefined) setOxygenBarEnabled(!!patch.oxygenBarEnabled);
+      if (patch.lavaBarEnabled !== undefined) setLavaBarEnabled(!!patch.lavaBarEnabled);
+      if (patch.waterSplashesEnabled !== undefined) setWaterSplashesEnabled(!!patch.waterSplashesEnabled);
+      if (patch.lavaEmbersEnabled !== undefined) setLavaEmbersEnabled(!!patch.lavaEmbersEnabled);
+    };
+    window.addEventListener('game-settings-update', onSettingsUpdate);
+    return () => window.removeEventListener('game-settings-update', onSettingsUpdate);
+  }, []);
+
   // Open handler from global event
   useEffect(() => {
     const onOpen = () => {

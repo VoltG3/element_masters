@@ -71,15 +71,34 @@ export default class WeatherFog {
       return;
     }
     // Draw once with alpha 1, then control real alpha via g.alpha each frame
+    // We draw a large rectangle to cover the viewport
     g.rect(0, 0, w, h);
     g.fill({ color: 0x9fb7c9, alpha: 1 });
     g.alpha = baseAlpha;
   }
 
   update(dtMs) {
-    // Live intensity update from settings
-    const cur = Math.max(0, Math.min(100, this.getIntensity()));
-    if (cur !== this.intensity) this.setIntensity(cur);
+    // Smooth intensity transition
+    const targetIntensity = Math.max(0, Math.min(100, this.getIntensity()));
+    if (Math.abs(targetIntensity - this.intensity) > 0.1) {
+      const lerpFactor = 1 - Math.exp(-0.0015 * dtMs);
+      this.setIntensity(this.intensity + (targetIntensity - this.intensity) * lerpFactor);
+    } else if (this.intensity !== targetIntensity) {
+      this.setIntensity(targetIntensity);
+    }
+
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+    if (viewport) {
+      // Follow camera
+      if (this.g) this.g.x = viewport.x;
+      if (this.layer1) this.layer1.x = viewport.x;
+      if (this.layer2) this.layer2.x = viewport.x;
+      
+      // We also need to follow Y if the map is tall
+      if (this.g) this.g.y = viewport.y;
+      if (this.layer1) this.layer1.y = viewport.y;
+      if (this.layer2) this.layer2.y = viewport.y;
+    }
 
     // Advance time for breathing/pulse
     const dt = Math.max(0, Number(dtMs) || 16.67);

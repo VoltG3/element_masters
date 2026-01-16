@@ -1,0 +1,13 @@
+{
+  "id": "weather_rain_off",
+  "name": "weather.rain_off",
+  "displayName": "Rain Off",
+  "type": "weather_trigger",
+  "weatherType": "rain",
+  "weatherAction": "off",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "🚫💧",
+  "isHiddenInGame": true,
+  "collision": false
+}

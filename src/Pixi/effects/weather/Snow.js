@@ -12,7 +12,12 @@ export default class WeatherSnow {
     this.intensity = 0;
     const area = this.width * this.height;
     // Snow lasts longer; keep a tighter cap than rain for performance
-    this.maxFlakes = Math.max(120, Math.floor(area / 3800));
+    this.maxFlakes = 300; // Base for 1280x720
+  }
+
+  resize(width, height) {
+    const area = width * height;
+    this.maxFlakes = Math.max(120, Math.floor(area / 3000));
   }
 
   setIntensity(v) {
@@ -26,8 +31,20 @@ export default class WeatherSnow {
     const r = 1.2 + Math.random() * 2.0; // radius
     g.circle(0, 0, r);
     g.fill({ color: 0xffffff, alpha: 0.97 });
-    const x = Math.random() * this.width;
-    const y = -10 - Math.random() * 30;
+
+    // Get viewport info if available
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+
+    let x, y;
+    if (viewport) {
+      // Spawn within viewport plus margin
+      x = viewport.x - 100 + Math.random() * (viewport.width + 200);
+      y = viewport.y - 10 - Math.random() * 30;
+    } else {
+      x = Math.random() * this.width;
+      y = -10 - Math.random() * 30;
+    }
+
     const speed = 40 + Math.random() * 80; // slower than rain, but a bit more range
     const drift = (Math.random() * 50 - 25); // horizontal drift
     g.x = x;
@@ -37,8 +54,18 @@ export default class WeatherSnow {
   }
 
   update(dtMs) {
-    // adjust intensity dynamically
-    this.setIntensity(this.getIntensity());
+    // Get viewport info if available
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+
+    // Smooth intensity transition
+    const targetIntensity = Math.max(0, Math.min(100, this.getIntensity()));
+    if (Math.abs(targetIntensity - this.intensity) > 0.1) {
+      // Exponential smoothing (approx 2s to reach 95% of target)
+      const lerpFactor = 1 - Math.exp(-0.0015 * dtMs);
+      this.intensity += (targetIntensity - this.intensity) * lerpFactor;
+    } else if (this.intensity !== targetIntensity) {
+      this.intensity = targetIntensity;
+    }
 
     // Constant-density controller to avoid wavey bursts
     const norm = Math.max(0, Math.min(1, this.intensity / 100));
@@ -140,7 +167,7 @@ export default class WeatherSnow {
       f.g.y = f.y;
       if (f.phase === 'rest' || f.phase === 'sinking' || f.settled) f.g.alpha = Math.max(0, Math.min(1, f.life));
 
-      if (f.y > this.height + 40 || f.x < -40 || f.x > this.width + 40) {
+      if (f.y > this.height + 40 || f.x < -40 || f.x > this.width + 40 || (viewport && f.y > viewport.y + viewport.height + 100)) {
         f.alive = false;
         toRemove.push(i);
       }

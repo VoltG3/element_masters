@@ -20,6 +20,7 @@ export const EditorTile = ({
     const isLavaTile = !!(tileObj && tileObj.flags && tileObj.flags.lava);
 
     const triggerId = objectMetadata?.[index]?.triggerId;
+    const intensity = objectMetadata?.[index]?.intensity;
 
     return (
         <div
@@ -100,6 +101,17 @@ export const EditorTile = ({
                             borderRadius: '3px', fontSize: '10px', whiteSpace: 'nowrap', zIndex: 10, border: '1px solid #fff'
                         }}>
                             ID: {triggerId}
+                        </div>
+                    )}
+
+                    {/* Intensity */}
+                    {intensity !== undefined && intensity !== null && objObj && (objObj.type === 'weather_trigger' || objObj.hasIntensity) && (
+                        <div style={{
+                            position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(0,100,200,0.8)', color: '#fff', padding: '1px 4px',
+                            borderRadius: '3px', fontSize: '10px', whiteSpace: 'nowrap', zIndex: 11, border: '1px solid #fff'
+                        }}>
+                            {intensity}%
                         </div>
                     )}
                 </div>

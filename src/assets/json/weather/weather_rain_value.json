@@ -1,0 +1,14 @@
+{
+  "id": "weather_rain_value",
+  "name": "weather.rain_value",
+  "displayName": "Rain Intensity",
+  "type": "weather_trigger",
+  "weatherType": "rain",
+  "weatherAction": "set",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "🌧️",
+  "isHiddenInGame": true,
+  "collision": false,
+  "hasIntensity": true
+}

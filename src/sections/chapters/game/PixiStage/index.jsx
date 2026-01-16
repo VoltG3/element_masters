@@ -51,6 +51,7 @@ const PixiStage = ({
   waterSplashesEnabled = true,
   lavaEmbersEnabled = true,
   isEditor = false,
+  isEditorPlayMode = false,
   showGrid = false,
   renderLayers = null, // null means all layers, otherwise an array of layer names to show
   pointerEvents = 'auto',
@@ -80,7 +81,8 @@ const PixiStage = ({
   const liquidLayerRef = useRef(null);
   const liquidSystemRef = useRef(null);
   const fogLayerRef = useRef(null);
-  const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null });
+  const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null, fog: null });
+  const weatherPropsRef = useRef({ rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 });
   const projectilesLayerRef = useRef(null);
   const projectileSpritesRef = useRef(new Map());
   const entitiesLayerRef = useRef(null);
@@ -119,6 +121,17 @@ const PixiStage = ({
   useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
   useEffect(() => { bgImageRef.current = backgroundImage; }, [backgroundImage]);
   useEffect(() => { bgColorRef.current = backgroundColor; }, [backgroundColor]);
+
+  // Sync weather props to ref for systems to read live
+  useEffect(() => {
+    weatherPropsRef.current = {
+      rain: Number(weatherRain) || 0,
+      snow: Number(weatherSnow) || 0,
+      clouds: Number(weatherClouds) || 0,
+      fog: Number(weatherFog) || 0,
+      thunder: Number(weatherThunder) || 0,
+    };
+  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder]);
 
   // Background resolver and solid checker (memoized per map)
   const resolveBackgroundUrl = useMemo(() => createBackgroundResolver(), []);
@@ -420,11 +433,29 @@ const PixiStage = ({
         // Weather
         const dt = app.ticker?.deltaMS || 16.67;
         const systems = weatherSystemsRef.current;
-        if (systems.rain) systems.rain.update(dt);
-        if (systems.snow) systems.snow.update(dt);
-        if (systems.clouds) systems.clouds.update(dt);
-        if (systems.fog) systems.fog.update(dt);
-        if (systems.thunder) systems.thunder.update(dt);
+        const swNow = app.screen.width;
+        const shNow = app.screen.height;
+
+        if (systems.rain) {
+          if (systems.rain.resize) systems.rain.resize(swNow, shNow);
+          systems.rain.update(dt);
+        }
+        if (systems.snow) {
+          if (systems.snow.resize) systems.snow.resize(swNow, shNow);
+          systems.snow.update(dt);
+        }
+        if (systems.clouds) {
+          if (systems.clouds.resize) systems.clouds.resize(swNow, shNow);
+          systems.clouds.update(dt);
+        }
+        if (systems.fog) {
+          if (systems.fog.resize) systems.fog.resize(swNow, shNow);
+          systems.fog.update(dt);
+        }
+        if (systems.thunder) {
+          if (systems.thunder.resize) systems.thunder.resize(swNow, shNow);
+          systems.thunder.update(dt);
+        }
 
         // Liquids
         try {
@@ -657,7 +688,7 @@ const PixiStage = ({
         if (bgRef.current && objBehindRef.current && objFrontRef.current) {
             rebuildLayers(
                 { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor }
+                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor, isEditorPlayMode }
             );
 
             // Rebuild player visuals if visuals changed or player not created yet
@@ -712,7 +743,7 @@ const PixiStage = ({
     const app = appRef.current;
     const weatherLayer = weatherLayerRef.current;
     const fogLayer = fogLayerRef.current;
-    if (!app || !weatherLayer || !fogLayer) return;
+    if (!app || !weatherLayer || !fogLayer || !isPixiReady) return;
 
     const api = {
       isSolidAt,
@@ -735,56 +766,48 @@ const PixiStage = ({
           const yy = Number.isFinite(y) ? y : (Number.isFinite(sy) ? sy : null);
           if (yy != null) lavaSteamRef.current?.trigger({ x, y: yy, strength });
         } catch {}
-      }
+      },
+      getViewport: () => ({
+        x: cameraPosRef.current.x,
+        y: cameraPosRef.current.y,
+        width: app.screen?.width || 800,
+        height: app.screen?.height || 600
+      })
     };
 
-    const getRainIntensity = () => Math.max(0, Math.min(100, Number(weatherRain) || 0));
-    const getSnowIntensity = () => Math.max(0, Math.min(100, Number(weatherSnow) || 0));
-    const getCloudsIntensity = () => Math.max(0, Math.min(100, Number(weatherClouds) || 0));
-    const getThunderIntensity = () => Math.max(0, Math.min(100, Number(weatherThunder) || 0));
+    const getRainIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.rain) || 0));
+    const getSnowIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.snow) || 0));
+    const getCloudsIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.clouds) || 0));
+    const getThunderIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.thunder) || 0));
+    const getFogIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.fog) || 0));
 
-    // Reset systems
-    try { weatherSystemsRef.current.rain?.destroy(); } catch {}
-    try { weatherSystemsRef.current.snow?.destroy(); } catch {}
-    try { weatherSystemsRef.current.clouds?.destroy(); } catch {}
-    try { weatherSystemsRef.current.fog?.destroy(); } catch {}
-    try { weatherSystemsRef.current.thunder?.destroy(); } catch {}
-    weatherSystemsRef.current.rain = null;
-    weatherSystemsRef.current.snow = null;
-    weatherSystemsRef.current.clouds = null;
-    weatherSystemsRef.current.fog = null;
-    weatherSystemsRef.current.thunder = null;
-
-    // Rain
-    if (getRainIntensity() > 0) {
+    // Initialize systems if they don't exist
+    if (!weatherSystemsRef.current.rain) {
       weatherSystemsRef.current.rain = new WeatherRain(weatherLayer, api, getRainIntensity);
-      weatherSystemsRef.current.rain.setIntensity(getRainIntensity());
     }
-
-    // Snow
-    if (getSnowIntensity() > 0) {
+    if (!weatherSystemsRef.current.snow) {
       weatherSystemsRef.current.snow = new WeatherSnow(weatherLayer, api, getSnowIntensity);
-      weatherSystemsRef.current.snow.setIntensity(getSnowIntensity());
     }
-
-    // Clouds
-    if (getCloudsIntensity() > 0) {
+    if (!weatherSystemsRef.current.clouds) {
       weatherSystemsRef.current.clouds = new WeatherClouds(fogLayer, api, getCloudsIntensity);
-      weatherSystemsRef.current.clouds.setIntensity(getCloudsIntensity());
     }
-
-    // Fog
-    if (Number(weatherFog) > 0) {
-      weatherSystemsRef.current.fog = new WeatherFog(fogLayer, api, () => Number(weatherFog) || 0);
-      weatherSystemsRef.current.fog.setIntensity(Number(weatherFog) || 0);
+    if (!weatherSystemsRef.current.fog) {
+      weatherSystemsRef.current.fog = new WeatherFog(fogLayer, api, getFogIntensity);
     }
-
-    // Thunder
-    if (getThunderIntensity() > 0) {
+    if (!weatherSystemsRef.current.thunder) {
       weatherSystemsRef.current.thunder = new WeatherThunder(fogLayer, api, getThunderIntensity);
-      weatherSystemsRef.current.thunder.setIntensity(getThunderIntensity());
     }
-  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, mapWidth, mapHeight, tileSize, isSolidAt]);
+
+    // Return cleanup to destroy all when stage unmounts or map changes
+    return () => {
+      try { weatherSystemsRef.current.rain?.destroy(); } catch {}
+      try { weatherSystemsRef.current.snow?.destroy(); } catch {}
+      try { weatherSystemsRef.current.clouds?.destroy(); } catch {}
+      try { weatherSystemsRef.current.fog?.destroy(); } catch {}
+      try { weatherSystemsRef.current.thunder?.destroy(); } catch {}
+      weatherSystemsRef.current = { rain: null, snow: null, clouds: null, thunder: null, fog: null };
+    };
+  }, [mapWidth, mapHeight, tileSize, isSolidAt, isPixiReady]);
 
   // Rebuild parallax when props change
   useEffect(() => {

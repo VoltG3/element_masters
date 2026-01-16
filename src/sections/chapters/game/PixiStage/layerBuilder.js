@@ -16,7 +16,8 @@ export const rebuildLayers = (refs, options) => {
     revealedSecrets,
     registryItems,
     objectMetadata,
-    isEditor
+    isEditor,
+    isEditorPlayMode
   } = options;
 
   const { bgRef, objBehindRef, objFrontRef, secretLayerRef } = refs;
@@ -214,8 +215,11 @@ export const rebuildLayers = (refs, options) => {
     container.y = y;
     
     // Slēpjam objektus, kuriem ir isHiddenInGame: true (piemēram, bultiņas spēlē)
-    // Bet ja mēs esam redaktorā, mēs gribam tās redzēt.
-    if (def.isHiddenInGame && !isEditor) {
+    // Bet ja mēs esam redaktorā vai redaktora play modē, mēs gribam tās redzēt (laikapstākļu trigerus).
+    const isWeatherTrigger = def.type === 'weather_trigger';
+    const shouldShowAnyway = isWeatherTrigger && (isEditor || isEditorPlayMode);
+    
+    if (def.isHiddenInGame && !isEditor && !shouldShowAnyway) {
         container.visible = false;
     }
 

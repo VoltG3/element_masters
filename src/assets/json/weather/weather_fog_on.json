@@ -1,0 +1,14 @@
+{
+  "id": "weather_fog_on",
+  "name": "weather.fog_on",
+  "displayName": "Fog On (0%)",
+  "type": "weather_trigger",
+  "weatherType": "fog",
+  "weatherAction": "on",
+  "hasIntensity": true,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "🌫️",
+  "isHiddenInGame": true,
+  "collision": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "weather_thunder_value",
+  "name": "weather.thunder_value",
+  "displayName": "Thunder Intensity",
+  "type": "weather_trigger",
+  "weatherType": "thunder",
+  "weatherAction": "set",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "⛈️",
+  "isHiddenInGame": true,
+  "collision": false,
+  "hasIntensity": true
+}

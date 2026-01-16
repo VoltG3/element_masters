@@ -65,9 +65,14 @@ export default class WeatherThunder {
   }
 
   update(dtMs) {
-    // live intensity updates
-    const curInt = Math.max(0, Math.min(100, this.getIntensity()));
-    if (curInt !== this.intensity) this.setIntensity(curInt);
+    // Smooth intensity transition
+    const targetIntensity = Math.max(0, Math.min(100, this.getIntensity()));
+    if (Math.abs(targetIntensity - this.intensity) > 0.1) {
+      const lerpFactor = 1 - Math.exp(-0.0015 * dtMs);
+      this.setIntensity(this.intensity + (targetIntensity - this.intensity) * lerpFactor);
+    } else if (this.intensity !== targetIntensity) {
+      this.setIntensity(targetIntensity);
+    }
 
     const dt = Math.max(0, Number(dtMs) || 16.67);
     if (this.intensity <= 0) return;
@@ -137,15 +142,35 @@ export default class WeatherThunder {
     const g = this.flashG;
     g.clear();
     if (this.flashAlpha <= 0) return;
-    g.rect(0, 0, this.width, this.height);
+    
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+    if (viewport) {
+      g.x = viewport.x;
+      g.y = viewport.y;
+      g.rect(0, 0, viewport.width, viewport.height);
+    } else {
+      g.rect(0, 0, this.width, this.height);
+    }
     g.fill({ color: 0xffffff, alpha: this.flashAlpha });
   }
 
   _createBolt() {
     // Determine target using solid scan from top
     const W = this.width, H = this.height;
-    const x = Math.floor(this._rand(8, W - 8));
-    const topY = -Math.floor(this._rand(10, 40)); // start slightly above top
+    
+    // Get viewport info if available
+    const viewport = this.api.getViewport ? this.api.getViewport() : null;
+    
+    let x, topY;
+    if (viewport) {
+      // Strike within viewport
+      x = Math.floor(viewport.x + this._rand(8, viewport.width - 8));
+      topY = viewport.y - Math.floor(this._rand(10, 40));
+    } else {
+      x = Math.floor(this._rand(8, W - 8));
+      topY = -Math.floor(this._rand(10, 40)); // start slightly above top
+    }
+
     const targetY = this._findGroundY(x, H);
     const endY = Number.isFinite(targetY) ? Math.max(0, targetY - this._rand(8, 16)) : Math.floor(H * 0.6);
 

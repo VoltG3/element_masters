@@ -1,0 +1,14 @@
+{
+  "id": "weather_thunder_on",
+  "name": "weather.thunder_on",
+  "displayName": "Thunder On (0%)",
+  "type": "weather_trigger",
+  "weatherType": "thunder",
+  "weatherAction": "on",
+  "hasIntensity": true,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "⚡",
+  "isHiddenInGame": true,
+  "collision": false
+}

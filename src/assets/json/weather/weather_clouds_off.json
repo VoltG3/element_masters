@@ -1,0 +1,13 @@
+{
+  "id": "weather_clouds_off",
+  "name": "weather.clouds_off",
+  "displayName": "Clouds Off",
+  "type": "weather_trigger",
+  "weatherType": "clouds",
+  "weatherAction": "off",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "☀️",
+  "isHiddenInGame": true,
+  "collision": false
+}

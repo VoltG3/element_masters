@@ -13,6 +13,7 @@ export const PalettePanel = ({
     interactables, 
     hazards, 
     secrets, 
+    weather,
     obstacles,
     handlePaletteSelect, 
     selectedTile 
@@ -24,6 +25,8 @@ export const PalettePanel = ({
         const isWater = !!(item.flags && item.flags.water);
         const isLava = !!(item.flags && item.flags.lava);
         const isSecret = item.type === 'secret';
+        const isWeatherTrigger = item.type === 'weather_trigger';
+        
         const swatchStyle = isWater
             ? { background: 'linear-gradient(180deg,#2a5d8f,#174369)' }
             : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' } : { background: '#eee' });
@@ -32,7 +35,7 @@ export const PalettePanel = ({
             <div
                 key={item.id}
                 onClick={() => handlePaletteSelect(item, layer)}
-                title={item.name}
+                title={item.displayName || item.name}
                 style={{
                     border: selectedTile?.id === item.id ? `2px solid ${color}` : '1px solid #ccc',
                     cursor: 'pointer', padding: '2px', width: '36px', height: '36px',
@@ -48,6 +51,15 @@ export const PalettePanel = ({
                         color: '#fff', fontSize: 8, textAlign: 'center', lineHeight: 1.1, fontWeight: 'bold'
                     }}>
                         {item.editorIcon || (item.subtype === 'above' ? 'ABOVE' : 'BELOW')}
+                    </div>
+                ) : isWeatherTrigger ? (
+                    <div style={{
+                        width: '100%', height: '100%', borderRadius: 2,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: '#f0f4f8', border: '1px solid #d1d9e6',
+                        color: '#333', fontSize: '18px'
+                    }}>
+                        {item.editorIcon}
                     </div>
                 ) : editorIcon ? (
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
@@ -153,6 +165,36 @@ export const PalettePanel = ({
                     <CollapsiblePanel title="Secret Area" isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {secrets && secrets.filter(s => s.subtype !== 'open').map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Rain" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'rain').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Snow" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'snow').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Clouds" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'clouds').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Fog" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'fog').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Thunder" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'thunder').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
                 </div>

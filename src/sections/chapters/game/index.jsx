@@ -15,11 +15,12 @@ import styled from 'styled-components';
 
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
 import map1 from '../../../assets/maps/Multiple_Worlds.json';
+import map2 from '../../../assets/maps/Weather.json';
 
 
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1];
+const BUILT_IN_MAPS = [map1, map2];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -248,6 +249,15 @@ export default function Game() {
                 alert("Level Complete!");
                 dispatch(setMapModalOpen(true));
             }, 500);
+        } else if (action === 'updateWeather' && payload) {
+            const { type, value } = payload;
+            const settingKey = 'weather' + type.charAt(0).toUpperCase() + type.slice(1); // e.g., weatherRain
+            setRuntimeSettings(prev => ({ ...prev, [settingKey]: value }));
+            
+            // Dispatch event so UI components like GameSettings can update their state
+            window.dispatchEvent(new CustomEvent('game-settings-update', { 
+                detail: { [settingKey]: value } 
+            }));
         }
     }, [dispatch, objectMapData, objectMetadata, registryItems]);
 
@@ -486,17 +496,41 @@ export default function Game() {
                     <ModalContent>
                         <ModalTitle>Select a Map</ModalTitle>
                         <MapList>
-                            {BUILT_IN_MAPS.map((map, index) => (
-                                <MapCard key={index} onClick={() => loadMapData(map)}>
-                                    <div>
-                                        <MapTitle>{map.meta?.name || "Unnamed Map"}</MapTitle>
-                                        <MapAuthor>By: {map.meta?.author || "Unknown"}</MapAuthor>
-                                    </div>
-                                    <MapInfo>
-                                        <div>Size: {map.meta?.width}x{map.meta?.height}</div>
-                                    </MapInfo>
-                                </MapCard>
-                            ))}
+                            {BUILT_IN_MAPS.map((map, index) => {
+                                const isV2 = map.meta?.version === "2.0";
+                                const projectName = map.meta?.projectName || map.meta?.name || "Unnamed Map";
+                                const author = map.meta?.author || "Unknown";
+                                
+                                let sizeInfo = "";
+                                let subMapInfo = "";
+
+                                if (isV2 && map.maps) {
+                                    const mainMap = map.maps[map.meta?.activeMapId || 'main'] || Object.values(map.maps)[0];
+                                    if (mainMap) {
+                                        sizeInfo = `${mainMap.width}x${mainMap.height}`;
+                                    }
+                                    
+                                    const mapValues = Object.values(map.maps);
+                                    const overworldCount = mapValues.filter(m => m.type === 'overworld').length;
+                                    const underworldCount = mapValues.filter(m => m.type === 'underworld').length;
+                                    
+                                    subMapInfo = ` (O:${overworldCount}, U:${underworldCount})`;
+                                } else {
+                                    sizeInfo = `${map.meta?.width || map.width || 0}x${map.meta?.height || map.height || 0}`;
+                                }
+
+                                return (
+                                    <MapCard key={index} onClick={() => loadMapData(map)}>
+                                        <div>
+                                            <MapTitle>{projectName}</MapTitle>
+                                            <MapAuthor>By: {author}</MapAuthor>
+                                        </div>
+                                        <MapInfo>
+                                            <div>Size: {sizeInfo}{subMapInfo}</div>
+                                        </MapInfo>
+                                    </MapCard>
+                                );
+                            })}
                         </MapList>
                         <ModalDivider>
                             <FileUploadLabel>

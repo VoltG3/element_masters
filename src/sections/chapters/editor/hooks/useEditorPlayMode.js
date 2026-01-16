@@ -16,6 +16,9 @@ export const useEditorPlayMode = (
     const [revealedSecrets, setRevealedSecrets] = useState([]);
     const [playModeObjectData, setPlayModeObjectData] = useState([]);
     const [playModeSecretData, setPlayModeSecretData] = useState([]);
+    const [playModeWeather, setPlayModeWeather] = useState({
+        rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0
+    });
     const lastSyncedMapIdRef = useRef(null);
 
     // Stability for engine initialization - only changes when map changes or play mode is toggled
@@ -60,11 +63,11 @@ export const useEditorPlayMode = (
             objectMetadata: objectMetadata,
             date_map_last_updated: engineInitId, 
             weather: {
-                rain: weatherRain,
-                snow: weatherSnow,
-                clouds: weatherClouds,
-                fog: weatherFog,
-                thunder: weatherThunder
+                rain: isPlayMode ? playModeWeather.rain : weatherRain,
+                snow: isPlayMode ? playModeWeather.snow : weatherSnow,
+                clouds: isPlayMode ? playModeWeather.clouds : weatherClouds,
+                fog: isPlayMode ? playModeWeather.fog : weatherFog,
+                thunder: isPlayMode ? playModeWeather.thunder : weatherThunder
             }
         },
         maps: maps, // Project maps for inter-map teleports
@@ -76,6 +79,7 @@ export const useEditorPlayMode = (
         mapWidth, mapHeight, activeMapId, spawnTriggerId, selectedBackgroundImage, selectedBackgroundColor, 
         backgroundParallaxFactor, tileMapData, currentPlayObjectData, objectMetadata,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        playModeWeather,
         isPlayMode, maps, engineInitId
     ]);
 
@@ -135,6 +139,18 @@ export const useEditorPlayMode = (
                     [index]: { ...current, health: newHealth }
                 };
             });
+        } else if (newState === 'updateWeather' && payload) {
+            const { type, value } = payload;
+            setPlayModeWeather(prev => ({
+                ...prev,
+                [type]: value
+            }));
+            
+            // Dispatch event for any UI components that might be listening
+            const settingKey = 'weather' + type.charAt(0).toUpperCase() + type.slice(1);
+            window.dispatchEvent(new CustomEvent('game-settings-update', { 
+                detail: { [settingKey]: value } 
+            }));
         }
     }, [playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 
@@ -174,6 +190,13 @@ export const useEditorPlayMode = (
 
         setPlayModeObjectData(playData);
         setPlayModeSecretData([...secretMapData]);
+        setPlayModeWeather({
+            rain: weatherRain,
+            snow: weatherSnow,
+            clouds: weatherClouds,
+            fog: weatherFog,
+            thunder: weatherThunder
+        });
         setRevealedSecrets([]);
         lastSyncedMapIdRef.current = activeMapId;
         setIsPlayMode(true);
@@ -210,6 +233,7 @@ export const useEditorPlayMode = (
         handleReset,
         playModeObjectData: currentPlayObjectData,
         playModeSecretData: currentPlaySecretData,
+        playModeWeather,
         revealedSecrets,
         gameEngineState
     };

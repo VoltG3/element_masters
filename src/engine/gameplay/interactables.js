@@ -13,16 +13,53 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
   const index = gridY * mapWidth + gridX;
   if (index < 0 || index >= objectLayerData.length) return;
 
+  const metadata = mapData?.meta?.objectMetadata;
+  const currentMeta = metadata?.[index];
+
   const objId = objectLayerData[index];
   if (!objId) return;
 
   const objDef = registryItems.find(r => r.id === objId);
-  if (!objDef || !objDef.name || !objDef.name.startsWith('interactable.')) return;
+  if (!objDef) return;
+
+  // Check for Weather Trigger logic (triggers when walking over it)
+  if (objDef.type === 'weather_trigger') {
+      const weatherType = objDef.weatherType; // rain, snow, clouds, fog, thunder
+      const action = objDef.weatherAction; // on, off, set
+      let value = 0;
+      
+      if (action === 'set' || action === 'on') {
+          value = currentMeta?.intensity !== undefined ? currentMeta.intensity : (action === 'on' ? 1 : 50);
+      } else if (action === 'off') {
+          value = 0; // In runtime settings, 0 means off
+      }
+      
+      if (!gameState.current.lastWeatherTrigger) {
+          gameState.current.lastWeatherTrigger = {};
+      }
+      
+      const lastVal = gameState.current.lastWeatherTrigger[index];
+      if (lastVal !== value) {
+          if (onStateUpdate) {
+              onStateUpdate('updateWeather', {
+                  type: weatherType,
+                  value: value
+              });
+          }
+          gameState.current.lastWeatherTrigger[index] = value;
+          
+          if (objDef.sfx) {
+              try {
+                  playShotSfx(objDef.sfx, objDef.sfxVolume || 0.5);
+              } catch {}
+          }
+      }
+      return;
+  }
+
+  if (!objDef.name || !objDef.name.startsWith('interactable.')) return;
 
   // Check for Teleport logic
-  const metadata = mapData?.meta?.objectMetadata;
-  const currentMeta = metadata?.[index];
-  
   if (objId.includes('portal') && currentMeta && currentMeta.triggerId !== undefined && currentMeta.triggerId !== null) {
       // 1. Check for cross-map teleport
       const targetMapId = currentMeta.targetMapId;

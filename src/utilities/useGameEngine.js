@@ -213,16 +213,19 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         }
 
         // Unique identifier for the map session
-        // We use created_at/updated time or just the object reference itself if it's a completely new load
-        // In Game/index.jsx loadMapData creates a new object {...activeMapData} for reset.
+        // We include projectName and timestamps to distinguish between different projects 
+        // that might use the same activeMapId (like "main")
         const meta = mapData.meta || {};
-        const currentMapId = meta.activeMapId || meta.date_map_last_updated || meta.date_map_created_at || mapData.name || 'default';
+        const projectName = meta.projectName || '';
+        const mapId = meta.activeMapId || mapData.name || 'default';
+        const timestamp = meta.date_map_last_updated || meta.date_map_created_at || '';
+        
+        const currentMapId = `${projectName}|${mapId}|${timestamp}`;
         const isNewMapLoad = currentMapId !== lastMapIdRef.current;
 
         // Ja spēle jau ir inicializēta UN tā ir tā pati karte, nemainām spēlētāja pozīciju
-        // Tas novērš "reset" uz sākumu, kad spēlētājs paceļ itemu (kas maina mapData atsauci, bet ne saturu)
-        // Atļaujam pārlādi, ja entītiju saraksts ir tukšs (drošībai)
-        if (isInitialized.current && !isNewMapLoad && entitiesRef.current.length > 0) return;
+        // Tas novērš "reset" uz sākumu, kad spēlētājs paceļ itemu vai mainās laikapstākļi
+        if (isInitialized.current && !isNewMapLoad) return;
 
         lastMapIdRef.current = currentMapId;
 

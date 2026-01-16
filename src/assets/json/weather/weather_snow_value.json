@@ -1,0 +1,14 @@
+{
+  "id": "weather_snow_value",
+  "name": "weather.snow_value",
+  "displayName": "Snow Intensity",
+  "type": "weather_trigger",
+  "weatherType": "snow",
+  "weatherAction": "set",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "🌨️",
+  "isHiddenInGame": true,
+  "collision": false,
+  "hasIntensity": true
+}

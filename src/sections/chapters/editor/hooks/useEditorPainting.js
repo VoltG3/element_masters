@@ -5,7 +5,8 @@ export const useEditorPainting = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, 
     setTileMapData, setObjectMapData, setSecretMapData,
     activeTool, brushSize, activeLayer, selectedTile, selection, 
-    setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging
+    setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging,
+    setActivePanel, setHighlightedIndex, registryItems
 ) => {
     const [hoverIndex, setHoverIndex] = useState(null);
     const [bucketPreviewIndices, setBucketPreviewIndices] = useState(new Set());
@@ -30,6 +31,21 @@ export const useEditorPainting = (
     }, [activeTool, brushSize, activeLayer, selectedTile, mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, setTileMapData, setObjectMapData, setSecretMapData]);
 
     const handleGridMouseDown = (index, e) => {
+        // Quick select for configurable objects
+        const existingObjId = objectMapData[index];
+        if (existingObjId && setActivePanel && setHighlightedIndex) {
+            const def = registryItems?.find(r => r.id === existingObjId);
+            const isConfigurable = existingObjId.includes('portal') || 
+                                 existingObjId.includes('target') || 
+                                 existingObjId === 'portal_target' || 
+                                 (def && def.type === 'weather_trigger');
+            
+            if (isConfigurable) {
+                setActivePanel('props');
+                setHighlightedIndex(index);
+            }
+        }
+
         if (activeTool === 'brush') {
             setIsDragging(true);
             paintTile(index);

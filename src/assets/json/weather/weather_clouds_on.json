@@ -1,0 +1,14 @@
+{
+  "id": "weather_clouds_on",
+  "name": "weather.clouds_on",
+  "displayName": "Clouds On (0%)",
+  "type": "weather_trigger",
+  "weatherType": "clouds",
+  "weatherAction": "on",
+  "hasIntensity": true,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "☁️",
+  "isHiddenInGame": true,
+  "collision": false
+}

@@ -165,7 +165,7 @@ export const Editor = () => {
 
     // Use Custom Hooks
     const { 
-        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, obstacles 
+        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, obstacles 
     } = useEditorRegistry(registryItems);
 
     const {
@@ -175,7 +175,7 @@ export const Editor = () => {
 
     const {
         isPlayMode, handlePlay, handlePause, handleReset, 
-        playModeObjectData, playModeSecretData, revealedSecrets, gameEngineState
+        playModeObjectData, playModeSecretData, playModeWeather, revealedSecrets, gameEngineState
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
@@ -207,7 +207,8 @@ export const Editor = () => {
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, 
         setTileMapData, setObjectMapData, setSecretMapData,
         activeTool, brushSize, activeLayer, selectedTile, selection, 
-        setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging
+        setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging,
+        setActivePanel, setHighlightedIndex, registryItems
     );
 
     // Side Effects
@@ -331,6 +332,7 @@ export const Editor = () => {
                     interactables={interactables}
                     hazards={hazards}
                     secrets={secrets}
+                    weather={weather}
                     obstacles={obstacles}
                     totalTiles={totalTiles}
                     filledBlocks={filledBlocks}
@@ -475,12 +477,13 @@ export const Editor = () => {
                                 backgroundImage={showBackgroundImage ? selectedBackgroundImage : null}
                                 backgroundColor={selectedBackgroundColor}
                                 backgroundParallaxFactor={backgroundParallaxFactor}
-                                weatherRain={weatherRain}
-                                weatherSnow={weatherSnow}
-                                weatherClouds={weatherClouds}
-                                weatherFog={weatherFog}
-                                weatherThunder={weatherThunder}
+                                weatherRain={playModeWeather.rain}
+                                weatherSnow={playModeWeather.snow}
+                                weatherClouds={playModeWeather.clouds}
+                                weatherFog={playModeWeather.fog}
+                                weatherThunder={playModeWeather.thunder}
                                 isEditor={false}
+                                isEditorPlayMode={true}
                                 showGrid={showGrid}
                             />
                         </div>
