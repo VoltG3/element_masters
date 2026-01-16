@@ -211,7 +211,7 @@ export const EraserButtonContainer = styled.div`
     height: 40px;
     border: 1px solid ${props => props.$active ? '#e3de0a' : '#fff'};
     padding: 4px;
-    cursor: pointer;
+    //cursor: pointer;
     background-color: #333;
     border-radius: 4px;
     box-sizing: border-box;

@@ -24,7 +24,7 @@ import {
     ConfirmButton,
     CancelButton,
     GridIcon
-} from './EditorToolsButton';
+} from './styles/EditorToolsButton';
 
 export const EditorTools = ({
     mapName, 
@@ -192,21 +192,23 @@ export const EditorTools = ({
                                     {showGrid ? '▦' : '▢'}
                                 </GridIcon>
                             </ToolsEditorButton>
+
+                            {/* Background Color Picker */}
+                            <BgColorContainer>
+                                <BgColorInputWrapper>
+                                    <BgColorInput
+                                        type="color"
+                                        value={selectedBackgroundColor}
+                                        onChange={(e) => !isPlayMode && setSelectedBackgroundColor(e.target.value)}
+                                        title={isPlayMode ? "Disabled in Play Mode" : "Background Color"}
+                                        disabled={isPlayMode}
+                                    />
+                                    {isPlayMode && <StrikeThrough />}
+                                </BgColorInputWrapper>
+                            </BgColorContainer>
                         </ToolsRow>
 
-                        {/* Background Color Picker */}
-                        <BgColorContainer>
-                            <BgColorInputWrapper>
-                                <BgColorInput
-                                    type="color"
-                                    value={selectedBackgroundColor}
-                                    onChange={(e) => !isPlayMode && setSelectedBackgroundColor(e.target.value)}
-                                    title={isPlayMode ? "Disabled in Play Mode" : "Background Color"}
-                                    disabled={isPlayMode}
-                                />
-                                {isPlayMode && <StrikeThrough />}
-                            </BgColorInputWrapper>
-                        </BgColorContainer>
+
 
                         {/* Active Layer Indicator */}
                         <ToolsInnerGroup>
@@ -237,25 +239,26 @@ export const EditorTools = ({
                             })}
                         </ToolsInnerGroup>
 
+                        <ToolsInnerGroup>
+                            <ToolsRow>
+                                <PlayButtonContainer onClick={isPlayMode ? handlePause : handlePlay} title={isPlayMode ? "Pause/Editor" : "Play Map"}>
+                                    <PlayButtonInner $variant={isPlayMode ? 'pause' : 'play'}>
+                                        <span>{isPlayMode ? '⏸' : '▶'}</span>
+                                    </PlayButtonInner>
+                                </PlayButtonContainer>
+
+                                <PlayButtonContainer onClick={handleReset} title="Reset State">
+                                    <PlayButtonInner>
+                                        <span>↻</span>
+                                    </PlayButtonInner>
+                                </PlayButtonContainer>
+                            </ToolsRow>
+                        </ToolsInnerGroup>
                     </ToolsGroup>
                 </ToolsSection>
 
 
                 <ToolsSection>
-                    <ToolsRow>
-                        <PlayButtonContainer onClick={isPlayMode ? handlePause : handlePlay} title={isPlayMode ? "Pause/Editor" : "Play Map"}>
-                            <PlayButtonInner $variant={isPlayMode ? 'pause' : 'play'}>
-                                <span>{isPlayMode ? '⏸' : '▶'}</span>
-                            </PlayButtonInner>
-                        </PlayButtonContainer>
-
-                        <PlayButtonContainer onClick={handleReset} title="Reset State">
-                            <PlayButtonInner>
-                                <span>↻</span>
-                            </PlayButtonInner>
-                        </PlayButtonContainer>
-                    </ToolsRow>
-
                     <InfoContainer>
                         <InfoItem>
                             <InfoLabel>Map:</InfoLabel>
