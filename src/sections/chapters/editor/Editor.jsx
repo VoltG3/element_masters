@@ -9,6 +9,7 @@ import { EditorScene } from './EditorScene';
 import { EditorElements } from './EditorElements';
 import { EditorTools } from './EditorTools';
 import PixiStage from '../game/PixiStage';
+import styled from 'styled-components';
 
 // Custom Hooks
 import { useEditorRegistry } from './hooks/useEditorRegistry';
@@ -20,6 +21,30 @@ import { useEditorMaps } from './hooks/useEditorMaps';
 
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
+
+const MessageOverlay = styled.div`
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    text-align: center;
+    pointer-events: none;
+    z-index: 1500;
+    
+    h2 {
+        font-size: 48px;
+        color: white;
+        text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
+        margin: 0;
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 800;
+        letter-spacing: 2px;
+        opacity: ${props => props.$isVisible ? 1 : 0};
+        transition: opacity 2s ease-in-out;
+    }
+`;
 
 export const Editor = () => {
     const registryItems = useMemo(() => getRegistry() || [], []);
@@ -165,7 +190,7 @@ export const Editor = () => {
 
     // Use Custom Hooks
     const { 
-        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, obstacles 
+        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, obstacles 
     } = useEditorRegistry(registryItems);
 
     const {
@@ -175,7 +200,7 @@ export const Editor = () => {
 
     const {
         isPlayMode, handlePlay, handlePause, handleReset, 
-        playModeObjectData, playModeSecretData, playModeWeather, revealedSecrets, gameEngineState
+        playModeObjectData, playModeSecretData, playModeWeather, gameMessage, revealedSecrets, gameEngineState
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
@@ -333,6 +358,7 @@ export const Editor = () => {
                     hazards={hazards}
                     secrets={secrets}
                     weather={weather}
+                    messages={messages}
                     obstacles={obstacles}
                     totalTiles={totalTiles}
                     filledBlocks={filledBlocks}
@@ -486,6 +512,11 @@ export const Editor = () => {
                                 isEditorPlayMode={true}
                                 showGrid={showGrid}
                             />
+                            {gameMessage.text && (
+                                <MessageOverlay $isVisible={gameMessage.isVisible}>
+                                    <h2>{gameMessage.text}</h2>
+                                </MessageOverlay>
+                            )}
                         </div>
                     )}
                 </div>

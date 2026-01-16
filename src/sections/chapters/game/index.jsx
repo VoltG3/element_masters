@@ -162,6 +162,30 @@ const PlaceholderMessage = styled.div`
     font-size: 24px;
 `;
 
+const MessageOverlay = styled.div`
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    text-align: center;
+    pointer-events: none;
+    z-index: 1500;
+    
+    h2 {
+        font-size: 48px;
+        color: white;
+        text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
+        margin: 0;
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 800;
+        letter-spacing: 2px;
+        opacity: ${props => props.$isVisible ? 1 : 0};
+        transition: opacity 2s ease-in-out;
+    }
+`;
+
 export default function Game() {
     const dispatch = useDispatch();
     const viewportRef = useRef(null);
@@ -175,6 +199,10 @@ export default function Game() {
 
     // Runtime settings that can be changed from GameSettings on the fly
     const [runtimeSettings, setRuntimeSettings] = useState({});
+
+    // In-game messages
+    const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
+    const messageTimerRef = useRef(null);
 
     // Registry
     const registryItems = getRegistry() || [];
@@ -258,6 +286,19 @@ export default function Game() {
             window.dispatchEvent(new CustomEvent('game-settings-update', { 
                 detail: { [settingKey]: value } 
             }));
+        } else if (action === 'showMessage' && payload) {
+            const { text, duration } = payload;
+            
+            if (messageTimerRef.current) {
+                clearTimeout(messageTimerRef.current);
+            }
+            
+            setGameMessage({ text, isVisible: true });
+            
+            messageTimerRef.current = setTimeout(() => {
+                setGameMessage(prev => ({ ...prev, isVisible: false }));
+                messageTimerRef.current = null;
+            }, duration || 8000);
         }
     }, [dispatch, objectMapData, objectMetadata, registryItems]);
 
@@ -471,6 +512,12 @@ export default function Game() {
                 <WinCounterOverlay>
                     {Math.floor(playerState.winCounter || 0)}
                 </WinCounterOverlay>
+            )}
+
+            {gameMessage.text && (
+                <MessageOverlay $isVisible={gameMessage.isVisible}>
+                    <h2>{gameMessage.text}</h2>
+                </MessageOverlay>
             )}
 
             <GameHeader 

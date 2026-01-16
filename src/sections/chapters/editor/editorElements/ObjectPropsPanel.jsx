@@ -26,17 +26,21 @@ export const ObjectPropsPanel = ({
     return (
         <div style={{ padding: '0' }}>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
-                Configure triggers for Portals, Targets and Weather.
+                Configure triggers for Portals, Targets, Weather and Messages.
                 <br />
-                <strong>1.</strong> Place a <strong>Portal</strong>, <strong>Target</strong> or <strong>Weather Trigger</strong> from the palette.
+                <strong>1.</strong> Place a <strong>Portal</strong>, <strong>Target</strong>, <strong>Weather</strong> or <strong>Message Trigger</strong> from the palette.
                 <br />
-                <strong>2.</strong> Configure <strong>Trigger ID</strong> for links or <strong>Intensity</strong> for weather.
+                <strong>2.</strong> Configure <strong>Trigger ID</strong> for links, <strong>Intensity</strong> for weather or <strong>Message Text</strong>.
             </p>
             <div ref={listRef} style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
                 {objectMapData.map((id, index) => {
                     if (!id) return null;
                     const def = registryItems.find(r => r.id === id);
-                    if (!def || (!id.includes('portal') && !id.includes('target') && id !== 'portal_target' && def.type !== 'weather_trigger')) return null;
+                    const isWeather = def && def.type === 'weather_trigger';
+                    const isMessage = def && def.type === 'message_trigger';
+                    const isPortalOrTarget = id.includes('portal') || id.includes('target') || id === 'portal_target';
+                    
+                    if (!def || (!isPortalOrTarget && !isWeather && !isMessage)) return null;
 
                     const x = index % mapWidth;
                     const y = Math.floor(index / mapWidth);
@@ -62,7 +66,7 @@ export const ObjectPropsPanel = ({
                         >
                             <div style={{ fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    {def.type === 'weather_trigger' ? def.editorIcon : (id.includes('portal') && !id.includes('target') ? '🔵' : '🎯')} {def.displayName || def.name}
+                                    {(isWeather || isMessage) ? def.editorIcon : (id.includes('portal') && !id.includes('target') ? '🔵' : '🎯')} {def.displayName || def.name}
                                 </span>
                                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                                     <span style={{ color: '#666', fontSize: '11px' }}>({x}, {y})</span>
@@ -86,7 +90,7 @@ export const ObjectPropsPanel = ({
                                 </div>
                             </div>
 
-                            {def.type !== 'weather_trigger' && (
+                            {(!isWeather && !isMessage) && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Trigger ID:</label>
                                     <input
@@ -112,7 +116,7 @@ export const ObjectPropsPanel = ({
                                 </div>
                             )}
 
-                            {def.type === 'weather_trigger' && def.hasIntensity && (
+                            {isWeather && def.hasIntensity && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Intensity (%):</label>
                                     <input
@@ -135,6 +139,34 @@ export const ObjectPropsPanel = ({
                                             fontSize: '13px',
                                             backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
                                         }}
+                                    />
+                                </div>
+                            )}
+
+                            {isMessage && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Message Text:</label>
+                                    <textarea
+                                        value={metadata.message || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setObjectMetadata(prev => ({
+                                                ...prev,
+                                                [index]: { ...prev[index], message: val }
+                                            }));
+                                        }}
+                                        rows={3}
+                                        style={{
+                                            width: '100%',
+                                            padding: '6px 8px',
+                                            border: '1px solid #ccc',
+                                            borderRadius: '4px',
+                                            fontSize: '13px',
+                                            backgroundColor: isHighlighted ? '#fff' : '#f0f0f0',
+                                            resize: 'vertical',
+                                            fontFamily: 'inherit'
+                                        }}
+                                        placeholder="Enter message to display..."
                                     />
                                 </div>
                             )}
@@ -173,7 +205,10 @@ export const ObjectPropsPanel = ({
                 {objectMapData.filter(id => {
                     if (!id) return false;
                     const def = registryItems.find(r => r.id === id);
-                    return id.includes('portal') || id.includes('target') || id === 'portal_target' || (def && def.type === 'weather_trigger');
+                    const isWeather = def && def.type === 'weather_trigger';
+                    const isMessage = def && def.type === 'message_trigger';
+                    const isPortalOrTarget = id.includes('portal') || id.includes('target') || id === 'portal_target';
+                    return isPortalOrTarget || isWeather || isMessage;
                 }).length === 0 && (
                     <p style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
                         No configurable objects found on map.

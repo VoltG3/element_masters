@@ -215,9 +215,10 @@ export const rebuildLayers = (refs, options) => {
     container.y = y;
     
     // Slēpjam objektus, kuriem ir isHiddenInGame: true (piemēram, bultiņas spēlē)
-    // Bet ja mēs esam redaktorā vai redaktora play modē, mēs gribam tās redzēt (laikapstākļu trigerus).
+    // Bet ja mēs esam redaktorā vai redaktora play modē, mēs gribam tās redzēt (laikapstākļu un ziņojumu trigerus).
     const isWeatherTrigger = def.type === 'weather_trigger';
-    const shouldShowAnyway = isWeatherTrigger && (isEditor || isEditorPlayMode);
+    const isMessageTrigger = def.type === 'message_trigger';
+    const shouldShowAnyway = (isWeatherTrigger || isMessageTrigger) && (isEditor || isEditorPlayMode);
     
     if (def.isHiddenInGame && !isEditor && !shouldShowAnyway) {
         container.visible = false;

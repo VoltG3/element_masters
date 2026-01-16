@@ -14,6 +14,7 @@ export const PalettePanel = ({
     hazards, 
     secrets, 
     weather,
+    messages,
     obstacles,
     handlePaletteSelect, 
     selectedTile 
@@ -26,6 +27,7 @@ export const PalettePanel = ({
         const isLava = !!(item.flags && item.flags.lava);
         const isSecret = item.type === 'secret';
         const isWeatherTrigger = item.type === 'weather_trigger';
+        const isMessageTrigger = item.type === 'message_trigger';
         
         const swatchStyle = isWater
             ? { background: 'linear-gradient(180deg,#2a5d8f,#174369)' }
@@ -52,11 +54,12 @@ export const PalettePanel = ({
                     }}>
                         {item.editorIcon || (item.subtype === 'above' ? 'ABOVE' : 'BELOW')}
                     </div>
-                ) : isWeatherTrigger ? (
+                ) : (isWeatherTrigger || isMessageTrigger) ? (
                     <div style={{
                         width: '100%', height: '100%', borderRadius: 2,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: '#f0f4f8', border: '1px solid #d1d9e6',
+                        background: isMessageTrigger ? '#fff9c4' : '#f0f4f8', 
+                        border: isMessageTrigger ? '1px solid #fbc02d' : '1px solid #d1d9e6',
                         color: '#333', fontSize: '18px'
                     }}>
                         {item.editorIcon}
@@ -195,6 +198,12 @@ export const PalettePanel = ({
                     <CollapsiblePanel title="Weather Thunder" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'thunder').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Messages" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
                         </div>
                     </CollapsiblePanel>
                 </div>

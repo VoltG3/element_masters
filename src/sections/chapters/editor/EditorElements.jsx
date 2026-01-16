@@ -33,6 +33,7 @@ export const EditorElements = ({
     hazards,
     secrets,
     weather,
+    messages,
     obstacles,
     totalTiles,
     filledBlocks,
@@ -89,7 +90,7 @@ export const EditorElements = ({
                 <ElementEditorButton onClick={() => togglePanel('entities')} $active={activePanel === 'entities'} title="Entities">👾</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('interactables')} $active={activePanel === 'interactables'} title="Interactables">🚪</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('hazards')} $active={activePanel === 'hazards'} title="Hazards">☠️</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('secrets')} $active={activePanel === 'secrets'} title="Sectors">🌐</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('secrets')} $active={activePanel === 'secrets'} title="Sectors">√2</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('stats')} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('props')} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
             </SidebarContainer>
@@ -138,6 +139,7 @@ export const EditorElements = ({
                                     hazards={hazards}
                                     secrets={secrets}
                                     weather={weather}
+                                    messages={messages}
                                     obstacles={obstacles}
                                     handlePaletteSelect={handlePaletteSelect}
                                     selectedTile={selectedTile}

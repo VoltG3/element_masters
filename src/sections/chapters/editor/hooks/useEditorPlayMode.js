@@ -19,6 +19,8 @@ export const useEditorPlayMode = (
     const [playModeWeather, setPlayModeWeather] = useState({
         rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0
     });
+    const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
+    const messageTimerRef = useRef(null);
     const lastSyncedMapIdRef = useRef(null);
 
     // Stability for engine initialization - only changes when map changes or play mode is toggled
@@ -151,6 +153,19 @@ export const useEditorPlayMode = (
             window.dispatchEvent(new CustomEvent('game-settings-update', { 
                 detail: { [settingKey]: value } 
             }));
+        } else if (newState === 'showMessage' && payload) {
+            const { text, duration } = payload;
+            
+            if (messageTimerRef.current) {
+                clearTimeout(messageTimerRef.current);
+            }
+            
+            setGameMessage({ text, isVisible: true });
+            
+            messageTimerRef.current = setTimeout(() => {
+                setGameMessage(prev => ({ ...prev, isVisible: false }));
+                messageTimerRef.current = null;
+            }, duration || 8000);
         }
     }, [playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 
@@ -234,6 +249,7 @@ export const useEditorPlayMode = (
         playModeObjectData: currentPlayObjectData,
         playModeSecretData: currentPlaySecretData,
         playModeWeather,
+        gameMessage,
         revealedSecrets,
         gameEngineState
     };

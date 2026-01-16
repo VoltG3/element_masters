@@ -59,6 +59,10 @@ export const useEditorRegistry = (registryItems) => {
         registryItems.filter(item => item.type === 'weather_trigger'), 
     [registryItems]);
 
+    const messages = useMemo(() => 
+        registryItems.filter(item => item.type === 'message_trigger'), 
+    [registryItems]);
+
     const obstacles = useMemo(() => 
         registryItems.filter(item => item.type === 'obstacle' || (item.name && item.name.startsWith('obstacle.'))), 
     [registryItems]);
@@ -73,6 +77,7 @@ export const useEditorRegistry = (registryItems) => {
         hazards,
         secrets,
         weather,
+        messages,
         obstacles
     };
 };

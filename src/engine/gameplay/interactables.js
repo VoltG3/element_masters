@@ -57,6 +57,35 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
       return;
   }
 
+  // Check for Message Trigger logic
+  if (objDef.type === 'message_trigger') {
+      const message = currentMeta?.message;
+      if (!message) return;
+
+      if (!gameState.current.lastMessageTrigger) {
+          gameState.current.lastMessageTrigger = {};
+      }
+
+      const lastMsg = gameState.current.lastMessageTrigger[index];
+      // Mēs rādām ziņojumu tikai tad, ja tas ir jauns vai ja iepriekšējais ir beidzies (debounce)
+      if (lastMsg !== message) {
+          if (onStateUpdate) {
+              onStateUpdate('showMessage', {
+                  text: message,
+                  duration: 8000 // 8 sekundes
+              });
+          }
+          gameState.current.lastMessageTrigger[index] = message;
+          
+          if (objDef.sfx) {
+              try {
+                  playShotSfx(objDef.sfx, objDef.sfxVolume || 0.5);
+              } catch {}
+          }
+      }
+      return;
+  }
+
   if (!objDef.name || !objDef.name.startsWith('interactable.')) return;
 
   // Check for Teleport logic
