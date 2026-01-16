@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToolsEditorButton } from '../styles/EditorToolsButtonStyle';
+import { ToolsEditorButton } from '../EditorToolsButton';
 import { CloseButton } from '../styles/EditorElementsButtonStyle';
 
 export const NewMapModal = ({

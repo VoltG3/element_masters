@@ -1,4 +1,46 @@
-import styled from "styled-components";
+import styled from 'styled-components';
+
+export const EditorToolsContainer = styled.div`
+    display: contents;
+`;
+
+export const HeaderBar = styled.div`
+    padding: 0 15px;
+    background-color: #222;
+    border-bottom: 1px solid #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 12px;
+    height: 60px;
+    box-sizing: border-box;
+    color: #fff;
+    z-index: 1000;
+    position: relative;
+`;
+
+export const ToolsSection = styled.div`
+    display: flex;
+    gap: 15px;
+    align-items: center;
+`;
+
+export const ToolsGroup = styled.div`
+    display: flex;
+    gap: 10px;
+    align-items: center;
+`;
+
+export const ToolsInnerGroup = styled.div`
+    display: flex;
+    gap: 10px;
+`;
+
+export const ToolsRow = styled.div`
+    display: flex;
+    gap: 10px;
+`;
 
 export const ToolsEditorButton = styled.button`
     min-width: 40px;
@@ -22,6 +64,9 @@ export const ToolsEditorButton = styled.button`
     width: ${props => props.$square ? '40px' : 'auto'};
     outline: none;
     user-select: none;
+    opacity: ${props => props.$disabled ? 0.4 : 1};
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+    position: relative;
 
     &:hover {
         background-color: ${props => props.$active ? '#fdfa9b' : (props.$variant === 'play' ? '#45a049' : (props.$variant === 'pause' ? '#fb8c00' : (props.$variant === 'danger' ? '#bd2130' : (props.$variant === 'secondary' ? '#e0e0e0' : '#444'))))};
@@ -40,67 +85,62 @@ export const ToolsEditorButton = styled.button`
     }
 `;
 
-/* Container */
-export const headerBarStyle = {
-    padding: '0 15px',
-    backgroundColor: '#222',
-    borderBottom: '1px solid #000',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontWeight: 'bold',
-    fontSize: '12px',
-    height: '60px',
-    boxSizing: 'border-box',
-    color: '#fff',
-    zIndex: 1000,
-    position: 'relative'
-};
+export const StrikeThrough = styled.div`
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: #f5222d;
+    transform: rotate(-45deg);
+    top: 50%;
+    left: 0;
+    z-index: 2;
+    pointer-events: none;
+`;
 
-export const toolsGroupStyle = {
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'center'
-};
+export const LayerIndicator = styled.div`
+    padding: 0 12px;
+    height: 40px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-right: 15px;
+    margin-left: 15px;
+    white-space: nowrap;
+    border: 1px solid;
+    box-sizing: border-box;
+    background-color: ${props => props.$bgColor || '#e6f7ff'};
+    border-color: ${props => props.$borderColor || '#91d5ff'};
+    color: ${props => props.$textColor || '#1890ff'};
+`;
 
-export const toolsInnerGroupStyle = {
-    display: 'flex',
-    gap: '10px'
-};
+export const BgColorContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
 
-export const layerIndicatorStyle = {
-    padding: '0 12px',
-    height: '40px',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '11px',
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    marginRight: '15px',
-    marginLeft: '15px',
-    whiteSpace: 'nowrap',
-    border: '1px solid',
-    boxSizing: 'border-box'
-};
+export const BgColorInputWrapper = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+`;
 
-export const bgColorContainerStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-};
-
-export const bgColorInputStyle = {
-    width: '40px',
-    height: '40px',
-    border: '1px solid #fff',
-    padding: '4px',
-    cursor: 'pointer',
-    backgroundColor: '#333',
-    borderRadius: '4px',
-    boxSizing: 'border-box',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-};
+export const BgColorInput = styled.input`
+    width: 40px;
+    height: 40px;
+    border: 1px solid #fff;
+    padding: 4px;
+    cursor: pointer;
+    background-color: #333;
+    border-radius: 4px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    opacity: ${props => props.disabled ? 0.4 : 1};
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+`;
 
 export const PlayButtonContainer = styled.div`
     width: 40px;
@@ -140,31 +180,31 @@ export const PlayButtonInner = styled.div`
     box-sizing: border-box;
 `;
 
-export const infoContainerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    alignItems: 'flex-start',
-    color: '#bbb',
-    marginLeft: 'auto'
-};
+export const InfoContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    color: #bbb;
+    margin-left: auto;
+`;
 
-export const infoItemStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px'
-};
+export const InfoItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
 
-export const infoLabelStyle = {
-    fontSize: '11px',
-    textTransform: 'uppercase',
-    opacity: 0.8
-};
+export const InfoLabel = styled.span`
+    font-size: 11px;
+    text-transform: uppercase;
+    opacity: 0.8;
+`;
 
-export const infoValueStyle = {
-    color: '#fff',
-    fontSize: '12px'
-};
+export const InfoValue = styled.span`
+    color: #fff;
+    font-size: 12px;
+`;
 
 export const EraserButtonContainer = styled.div`
     width: 40px;
@@ -180,6 +220,9 @@ export const EraserButtonContainer = styled.div`
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    opacity: ${props => props.$disabled ? 0.4 : 1};
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+    position: relative;
 
     &:hover {
         transform: scale(1.05);
@@ -206,20 +249,36 @@ export const EraserButtonInner = styled.div`
     box-sizing: border-box;
 `;
 
-// Legacy support for small buttons (Erasers)
-export const toolButtonStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    border: '1px solid #333',
-    padding: '0',
-    height: '40px',
-    width: '40px',
-    backgroundColor: '#f0f0f0',
-    fontSize: '12px',
-    color: '#000',
-    borderRadius: '4px',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-};
+export const SelectionActions = styled.div`
+    display: flex;
+    gap: 5px;
+    margin-left: 5px;
+    border-left: 1px solid #ccc;
+    padding-left: 5px;
+`;
+
+export const ConfirmButton = styled(ToolsEditorButton)`
+    background-color: #e6f7ff;
+    color: #1890ff;
+    
+    &:hover {
+        background-color: #bae7ff;
+    }
+`;
+
+export const CancelButton = styled(ToolsEditorButton)`
+    background-color: #fff1f0;
+    color: #f5222d;
+
+    &:hover {
+        background-color: #ffccc7;
+    }
+`;
+
+export const GridIcon = styled.span`
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
