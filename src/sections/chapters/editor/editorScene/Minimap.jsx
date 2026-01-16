@@ -6,7 +6,8 @@ export const Minimap = ({
     tileMapData,
     objectMapData,
     objectMetadata,
-    registryItems
+    registryItems,
+    backgroundColor
 }) => {
     const canvasRef = useRef(null);
     const minimapWidth = 250;
@@ -21,7 +22,7 @@ export const Minimap = ({
         const tileHeight = minimapHeight / mapHeight;
 
         // Clear canvas
-        ctx.fillStyle = '#87CEEB';
+        ctx.fillStyle = backgroundColor || '#87CEEB';
         ctx.fillRect(0, 0, minimapWidth, minimapHeight);
 
         // Draw tiles

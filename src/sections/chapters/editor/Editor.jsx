@@ -16,6 +16,7 @@ import { useEditorSelection } from './hooks/useEditorSelection';
 import { useEditorPlayMode } from './hooks/useEditorPlayMode';
 import { useEditorOperations } from './hooks/useEditorOperations';
 import { useEditorPainting } from './hooks/useEditorPainting';
+import { useEditorMaps } from './hooks/useEditorMaps';
 
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
@@ -73,6 +74,85 @@ export const Editor = () => {
 
     const [playerPosition, setPlayerPosition] = useState({ x: 100, y: 100 });
 
+    // Multi-map state
+    const { 
+        maps, setMaps, activeMapId, setActiveMapId, createMap: createNewMap, updateMapData, deleteMap 
+    } = useEditorMaps();
+
+    const switchMap = useCallback((newMapId) => {
+        if (newMapId === activeMapId) return;
+
+        // 1. Save current map data to store
+        updateMapData(activeMapId, {
+            mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
+            mapName, creatorName, createdAt,
+            selectedBackgroundImage, selectedBackgroundColor,
+            backgroundParallaxFactor, selectedBackgroundMusic,
+            weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+            playerPosition
+        });
+
+        // 2. Load new map data
+        const nextMap = maps[newMapId];
+        if (nextMap) {
+            setMapWidth(nextMap.mapWidth);
+            setMapHeight(nextMap.mapHeight);
+            setTileMapData(nextMap.tileMapData);
+            setObjectMapData(nextMap.objectMapData);
+            setSecretMapData(nextMap.secretMapData);
+            setObjectMetadata(nextMap.objectMetadata || {});
+            setMapName(nextMap.name);
+            setCreatedAt(nextMap.createdAt || new Date().toISOString());
+            setSelectedBackgroundImage(nextMap.selectedBackgroundImage);
+            setSelectedBackgroundColor(nextMap.selectedBackgroundColor);
+            setBackgroundParallaxFactor(nextMap.backgroundParallaxFactor || 0.3);
+            setSelectedBackgroundMusic(nextMap.selectedBackgroundMusic);
+            
+            if (nextMap.weather) {
+                setWeatherRain(nextMap.weather.rain || 0);
+                setWeatherSnow(nextMap.weather.snow || 0);
+                setWeatherClouds(nextMap.weather.clouds || 0);
+                setWeatherFog(nextMap.weather.fog || 0);
+                setWeatherThunder(nextMap.weather.thunder || 0);
+            }
+            
+            if (nextMap.playerPosition) {
+                setPlayerPosition(nextMap.playerPosition);
+            }
+            
+            setActiveMapId(newMapId);
+        }
+    }, [
+        activeMapId, maps, updateMapData, setActiveMapId,
+        mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
+        mapName, creatorName, createdAt,
+        selectedBackgroundImage, selectedBackgroundColor,
+        backgroundParallaxFactor, selectedBackgroundMusic,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        playerPosition
+    ]);
+
+    const handleCreateMap = useCallback((type) => {
+        const name = prompt(`Enter ${type} map name:`, `New ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        if (name) {
+            const newId = createNewMap(type, name, mapWidth, mapHeight);
+            // Optionally switch to it immediately
+            // switchMap(newId); 
+        }
+    }, [createNewMap, mapWidth, mapHeight]);
+
+    // Update store when current map data changes (for minimap preview)
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            updateMapData(activeMapId, {
+                mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
+                name: mapName,
+                selectedBackgroundImage, selectedBackgroundColor
+            });
+        }, 1000); // Debounce store updates
+        return () => clearTimeout(timeout);
+    }, [activeMapId, updateMapData, mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, mapName, selectedBackgroundImage, selectedBackgroundColor]);
+
     const selectedBgOption = backgroundOptions.find((bg) => bg.metaPath === selectedBackgroundImage) || backgroundOptions[0];
     const selectedBackgroundUrl = selectedBgOption && selectedBackgroundImage ? selectedBgOption.src : null;
 
@@ -107,7 +187,8 @@ export const Editor = () => {
         setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
         setIsNewMapModalOpen, setTempMapName, setTempCreatorName,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
-        setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder
+        setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder,
+        maps, setMaps, activeMapId, setActiveMapId
     );
 
     const {
@@ -292,7 +373,7 @@ export const Editor = () => {
                     
                     <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
 
-                    <EditorScene
+                    <EditorScene 
                         handleMapResize={handleMapResize}
                         isResizeWindowOpen={isResizeWindowOpen}
                         setIsResizeWindowOpen={setIsResizeWindowOpen}
@@ -322,6 +403,11 @@ export const Editor = () => {
                         setWeatherFog={setWeatherFog}
                         weatherThunder={weatherThunder}
                         setWeatherThunder={setWeatherThunder}
+                        // Multi-map props
+                        maps={maps}
+                        activeMapId={activeMapId}
+                        switchMap={switchMap}
+                        createMap={handleCreateMap}
                     />
 
                     {!isPlayMode ? (
