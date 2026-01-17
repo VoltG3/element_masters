@@ -218,7 +218,8 @@ export const rebuildLayers = (refs, options) => {
     // Bet ja mēs esam redaktorā vai redaktora play modē, mēs gribam tās redzēt (laikapstākļu un ziņojumu trigerus).
     const isWeatherTrigger = def.type === 'weather_trigger';
     const isMessageTrigger = def.type === 'message_trigger';
-    const shouldShowAnyway = (isWeatherTrigger || isMessageTrigger) && (isEditor || isEditorPlayMode);
+    const isWolfSecret = def.type === 'wolf_secret';
+    const shouldShowAnyway = (isWeatherTrigger || isMessageTrigger || isWolfSecret) && (isEditor || isEditorPlayMode);
     
     if (def.isHiddenInGame && !isEditor && !shouldShowAnyway) {
         container.visible = false;

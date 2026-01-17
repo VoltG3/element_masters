@@ -481,7 +481,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                 collectItem: (x, y, mapWidth, objectLayer) =>
                     collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState }, x, y, mapWidth, objectLayer),
                 checkInteractables: (x, y, mapWidth, objectLayer) =>
-                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData }, x, y, mapWidth, objectLayer),
+                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData, input }, x, y, mapWidth, objectLayer),
                 checkHazardDamage: (x, y, mapWidth, objectLayer, deltaMs) =>
                     checkHazardDamageWrapper(x, y, mapWidth, objectLayer, deltaMs),
                 checkSecrets: (x, y, width, height, mapWidth, mapHeight) =>

@@ -52,7 +52,7 @@ export const useEditorRegistry = (registryItems) => {
     [registryItems]);
 
     const secrets = useMemo(() => 
-        registryItems.filter(item => item.type === 'secret' || (item.name && item.name.startsWith('secret.'))), 
+        registryItems.filter(item => item.type === 'secret'), 
     [registryItems]);
 
     const weather = useMemo(() => 
@@ -61,6 +61,10 @@ export const useEditorRegistry = (registryItems) => {
 
     const messages = useMemo(() => 
         registryItems.filter(item => item.type === 'message_trigger'), 
+    [registryItems]);
+
+    const alternativeSecrets = useMemo(() => 
+        registryItems.filter(item => item.type === 'crack_block' || item.type === 'wolf_secret'),
     [registryItems]);
 
     const obstacles = useMemo(() => 
@@ -78,6 +82,7 @@ export const useEditorRegistry = (registryItems) => {
         secrets,
         weather,
         messages,
+        alternativeSecrets,
         obstacles
     };
 };

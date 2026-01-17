@@ -60,6 +60,32 @@ const gameSlice = createSlice({
         state.objectMapData[index] = null;
       }
     },
+    removeTileAtIndex: (state, action) => {
+      const index = action.payload;
+      if (state.tileMapData[index] !== undefined) {
+        state.tileMapData[index] = null;
+      }
+    },
+    moveTileInMap: (state, action) => {
+      const { fromIndex, toIndex } = action.payload;
+      if (state.tileMapData[fromIndex] !== undefined && state.tileMapData[toIndex] !== undefined) {
+        state.tileMapData[toIndex] = state.tileMapData[fromIndex];
+        state.tileMapData[fromIndex] = null;
+      }
+    },
+    moveObjectInMap: (state, action) => {
+      const { fromIndex, toIndex } = action.payload;
+      if (state.objectMapData[fromIndex] !== undefined && state.objectMapData[toIndex] !== undefined) {
+        state.objectMapData[toIndex] = state.objectMapData[fromIndex];
+        state.objectMapData[fromIndex] = null;
+        
+        // Move metadata as well
+        if (state.objectMetadata[fromIndex]) {
+          state.objectMetadata[toIndex] = state.objectMetadata[fromIndex];
+          delete state.objectMetadata[fromIndex];
+        }
+      }
+    },
     updateObjectAtIndex: (state, action) => {
       const { index, newId } = action.payload;
       if (state.objectMapData[index] !== undefined) {
@@ -102,6 +128,9 @@ export const {
   updateObjectMap,
   updateObjectMetadata,
   removeObjectAtIndex,
+  removeTileAtIndex,
+  moveTileInMap,
+  moveObjectInMap,
   updateObjectAtIndex,
   setObjectTextureIndex,
   revealSecretZone,

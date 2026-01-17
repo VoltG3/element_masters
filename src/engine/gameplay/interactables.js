@@ -5,12 +5,35 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
   const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, mapData } = ctx;
   if (!objectLayerData) return;
 
+  const keys = ctx.input?.current || {};
+
   const centerX = currentX + gameState.current.width / 2;
   const centerY = currentY + gameState.current.height / 2;
 
   const gridX = Math.floor(centerX / TILE_SIZE);
   const gridY = Math.floor(centerY / TILE_SIZE);
-  const index = gridY * mapWidth + gridX;
+  let index = gridY * mapWidth + gridX;
+
+  // If "E" is pressed, also check one tile in front of the player
+  // This allows interacting with solid objects (like pushable walls) that the player can't overlap with
+  if (keys.e) {
+      const dir = gameState.current.direction || 1; // 1 for right, -1 for left
+      const frontX = centerX + dir * (TILE_SIZE * 0.8);
+      const frontGridX = Math.floor(frontX / TILE_SIZE);
+      const frontIndex = gridY * mapWidth + frontGridX;
+      
+      if (frontIndex >= 0 && frontIndex < objectLayerData.length) {
+          const frontObjId = objectLayerData[frontIndex];
+          if (frontObjId) {
+              const frontDef = registryItems.find(r => r.id === frontObjId);
+              // Priority given to wolf_secret if found in front
+              if (frontDef && frontDef.type === 'wolf_secret') {
+                  index = frontIndex;
+              }
+          }
+      }
+  }
+
   if (index < 0 || index >= objectLayerData.length) return;
 
   const metadata = mapData?.meta?.objectMetadata;
@@ -81,6 +104,28 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
               try {
                   playShotSfx(objDef.sfx, objDef.sfxVolume || 0.5);
               } catch {}
+          }
+      }
+      return;
+  }
+
+  // Check for Wolfenstein Secret logic (push wall on "E")
+  if (objDef.type === 'wolf_secret') {
+      if (!keys.e) return;
+
+      if (!gameState.current.lastETime) gameState.current.lastETime = 0;
+      const now = Date.now();
+      if (now - gameState.current.lastETime < 1000) return; // 1s debounce
+      
+      gameState.current.lastETime = now;
+
+      if (onStateUpdate) {
+          const dx = objDef.moveX || 0;
+          const dy = objDef.moveY || 0;
+          onStateUpdate('shiftTile', { index, dx, dy });
+        
+          if (objDef.sfx) {
+              try { playShotSfx(objDef.sfx, objDef.sfxVolume || 0.5); } catch {}
           }
       }
       return;

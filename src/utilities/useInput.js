@@ -7,7 +7,8 @@ export const useInput = () => {
         s: false,
         d: false,
         space: false,
-        mouseLeft: false
+        mouseLeft: false,
+        e: false
     });
 
     useEffect(() => {
@@ -22,6 +23,7 @@ export const useInput = () => {
             keys.current.d = false;
             keys.current.space = false;
             keys.current.mouseLeft = false;
+            keys.current.e = false;
         };
 
         const handleKeyDown = (e) => {
@@ -73,6 +75,8 @@ export const useInput = () => {
                 case 'KeyD':
                 case 'ArrowRight':
                     keys.current.d = true; break;
+                case 'KeyE':
+                    keys.current.e = true; break;
                 case 'Space': keys.current.space = true; break;
                 default: break;
             }
@@ -113,6 +117,8 @@ export const useInput = () => {
                 case 'KeyD':
                 case 'ArrowRight':
                     keys.current.d = false; break;
+                case 'KeyE':
+                    keys.current.e = false; break;
                 case 'Space': keys.current.space = false; break;
                 default: break;
             }

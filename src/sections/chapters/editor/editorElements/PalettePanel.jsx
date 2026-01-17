@@ -15,6 +15,7 @@ export const PalettePanel = ({
     secrets, 
     weather,
     messages,
+    alternativeSecrets,
     obstacles,
     handlePaletteSelect, 
     selectedTile 
@@ -204,6 +205,12 @@ export const PalettePanel = ({
                     <CollapsiblePanel title="Messages" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Alternative Secrets" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {alternativeSecrets && alternativeSecrets.map(s => renderPaletteItem(s, 'purple', 'object'))}
                         </div>
                     </CollapsiblePanel>
                 </div>

@@ -9,7 +9,8 @@ export const useEditorPlayMode = (
     selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
     registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
     weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
-    maps, activeMapId, switchMap, spawnTriggerId
+    maps, activeMapId, switchMap, spawnTriggerId,
+    setTileMapData
 ) => {
     const [isPlayMode, setIsPlayMode] = useState(false);
     const [editorSnapshot, setEditorSnapshot] = useState(null);
@@ -128,19 +129,121 @@ export const useEditorPlayMode = (
             }
         } else if (newState === 'objectDamage' && payload !== undefined) {
             const { index, damage } = payload;
+            const objId = playModeObjectData[index];
+            const def = registryItems.find(r => r.id === objId);
+            if (!def) return;
+
             setObjectMetadata(prev => {
                 const current = prev[index] || {};
-                const objId = playModeObjectData[index];
-                const def = registryItems.find(r => r.id === objId);
-                if (!def) return prev;
                 const maxH = def.maxHealth || 100;
                 const newHealth = Math.max(0, (current.health !== undefined ? current.health : maxH) - damage);
                 
+                if (def.type === 'crack_block' && newHealth <= (def.passableHealthThreshold || 0)) {
+                    if (setTileMapData) {
+                        setTileMapData(prevTiles => {
+                            const newTiles = [...prevTiles];
+                            newTiles[index] = null;
+                            return newTiles;
+                        });
+                    }
+                }
+
                 return {
                     ...prev,
                     [index]: { ...current, health: newHealth }
                 };
             });
+        } else if (newState === 'shiftTile' && payload !== undefined) {
+            const { index, dx, dy } = payload;
+            
+            // Wolfenstein-style slow move: 1 block at a time
+            let currentIdx = index;
+            let remainingDx = dx;
+            let remainingDy = dy;
+            
+            const moveStep = () => {
+                if (remainingDx === 0 && remainingDy === 0) {
+                    // Final removal of the trigger
+                    setPlayModeObjectData(prevObjs => {
+                        const newObjs = [...prevObjs];
+                        newObjs[currentIdx] = null;
+                        return newObjs;
+                    });
+                    return;
+                }
+                
+                const stepX = remainingDx > 0 ? 1 : (remainingDx < 0 ? -1 : 0);
+                const stepY = remainingDy > 0 ? 1 : (remainingDy < 0 ? -1 : 0);
+                
+                const tx = (currentIdx % mapWidth) + stepX;
+                const ty = Math.floor(currentIdx / mapWidth) + stepY;
+                
+                if (tx >= 0 && tx < mapWidth && ty >= 0 && ty < mapHeight) {
+                    const targetIndex = ty * mapWidth + tx;
+                    
+                    // Chain reaction logic
+                    const isLastStepOfBatch = (Math.abs(remainingDx) === 1 && remainingDy === 0) || (Math.abs(remainingDy) === 1 && remainingDx === 0);
+                    if (isLastStepOfBatch) {
+                        const targetObjId = playModeObjectData[targetIndex];
+                        const targetDef = registryItems.find(r => r.id === targetObjId);
+                        if (targetDef && targetDef.type === 'wolf_secret') {
+                            const extraX = Math.abs(targetDef.moveX || 3);
+                            const extraY = Math.abs(targetDef.moveY || 3);
+                            if (remainingDx !== 0) remainingDx += (remainingDx > 0 ? extraX : -extraX);
+                            if (remainingDy !== 0) remainingDy += (remainingDy > 0 ? extraY : -extraY);
+                        }
+                    }
+
+                    if (setTileMapData) {
+                        setTileMapData(prevTiles => {
+                            const newTiles = [...prevTiles];
+                            newTiles[targetIndex] = newTiles[currentIdx];
+                            newTiles[currentIdx] = null;
+                            return newTiles;
+                        });
+                    }
+                    
+                    setPlayModeObjectData(prevObjs => {
+                        const newObjs = [...prevObjs];
+                        newObjs[targetIndex] = newObjs[currentIdx];
+                        newObjs[currentIdx] = null;
+                        return newObjs;
+                    });
+                    
+                    setObjectMetadata(prevMeta => {
+                        const newMeta = { ...prevMeta };
+                        if (newMeta[currentIdx]) {
+                            newMeta[targetIndex] = newMeta[currentIdx];
+                            delete newMeta[currentIdx];
+                        }
+                        return newMeta;
+                    });
+                    
+                    currentIdx = targetIndex;
+                    remainingDx -= stepX;
+                    remainingDy -= stepY;
+                    
+                    if (remainingDx !== 0 || remainingDy !== 0) {
+                        setTimeout(moveStep, 250); // 250ms delay
+                    } else {
+                        // All steps finished, remove trigger
+                        setPlayModeObjectData(prevObjs => {
+                            const newObjs = [...prevObjs];
+                            newObjs[currentIdx] = null;
+                            return newObjs;
+                        });
+                    }
+                } else {
+                    // World bounds reached, remove trigger
+                    setPlayModeObjectData(prevObjs => {
+                        const newObjs = [...prevObjs];
+                        newObjs[currentIdx] = null;
+                        return newObjs;
+                    });
+                }
+            };
+            
+            moveStep();
         } else if (newState === 'updateWeather' && payload) {
             const { type, value } = payload;
             setPlayModeWeather(prev => ({
@@ -188,6 +291,7 @@ export const useEditorPlayMode = (
 
     const handlePlay = () => {
         setEditorSnapshot({
+            tileMapData: [...tileMapData],
             objectMapData: [...objectMapData],
             secretMapData: [...secretMapData],
             objectMetadata: { ...objectMetadata },
@@ -223,6 +327,10 @@ export const useEditorPlayMode = (
 
     const handleReset = () => {
         if (editorSnapshot) {
+            if (setTileMapData) {
+                setTileMapData([...editorSnapshot.tileMapData]);
+            }
+
             const resetData = [...editorSnapshot.objectMapData];
             let spawnIndex = resetData.findIndex(id => id && id.includes('player'));
             if (spawnIndex === -1) {

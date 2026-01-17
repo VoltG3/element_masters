@@ -190,7 +190,7 @@ export const Editor = () => {
 
     // Use Custom Hooks
     const { 
-        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, obstacles 
+        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, alternativeSecrets, obstacles 
     } = useEditorRegistry(registryItems);
 
     const {
@@ -206,7 +206,8 @@ export const Editor = () => {
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
         registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
-        maps, activeMapId, switchMap, maps[activeMapId]?.spawnTriggerId
+        maps, activeMapId, switchMap, maps[activeMapId]?.spawnTriggerId,
+        setTileMapData
     );
 
     const {
@@ -359,6 +360,7 @@ export const Editor = () => {
                     secrets={secrets}
                     weather={weather}
                     messages={messages}
+                    alternativeSecrets={alternativeSecrets}
                     obstacles={obstacles}
                     totalTiles={totalTiles}
                     filledBlocks={filledBlocks}

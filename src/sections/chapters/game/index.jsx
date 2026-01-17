@@ -7,7 +7,7 @@ import GameHeader from './GameHeader';
 import GameTerminal from './GameTerminal';
 import GameSettings from './GameSettings';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame } from '../../../store/slices/gameSlice';
+import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
 import { setSoundEnabled } from '../../../store/slices/settingsSlice';
 import errorHandler from '../../../services/errorHandler';
@@ -16,11 +16,13 @@ import styled from 'styled-components';
 // Import maps (static files usually need to be imported or fetched in React/Webpack)
 import map1 from '../../../assets/maps/Multiple_Worlds.json';
 import map2 from '../../../assets/maps/Weather.json';
+import map3 from '../../../assets/maps/Secret_Room_as_in_Wizordum.json';
+import map4 from '../../../assets/maps/Secret_Room_as_in_Wolfenstein_3D.json';
 
 
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2];
+const BUILT_IN_MAPS = [map1, map2, map3, map4];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -265,8 +267,70 @@ export default function Game() {
                     const maxH = def.maxHealth || 100;
                     const newHealth = Math.max(0, (currentMeta.health !== undefined ? currentMeta.health : maxH) - damage);
                     dispatch(updateObjectMetadata({ index, metadata: { health: newHealth } }));
+
+                    if (def.type === 'crack_block' && newHealth <= (def.passableHealthThreshold || 0)) {
+                        dispatch(removeTileAtIndex(index));
+                    }
                 }
             }
+        } else if (action === 'shiftTile' && payload) {
+            const { index, dx, dy } = payload;
+            
+            // Wolfenstein-style slow move: 1 block at a time
+            let currentIdx = index;
+            let remainingDx = dx;
+            let remainingDy = dy;
+            
+            const moveStep = () => {
+                if (remainingDx === 0 && remainingDy === 0) {
+                    // movement finished
+                    dispatch(removeObjectAtIndex(currentIdx));
+                    return;
+                }
+                
+                const stepX = remainingDx > 0 ? 1 : (remainingDx < 0 ? -1 : 0);
+                const stepY = remainingDy > 0 ? 1 : (remainingDy < 0 ? -1 : 0);
+                
+                const tx = (currentIdx % mapWidth) + stepX;
+                const ty = Math.floor(currentIdx / mapWidth) + stepY;
+                
+                if (tx >= 0 && tx < mapWidth && ty >= 0 && ty < mapHeight) {
+                    const targetIndex = ty * mapWidth + tx;
+                    
+                    // Chain reaction: if the destination tile of the current move batch has another wolf_secret
+                    const isLastStepOfBatch = (Math.abs(remainingDx) === 1 && remainingDy === 0) || (Math.abs(remainingDy) === 1 && remainingDx === 0);
+                    if (isLastStepOfBatch) {
+                        const targetObjId = objectMapData[targetIndex];
+                        const targetDef = registryItems.find(r => r.id === targetObjId);
+                        if (targetDef && targetDef.type === 'wolf_secret') {
+                            // Extend movement in the same direction by amount specified in target or 3 blocks
+                            const extraX = Math.abs(targetDef.moveX || 3);
+                            const extraY = Math.abs(targetDef.moveY || 3);
+                            if (remainingDx !== 0) remainingDx += (remainingDx > 0 ? extraX : -extraX);
+                            if (remainingDy !== 0) remainingDy += (remainingDy > 0 ? extraY : -extraY);
+                        }
+                    }
+
+                    dispatch(moveTileInMap({ fromIndex: currentIdx, toIndex: targetIndex }));
+                    dispatch(moveObjectInMap({ fromIndex: currentIdx, toIndex: targetIndex }));
+                    
+                    currentIdx = targetIndex;
+                    remainingDx -= stepX;
+                    remainingDy -= stepY;
+                    
+                    if (remainingDx !== 0 || remainingDy !== 0) {
+                        setTimeout(moveStep, 250); // 250ms delay between blocks for visibility
+                    } else {
+                        // Movement finished after last step
+                        dispatch(removeObjectAtIndex(currentIdx));
+                    }
+                } else {
+                    // Hit world bounds, finish and remove trigger
+                    dispatch(removeObjectAtIndex(currentIdx));
+                }
+            };
+            
+            moveStep();
         } else if (action === 'playerDamage' && payload !== undefined) {
             // Šeit mēs nevaram viegli atjaunināt Redux katrā kadrā,
             // bet varam atskaņot trāpījuma skaņu
