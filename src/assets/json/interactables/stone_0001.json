@@ -9,6 +9,7 @@
   "collision": true,
   "renderAbovePlayer": false,
   "isPushable": true,
+  "isRound": true,
   "sinkingSpeed": 0.2,
   "sounds": {
     "water_splash": "/assets/sounds/interactables/stone_water.mp3",

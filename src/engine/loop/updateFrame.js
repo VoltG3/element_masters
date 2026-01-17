@@ -102,38 +102,12 @@ export function updateFrame(ctx, timestamp) {
 
   // 1) Horizontal movement
   const checkCollisionExtended = (nx, ny, mw, mh, w, h) => {
-    // Statiskā pasaule
-    if (checkCollision(nx, ny, mw, mh, w, h)) return true;
-    
-    // Entītijas (tanki)
-    if (entitiesRef.current) {
-      const pw = w || width;
-      const ph = h || height;
-      // Izmantojam punktu pārbaudi ar nelielu nobīdi uz iekšu (0.01), 
-      // līdzīgi kā statiskajā checkCollision, lai izvairītos no sānmalu iesprūšanas.
-      const points = [
-        { x: nx + 0.01, y: ny + 0.01 },
-        { x: nx + pw - 0.01, y: ny + 0.01 },
-        { x: nx + 0.01, y: ny + ph - 0.01 },
-        { x: nx + pw - 0.01, y: ny + ph - 0.01 }
-      ];
-
-      for (const ent of entitiesRef.current) {
-        if (ent.health <= 0 || ent.isExploding || ent.subtype === 'platform') continue;
-        
-        for (const pt of points) {
-          if (pt.x >= ent.x && pt.x <= ent.x + ent.width && pt.y >= ent.y && pt.y <= ent.y + ent.height) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+    return checkCollision(nx, ny, mw, mh, w, h);
   };
 
   const mh = moveHorizontal({
     keys,
-    state: { x, y, vx, width, direction },
+    state: { x, y, vx, width, direction, height },
     MOVE_SPEED,
     TILE_SIZE,
     mapWidth,

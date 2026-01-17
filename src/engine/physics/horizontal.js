@@ -18,7 +18,7 @@ export function moveHorizontal({
   friction = 0.8,
   acceleration = 0.2
 }) {
-  let { x, vx, width, direction } = state;
+  let { x, vx, width, direction, y, height } = state;
   
   const targetVx = keys?.a ? -MOVE_SPEED : (keys?.d ? MOVE_SPEED : 0);
   
@@ -34,8 +34,8 @@ export function moveHorizontal({
   }
 
   const proposedX = x + vx;
-  const py = state.y ?? 0;
-  if (checkCollision(proposedX, py, mapWidth, mapHeight)) {
+  const py = y ?? 0;
+  if (checkCollision(proposedX, py, mapWidth, mapHeight, width, height)) {
     // Precīza apstāšanās pie šķēršļa (tiles vai entītijas) bez rupja snapping pie TILE_SIZE
     const step = 0.5;
     const sign = Math.sign(vx);
@@ -43,7 +43,7 @@ export function moveHorizontal({
     
     for (let d = step; d < Math.abs(vx); d += step) {
       const nextX = x + d * sign;
-      if (!checkCollision(nextX, py, mapWidth, mapHeight)) {
+      if (!checkCollision(nextX, py, mapWidth, mapHeight, width, height)) {
         safeX = nextX;
       } else {
         break;

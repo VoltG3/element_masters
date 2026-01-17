@@ -18,11 +18,12 @@ import map1 from '../../../assets/maps/Multiple_Worlds.json';
 import map2 from '../../../assets/maps/Weather.json';
 import map3 from '../../../assets/maps/Secret_Room_as_in_Wizordum.json';
 import map4 from '../../../assets/maps/Secret_Room_as_in_Wolfenstein_3D.json';
+import map5 from '../../../assets/maps/stones_iterations.json';
 
 
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2, map3, map4];
+const BUILT_IN_MAPS = [map1, map2, map3, map4, map5];
 
 // Styled Components
 const GameContainer = styled.div`

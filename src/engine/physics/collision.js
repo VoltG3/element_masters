@@ -10,7 +10,9 @@
 // - secretData: secret layer array (ids)
 // - objectData: object layer array (ids)
 // - objectMetadata: metadata for objects (e.g. health)
-export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata) {
+// - entities: array of active entities (optional)
+// - ignoreEntityId: ID of the entity to ignore in check (optional)
+export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata, entities, ignoreEntityId) {
   // Allow movement above the map
   if (wy < 0) return false;
   const gx = Math.floor(wx / TILE_SIZE);
@@ -18,6 +20,20 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
   // Out of world is not solid
   if (gx < 0 || gy < 0 || gx >= mapWidthTiles || gy >= mapHeightTiles) return false;
   const index = gy * mapWidthTiles + gx;
+
+  // 0. Check entities first (dynamic obstacles)
+  if (entities) {
+    for (const ent of entities) {
+      if (ent.id === ignoreEntityId) continue;
+      if (ent.health <= 0 || ent.isExploding) continue;
+      // Platforms are stand-on-able but not usually "solid" for other entities' horizontal physics
+      if (ent.subtype === 'platform') continue;
+
+      if (wx >= ent.x && wx < ent.x + ent.width && wy >= ent.y && wy < ent.y + ent.height) {
+        return true;
+      }
+    }
+  }
 
   // Check if this tile has a secret - secrets make tiles passable
   if (secretData && secretData[index]) {
@@ -71,7 +87,7 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
 }
 
 // AABB collision check for player rectangle at (newX, newY)
-export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, width, height, secretData, objectData, objectMetadata) {
+export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, width, height, secretData, objectData, objectMetadata, entities, ignoreEntityId) {
   const points = [
     { x: newX, y: newY }, // Top Left
     { x: newX + width - 0.01, y: newY }, // Top Right
@@ -87,7 +103,7 @@ export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_S
     // Allow falling off the bottom (gy >= mapHeightTiles).
     if (gx < 0 || gx >= mapWidthTiles || gy < 0) return true;
 
-    if (isSolidAtPixel(p.x, p.y, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata)) {
+    if (isSolidAtPixel(p.x, p.y, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata, entities, ignoreEntityId)) {
       return true;
     }
   }

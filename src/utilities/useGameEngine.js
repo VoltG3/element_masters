@@ -392,7 +392,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     }, [mapData]); // objectData removed - item collection shouldn't trigger re-initialization
 
     // Helper function for collisions (AABB Collision) with blocks (tile layer) — delegates to GameEngine/collision
-    const checkCollision = (newX, newY, mapWidth, mapHeightParam, widthOverride, heightOverride) => {
+    const checkCollision = (newX, newY, mapWidth, mapHeightParam, widthOverride, heightOverride, ignoreId) => {
         return checkCollisionExternal(
             newX,
             newY,
@@ -405,12 +405,14 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             heightOverride !== undefined ? heightOverride : gameState.current.height,
             secretData,
             objectData,
-            objectMetadataRef.current || mapData?.meta?.objectMetadata
+            objectMetadataRef.current || mapData?.meta?.objectMetadata,
+            entitiesRef.current,
+            ignoreId
         );
     };
 
     // Simple point solidity check for projectiles — delegates to GameEngine/collision
-    const isSolidAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE_OVERRIDE, tileDataOverride, registryItemsOverride, secretDataOverride, objectDataOverride, objectMetadataOverride) => {
+    const isSolidAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE_OVERRIDE, tileDataOverride, registryItemsOverride, secretDataOverride, objectDataOverride, objectMetadataOverride, ignoreId) => {
         return isSolidAtPixelExternal(
             wx,
             wy,
@@ -421,7 +423,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             registryItemsOverride || registryItems,
             secretDataOverride || secretData,
             objectDataOverride || objectData,
-            objectMetadataOverride || objectMetadataRef.current || mapData?.meta?.objectMetadata
+            objectMetadataOverride || objectMetadataRef.current || mapData?.meta?.objectMetadata,
+            entitiesRef.current,
+            ignoreId
         );
     };
 

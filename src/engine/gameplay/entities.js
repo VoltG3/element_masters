@@ -88,20 +88,30 @@ export function updateEntities(ctx, deltaMs) {
       }
       entity.prevInLiquid = inLiquid;
 
-      // Horizontālā kustība ar berzi
-      if (Math.abs(entity.vx) > 0.01) {
-        const friction = inLiquid ? 0.7 : 0.85;
-        entity.vx *= friction;
-        
-        const nextX = entity.x + entity.vx;
-        if (!checkCollision(nextX, entity.y, mapWidth, mapHeight, entity.width, entity.height)) {
-          entity.x = nextX;
-        } else {
-          entity.vx = 0;
-        }
-      } else {
-        entity.vx = 0;
-      }
+        // Horizontālā kustība ar berzi
+        const mh = moveHorizontal({
+          keys: {}, 
+          state: { x: entity.x, y: entity.y, vx: entity.vx || 0, width: entity.width, height: entity.height, direction: entity.direction },
+          MOVE_SPEED: 4.0, // Akmeņiem mazāks ātrums stumjot/ripot
+          TILE_SIZE,
+          mapWidth,
+          mapHeight,
+          checkCollision: (nx, ny, mw, mh, w, h) => {
+            // Pārbaudām statisko pasauli un citas entītijas
+            if (checkCollision(nx, ny, mw, mh, w, h, entity.id)) return true;
+            
+            // Pārbaudām kolīziju ar spēlētāju
+            const p = gameState.current;
+            const ew = w || entity.width;
+            const eh = h || entity.height;
+            return (nx < p.x + p.width && nx + ew > p.x && ny < p.y + p.height && ny + eh > p.y);
+          },
+          friction: inLiquid ? 0.7 : 0.85,
+          acceleration: 0.2
+        });
+        entity.x = mh.x;
+        entity.vx = mh.vx;
+        entity.direction = mh.direction;
 
       // Vertikālā fizika
       if (inLiquid && liquidType === 'lava') {
@@ -112,7 +122,7 @@ export function updateEntities(ctx, deltaMs) {
         entity.isGrounded = false;
         
         // Pārbaudām vai neesam izgājuši cauri zemei lavā
-        if (checkCollision(entity.x, entity.y, mapWidth, mapHeight, entity.width, entity.height)) {
+        if (checkCollision(entity.x, entity.y, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
            // Atstumjam atpakaļ, ja atduras pret dibenu
            entity.y -= entity.vy;
            entity.vy = 0;
@@ -135,13 +145,80 @@ export function updateEntities(ctx, deltaMs) {
           height: entity.height,
           mapWidth,
           mapHeight,
-          checkCollision,
+          checkCollision: (nx, ny, mw, mh, w, h) => {
+            // Pārbaudām statisko pasauli un citas entītijas
+            if (checkCollision(nx, ny, mw, mh, w, h, entity.id)) return true;
+            
+            // Pārbaudām kolīziju ar spēlētāju
+            const p = gameState.current;
+            const ew = w || entity.width;
+            const eh = h || entity.height;
+            return (nx < p.x + p.width && nx + ew > p.x && ny < p.y + p.height && ny + eh > p.y);
+          },
           isWaterAt,
           vx: entity.vx
         });
         entity.y = vp.y;
         entity.vy = vp.vy;
         entity.isGrounded = vp.isGrounded;
+
+        // --- ROLLING LOGIC (Supaplex style) ---
+        // Akmeņi ripo lejā no citiem apaļiem objektiem, ja ir brīva vieta sānā un pa diagonāli
+        if (entity.isGrounded && Math.abs(entity.vx) < 0.1 && def.isRound) {
+          const belowY = entity.y + entity.height + 2;
+          
+          // Pārbaudām vairākus punktus zem akmens, lai noteiktu vai tas stāv uz kaut kā "apaļa"
+          const checkXPoints = [
+            entity.x + entity.width / 2, // Centrs
+            entity.x + 4,                // Kreisā mala
+            entity.x + entity.width - 4  // Labā mala
+          ];
+          
+          let isRoundBelow = false;
+          for (const px of checkXPoints) {
+            let entBelow = null;
+            for (const other of entitiesRef.current) {
+              if (other.id === entity.id || other.health <= 0 || other.isExploding) continue;
+              if (px >= other.x && px < other.x + other.width && belowY >= other.y && belowY < other.y + other.height) {
+                entBelow = other;
+                break;
+              }
+            }
+            
+            if (entBelow && entBelow.def?.isRound) { isRoundBelow = true; break; }
+            
+            const gx = Math.floor(px / TILE_SIZE);
+            const gy = Math.floor(belowY / TILE_SIZE);
+            if (gx >= 0 && gx < mapWidth && gy >= 0 && gy < mapHeight) {
+              const objId = objectData ? objectData[gy * mapWidth + gx] : null;
+              const objDef = objId ? registryItems.find(r => r.id === objId) : null;
+              if (objDef && objDef.isRound) { isRoundBelow = true; break; }
+              
+              const bgTileId = mapData?.layers?.find(l => l.name === 'background')?.data?.[gy * mapWidth + gx];
+              const bgTileDef = bgTileId ? registryItems.find(r => r.id === bgTileId) : null;
+              if (bgTileDef && bgTileDef.isRound) { isRoundBelow = true; break; }
+            }
+          }
+
+          if (isRoundBelow) {
+            const checkEmpty = (tx, ty) => !checkCollision(tx, ty, mapWidth, mapHeight, entity.width, entity.height, entity.id);
+            
+            // Mēģinām ripot pa KREISI
+            const leftX = entity.x - TILE_SIZE;
+            const canRollLeft = checkEmpty(leftX, entity.y) && checkEmpty(leftX, entity.y + TILE_SIZE);
+            
+            if (canRollLeft) {
+              entity.vx = -3.0; // Mazliet palielinām ātrumu, lai drošāk noripotu
+            } else {
+              // Mēģinām ripot pa LABI
+              const rightX = entity.x + TILE_SIZE;
+              const canRollRight = checkEmpty(rightX, entity.y) && checkEmpty(rightX, entity.y + TILE_SIZE);
+              if (canRollRight) {
+                entity.vx = 3.0;
+              }
+            }
+          }
+        }
       }
 
       // Animācija akmenim parasti ir statiska

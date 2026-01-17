@@ -79,7 +79,7 @@ export function applyVerticalPhysics({
   }
 
   // Check vertical collision at proposed Y
-  if (checkCollision(x, y + vy, mapWidth, mapHeight)) {
+  if (checkCollision(x, y + vy, mapWidth, mapHeight, width, height)) {
     if (vy > 0) {
       // Landing on ground
       isGrounded = true;
