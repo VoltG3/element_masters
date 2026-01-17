@@ -276,7 +276,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                                 isGrounded: false,
                                 shootCooldown: 0,
                                 currentSpriteIndex: 0,
-                                subtype: def.subtype || (def.isPushable ? 'pushable' : null)
+                                subtype: def.subtype || (def.isPushable ? 'pushable' : null),
+                                rotation: def.isRound ? 0 : undefined
                             });
                         }
                     }

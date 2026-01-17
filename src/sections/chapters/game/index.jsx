@@ -7,7 +7,7 @@ import GameHeader from './GameHeader';
 import GameTerminal from './GameTerminal';
 import GameSettings from './GameSettings';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame } from '../../../store/slices/gameSlice';
+import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
 import { setSoundEnabled } from '../../../store/slices/settingsSlice';
 import errorHandler from '../../../services/errorHandler';
@@ -19,11 +19,12 @@ import map2 from '../../../assets/maps/Weather.json';
 import map3 from '../../../assets/maps/Secret_Room_as_in_Wizordum.json';
 import map4 from '../../../assets/maps/Secret_Room_as_in_Wolfenstein_3D.json';
 import map5 from '../../../assets/maps/stones_iterations.json';
+import map6 from '../../../assets/maps/stone_iterations_player_dead_as_in_Supaplex.json';
 
 
 
 // Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2, map3, map4, map5];
+const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6];
 
 // Styled Components
 const GameContainer = styled.div`
@@ -40,7 +41,7 @@ const ModalOverlay = styled.div`
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
+    z-index: 3000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,6 +116,63 @@ const WinCounterOverlay = styled.div`
     z-index: 2000;
     pointer-events: none;
     font-family: 'Courier New', Courier, monospace;
+`;
+
+const GameOverOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.5s ease-out;
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+`;
+
+const GameOverTitle = styled.h1`
+    font-size: 72px;
+    margin: 0 0 30px 0;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    color: #ff4444;
+    text-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 0 5px 15px rgba(0,0,0,0.8);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 900;
+`;
+
+const ReplayButton = styled.button`
+    padding: 18px 50px;
+    font-size: 28px;
+    background: linear-gradient(180deg, #4CAF50, #2E7D32);
+    color: white;
+    border: 2px solid #fff;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+    outline: none;
+
+    &:hover {
+        background: linear-gradient(180deg, #66BB6A, #388E3C);
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+
+    &:active {
+        transform: scale(0.98) translateY(0);
+    }
 `;
 
 const ModalDivider = styled.div`
@@ -195,7 +253,7 @@ export default function Game() {
     const player = useSelector(state => state.player); // Ensure this isn't undefined
 
     // Redux state
-    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight } = useSelector(state => state.game);
+    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight, isGameOver } = useSelector(state => state.game);
     const { isMapModalOpen, cameraScrollX, shouldCenterMap } = useSelector(state => state.ui);
     const { sound } = useSelector(state => state.settings);
     const soundEnabled = sound.enabled;
@@ -211,10 +269,12 @@ export default function Game() {
     const registryItems = getRegistry() || [];
 
     const handleGameOver = () => {
-        // Reload current map using Redux
+        dispatch(setGameOver(true));
+    };
+
+    const handleReplay = () => {
         if (activeMapData) {
-            console.log("Game Over! Reloading map...");
-            // Pievienojam timestamp, lai dzinējs zinātu, ka šis ir restarts/jauna ielāde
+            console.log("Replaying map...");
             const mapToLoad = {
                 ...activeMapData,
                 meta: {
@@ -223,6 +283,7 @@ export default function Game() {
                 }
             };
             loadMapData(mapToLoad);
+            dispatch(setGameOver(false));
         }
     };
 
@@ -412,7 +473,10 @@ export default function Game() {
 
     // Listen for navigation buttons
     useEffect(() => {
-        const handleOpenModalEvent = () => dispatch(setMapModalOpen(true));
+        const handleOpenModalEvent = () => {
+            dispatch(setMapModalOpen(true));
+            dispatch(setGameOver(false)); // Reset game over when opening new game modal
+        };
         window.addEventListener('open-new-game-modal', handleOpenModalEvent);
         return () => window.removeEventListener('open-new-game-modal', handleOpenModalEvent);
     }, [dispatch]);
@@ -515,6 +579,7 @@ export default function Game() {
             }));
             dispatch(setCameraScrollX(0));
             dispatch(setMapModalOpen(false));
+            dispatch(setGameOver(false)); // Ensure game over is reset on map load
 
             errorHandler.info('Map loaded successfully', {
                 component: 'Game',
@@ -602,6 +667,15 @@ export default function Game() {
                 onIce={playerState.onIce}
             />
 
+
+            {isGameOver && (
+                <GameOverOverlay>
+                    <GameOverTitle>Game Over</GameOverTitle>
+                    <ReplayButton onClick={handleReplay}>
+                        REPLAY ↻
+                    </ReplayButton>
+                </GameOverOverlay>
+            )}
 
             {isMapModalOpen && (
                 <ModalOverlay>

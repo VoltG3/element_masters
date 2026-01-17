@@ -46,6 +46,63 @@ const MessageOverlay = styled.div`
     }
 `;
 
+const GameOverOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.5s ease-out;
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+`;
+
+const GameOverTitle = styled.h1`
+    font-size: 72px;
+    margin: 0 0 30px 0;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    color: #ff4444;
+    text-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 0 5px 15px rgba(0,0,0,0.8);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 900;
+`;
+
+const ReplayButton = styled.button`
+    padding: 18px 50px;
+    font-size: 28px;
+    background: linear-gradient(180deg, #4CAF50, #2E7D32);
+    color: white;
+    border: 2px solid #fff;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+    outline: none;
+
+    &:hover {
+        background: linear-gradient(180deg, #66BB6A, #388E3C);
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+
+    &:active {
+        transform: scale(0.98) translateY(0);
+    }
+`;
+
 export const Editor = () => {
     const registryItems = useMemo(() => getRegistry() || [], []);
     const playerVisuals = useMemo(() => registryItems.find(item => item.id === 'player') || EMPTY_OBJECT, [registryItems]);
@@ -199,8 +256,8 @@ export const Editor = () => {
     } = useEditorSelection(mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, setTileMapData, setObjectMapData, setSecretMapData);
 
     const {
-        isPlayMode, handlePlay, handlePause, handleReset, 
-        playModeObjectData, playModeSecretData, playModeWeather, gameMessage, revealedSecrets, gameEngineState
+        isPlayMode, handlePlay, handlePause, handleReset, handleReplay,
+        playModeObjectData, playModeSecretData, playModeWeather, gameMessage, revealedSecrets, gameEngineState, isGameOver
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
@@ -514,6 +571,14 @@ export const Editor = () => {
                                 isEditorPlayMode={true}
                                 showGrid={showGrid}
                             />
+                            {isGameOver && (
+                                <GameOverOverlay>
+                                    <GameOverTitle>Game Over</GameOverTitle>
+                                    <ReplayButton onClick={handleReplay}>
+                                        REPLAY ↻
+                                    </ReplayButton>
+                                </GameOverOverlay>
+                            )}
                             {gameMessage.text && (
                                 <MessageOverlay $isVisible={gameMessage.isVisible}>
                                     <h2>{gameMessage.text}</h2>

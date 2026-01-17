@@ -81,7 +81,6 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
     }
 
     // Pozīcija un izmērs
-    // Svarīgi: Vispirms iestatām izmēru, tad virzienu
     const targetWidth = ent.width || tileSize;
     const targetHeight = ent.height || tileSize;
     
@@ -94,12 +93,29 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
 
     // Virziens (flipping)
     const direction = ent.direction !== undefined ? ent.direction : 1;
-    const absScaleX = Math.abs(spr.scale.x);
-    spr.scale.x = direction >= 0 ? absScaleX : -absScaleX;
     
-    // Pozicionēšana ņemot vērā flipping
-    spr.x = ent.x + (direction < 0 ? targetWidth : 0);
-    spr.y = ent.y;
+    // Ja ir definēta rotācija (piem. akmeņiem), izmantojam centru kā enkuru
+    if (ent.rotation !== undefined) {
+        spr.anchor.set(0.5, 0.5);
+        spr.x = ent.x + targetWidth / 2;
+        spr.y = ent.y + targetHeight / 2;
+        spr.rotation = ent.rotation;
+        
+        // Flipping ar centru enkuru
+        const absScaleX = Math.abs(spr.scale.x);
+        spr.scale.x = direction >= 0 ? absScaleX : -absScaleX;
+    } else {
+        // Standarta enkurs (augšējais kreisais stūris)
+        spr.anchor.set(0, 0);
+        spr.rotation = 0;
+        
+        const absScaleX = Math.abs(spr.scale.x);
+        spr.scale.x = direction >= 0 ? absScaleX : -absScaleX;
+        
+        // Pozicionēšana ņemot vērā flipping pie enkura (0,0)
+        spr.x = ent.x + (direction < 0 ? targetWidth : 0);
+        spr.y = ent.y;
+    }
   }
 
   // Noņemam spraitus entītijām, kas vairs neeksistē

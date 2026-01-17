@@ -13,6 +13,8 @@ export const useEditorPlayMode = (
     setTileMapData
 ) => {
     const [isPlayMode, setIsPlayMode] = useState(false);
+    const [isGameOver, setIsGameOver] = useState(false);
+    const [restartCounter, setRestartCounter] = useState(0);
     const [editorSnapshot, setEditorSnapshot] = useState(null);
     const [revealedSecrets, setRevealedSecrets] = useState([]);
     const [playModeObjectData, setPlayModeObjectData] = useState([]);
@@ -26,8 +28,8 @@ export const useEditorPlayMode = (
 
     // Stability for engine initialization - only changes when map changes or play mode is toggled
     const engineInitId = useMemo(() => {
-        return isPlayMode ? `${activeMapId}_${Date.now()}` : null;
-    }, [isPlayMode, activeMapId]);
+        return isPlayMode ? `${activeMapId}_${restartCounter}_${Date.now()}` : null;
+    }, [isPlayMode, activeMapId, restartCounter]);
 
     // Derived data to ensure useGameEngine gets fresh data even before useEffect syncs state.
     // This prevents the engine from using old map data during initialization.
@@ -107,8 +109,19 @@ export const useEditorPlayMode = (
     }, [activeMapId, isPlayMode, objectMapData, secretMapData, mapWidth, mapHeight, spawnTriggerId]);
 
     const handleGameOver = useCallback(() => {
-        setIsPlayMode(false);
+        setIsGameOver(true);
     }, []);
+
+    const handleReplay = useCallback(() => {
+        setIsGameOver(false);
+        setRestartCounter(prev => prev + 1);
+        setRevealedSecrets([]);
+        if (editorSnapshot) {
+            setPlayModeObjectData([...editorSnapshot.objectMapData]);
+            setPlayModeSecretData([...editorSnapshot.secretMapData]);
+            setObjectMetadata({ ...editorSnapshot.objectMetadata });
+        }
+    }, [editorSnapshot, setObjectMetadata]);
 
     const handleStateUpdate = useCallback((newState, payload) => {
         if (newState && typeof newState === 'object' && newState.x !== undefined && newState.y !== undefined) {
@@ -319,10 +332,12 @@ export const useEditorPlayMode = (
         setRevealedSecrets([]);
         lastSyncedMapIdRef.current = activeMapId;
         setIsPlayMode(true);
+        setIsGameOver(false); // Reset game over when starting play mode
     };
 
     const handlePause = () => {
         setIsPlayMode(false);
+        setIsGameOver(false); // Reset game over when exiting play mode
     };
 
     const handleReset = () => {
@@ -351,9 +366,11 @@ export const useEditorPlayMode = (
     return {
         isPlayMode,
         setIsPlayMode,
+        isGameOver,
         handlePlay,
         handlePause,
         handleReset,
+        handleReplay,
         playModeObjectData: currentPlayObjectData,
         playModeSecretData: currentPlaySecretData,
         playModeWeather,
