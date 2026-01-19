@@ -508,24 +508,33 @@ const PixiStage = ({
           }
 
           if (u && u.g) {
-            // Check if player is in water/lava (regardless of head position)
+            // Check if player's head is in water/lava for full overlay
+            // If only body is in liquid, use a much subtler effect or none
             const liquidType = sNow.liquidType;
-            const inLiquid = !!(sNow && sNow.inWater && (liquidType === 'water' || liquidType === 'lava' || liquidType === 'quicksand' || liquidType === 'radioactive_water'));
+            const headUnder = !!(sNow && sNow.headUnderWater);
+            const inLiquid = !!(sNow && sNow.inWater);
+            
+            const showOverlay = headUnder && (liquidType === 'water' || liquidType === 'lava' || liquidType === 'quicksand' || liquidType === 'radioactive_water');
 
             // Determine overlay color based on liquid type
             let overlayColor = 0x1d4875; // water (blue)
+            let maxTargetAlpha = 0.15;
+
             if (liquidType === 'lava') {
               overlayColor = 0x8b2e0f; // lava (dark orange-red)
+              maxTargetAlpha = 0.25;
             } else if (liquidType === 'quicksand') {
               overlayColor = 0xa6915b; // quicksand (sand brown)
+              maxTargetAlpha = 0.20;
             } else if (liquidType === 'radioactive_water') {
               overlayColor = 0x1a5c1a; // toxic green
+              maxTargetAlpha = 0.18;
             }
 
-            if (inLiquid) {
+            if (showOverlay) {
               u.time += dt;
               // Target alpha with pulse effect
-              const pulseBase = 0.12 + 0.06 * Math.sin(u.time * 0.0025);
+              const pulseBase = (maxTargetAlpha * 0.8) + (maxTargetAlpha * 0.2) * Math.sin(u.time * 0.0025);
               u.targetAlpha = pulseBase;
 
               // Smooth fade-in: gradually approach target alpha

@@ -41,9 +41,25 @@ export default class LiquidRegionSystem {
     const py = p.y || 0;
     const pw = p.width || 32;
     const ph = p.height || 32;
-    // Simple AABB check against region bounds
-    const b = region.node.getBounds();
-    return (px + pw > b.x && px < b.x + b.width && py + ph > b.y && py < b.y + b.height);
+
+    // Use multiple sample points for better precision
+    // 1. Center
+    const points = [
+      { x: px + pw * 0.5, y: py + ph * 0.5 },
+      { x: px + pw * 0.5, y: py + ph * 0.1 }, // Top
+      { x: px + pw * 0.5, y: py + ph * 0.9 }, // Bottom
+    ];
+
+    for (const pt of points) {
+      const gx = Math.floor(pt.x / this.tileSize);
+      const gy = Math.floor(pt.y / this.tileSize);
+      const idx = gy * this.mapWidth + gx;
+      if (region.tileIndicesSet && region.tileIndicesSet.has(idx)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Query approximate surface Y (pixel) for a given X within liquid regions of type ('water'|'lava')
@@ -136,37 +152,32 @@ export default class LiquidRegionSystem {
       sprite.tilePosition.x += drift.x * dt;
       sprite.tilePosition.y += drift.y * dt;
       // Alpha: normally opaque, but becomes transparent when player is inside!
-      // (We'll detect player position and adjust alpha accordingly)
+      // (We'll detect player position and adjust alpha accordingly with smooth transitions)
+      let targetAlpha = 0.95;
       if (r.type === 'water') {
-        // Check if player is in this water region (simplified check)
         const playerInRegion = this._checkPlayerInRegion(r);
-        if (playerInRegion) {
-          sprite.alpha = 0.50; // Transparent when player is inside - can see player/items!
-        } else {
-          sprite.alpha = 0.95; // Opaque when player is outside
-        }
+        targetAlpha = playerInRegion ? 0.50 : 0.95;
       } else if (r.type === 'quicksand') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        if (playerInRegion) {
-          sprite.alpha = 0.70;
-        } else {
-          sprite.alpha = 1.0;
-        }
+        targetAlpha = playerInRegion ? 0.70 : 1.0;
       } else if (r.type === 'waterfall' || r.type === 'lava_waterfall' || r.type === 'radioactive_waterfall') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        sprite.alpha = playerInRegion ? 0.4 : 0.6;
+        targetAlpha = playerInRegion ? 0.40 : 0.65;
       } else if (r.type === 'radioactive_water') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        sprite.alpha = playerInRegion ? 0.55 : 0.90;
+        targetAlpha = playerInRegion ? 0.55 : 0.90;
       } else {
         // Lava
         const playerInRegion = this._checkPlayerInRegion(r);
-        if (playerInRegion) {
-          sprite.alpha = 0.60; // Transparent when player is inside
-        } else {
-          sprite.alpha = 0.95; // Opaque when player is outside
-        }
+        targetAlpha = playerInRegion ? 0.60 : 0.98;
       }
+
+      // Smooth transition (lerp)
+      if (r.currentAlpha === undefined) r.currentAlpha = sprite.alpha;
+      const lerpFactor = 0.005; // Adjust for speed of transition
+      const alphaDiff = targetAlpha - r.currentAlpha;
+      r.currentAlpha += alphaDiff * Math.min(1, dt * lerpFactor);
+      sprite.alpha = r.currentAlpha;
 
       // Splash animation for waterfalls
       if ((r.type === 'waterfall' || r.type === 'lava_waterfall' || r.type === 'radioactive_waterfall') && r.splashG && Array.isArray(r.bottomEdges)) {
@@ -319,9 +330,10 @@ export default class LiquidRegionSystem {
       _addRegion(type, tileIndices, mapWidth, mapHeight, tileSize) {
         const node = new Container();
         const mask = new Graphics();
-        // SVARĪGI: v8 maskas labāk strādā bez addChild, ja tās ir Graphics
         const worldW = mapWidth * tileSize;
         const worldH = mapHeight * tileSize;
+
+        const tileIndicesSet = new Set(tileIndices);
 
         mask.clear();
         const bleed = 1; // Palielināts bleed, lai nosegtu spraugas
@@ -383,19 +395,21 @@ export default class LiquidRegionSystem {
         node.addChild(mask);
         node.mask = mask;
 
+        const baseAlpha = type === 'lava' ? 0.98 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.6 : 0.92);
+
         if (type === 'water' || type === 'radioactive_water') {
           const capG = new Graphics();
           node.addChild(capG);
           const topEdges = this._computeTopEdgeSpans(tileIndices, mapWidth, tileSize);
           // Saglabājam atsauces uz r reģistrā
-          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [] });
+          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [], tileIndicesSet, currentAlpha: baseAlpha });
         } else if (type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') {
           const splashG = new Graphics();
           node.addChild(splashG);
           const bottomEdges = this._computeBottomEdgeSpans(tileIndices, mapWidth, tileSize);
-          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, splashG, bottomEdges });
+          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, splashG, bottomEdges, tileIndicesSet, currentAlpha: baseAlpha });
         } else {
-          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, waves: [] });
+          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, waves: [], tileIndicesSet, currentAlpha: baseAlpha });
         }
 
         this.container.addChild(node);
