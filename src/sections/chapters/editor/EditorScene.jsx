@@ -38,6 +38,12 @@ export const EditorScene = ({
     setWeatherFog,
     weatherThunder,
     setWeatherThunder,
+    weatherLavaRain,
+    setWeatherLavaRain,
+    weatherRadioactiveFog,
+    setWeatherRadioactiveFog,
+    weatherMeteorRain,
+    setWeatherMeteorRain,
     // New props for multi-map
     maps,
     activeMapId,
@@ -176,6 +182,12 @@ export const EditorScene = ({
                         setWeatherFog={setWeatherFog}
                         weatherThunder={weatherThunder}
                         setWeatherThunder={setWeatherThunder}
+                        weatherLavaRain={weatherLavaRain}
+                        setWeatherLavaRain={setWeatherLavaRain}
+                        weatherRadioactiveFog={weatherRadioactiveFog}
+                        setWeatherRadioactiveFog={setWeatherRadioactiveFog}
+                        weatherMeteorRain={weatherMeteorRain}
+                        setWeatherMeteorRain={setWeatherMeteorRain}
                     />
                 </DraggableWindow>
             )}

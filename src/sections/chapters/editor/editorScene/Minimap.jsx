@@ -41,9 +41,17 @@ export const Minimap = ({
                     if (tile) {
                         if (tile.flags?.liquid) {
                             if (tile.flags.water) {
-                                ctx.fillStyle = '#2a5d8f';
+                                ctx.fillStyle = '#3a7fb8';
                             } else if (tile.flags.lava) {
                                 ctx.fillStyle = '#c43f0f';
+                            } else if (tile.flags.quicksand) {
+                                ctx.fillStyle = '#a6915b';
+                            } else if (tile.flags.waterfall) {
+                                ctx.fillStyle = '#3a7fb8';
+                            } else if (tile.flags.lava_waterfall) {
+                                ctx.fillStyle = '#c43f0f';
+                            } else if (tile.flags.radioactive_water || tile.flags.radioactive_waterfall) {
+                                ctx.fillStyle = '#32cd32';
                             } else {
                                 ctx.fillStyle = '#888';
                             }

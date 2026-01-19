@@ -17,7 +17,12 @@ import { ObjectPropsPanel } from './editorElements/ObjectPropsPanel';
 export const EditorElements = ({
     mapName,
     creatorName,
+    mapDescription,
+    setMapName,
+    setCreatorName,
+    setMapDescription,
     openNewMapModal,
+    openBuiltInModal,
     saveMap,
     loadMap,
     clearMap,
@@ -111,11 +116,16 @@ export const EditorElements = ({
                             {displayPanel === 'map' && (
                                 <OperationsPanel 
                                     openNewMapModal={openNewMapModal}
+                                    openBuiltInModal={openBuiltInModal}
                                     saveMap={saveMap}
                                     loadMap={loadMap}
                                     clearMap={clearMap}
                                     mapName={mapName}
                                     creatorName={creatorName}
+                                    mapDescription={mapDescription}
+                                    setMapName={setMapName}
+                                    setCreatorName={setCreatorName}
+                                    setMapDescription={setMapDescription}
                                 />
                             )}
 

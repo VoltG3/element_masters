@@ -7,7 +7,7 @@ const HeaderContainer = styled.div`
     top: 0;
     left: 0;
     width: 100%;
-    height: 110px;
+    height: auto;
     background-color: rgba(0, 0, 0, 0.3);
     display: flex;
     justify-content: space-between;
@@ -31,23 +31,33 @@ const RightSection = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    //gap: 8px;
 `;
 
 const BarsContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    width: 200px;
+    //gap: 1px;
+    width: 250px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+   // border: solid 1px red;
+`;
+
+const BarRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
 `;
 
 const BarWrapper = styled.div`
-    width: 100%;
-    height: 8px;
+    flex: 1;
+    height: 6px;
     background-color: rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.4);
     position: relative;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
 `;
 
 const BarFill = styled.div.attrs(props => ({
@@ -61,16 +71,15 @@ const BarFill = styled.div.attrs(props => ({
 `;
 
 const BarLabel = styled.div`
-    position: absolute;
-    top: -12px;
-    left: 0;
-    font-size: 9px;
+    width: 60px;
+    font-size: 8px;
     color: white;
     font-weight: bold;
     text-shadow: 1px 1px 2px black;
     pointer-events: none;
     white-space: nowrap;
     text-transform: uppercase;
+    text-align: right;
 `;
 
 const GameHeader = ({ 
@@ -85,6 +94,8 @@ const GameHeader = ({
     maxIceResist = 100,
     strength = 30,
     maxStrength = 100,
+    radioactivity = 20,
+    maxRadioactivity = 100,
     inWater = false,
     liquidType = null,
     onIce = false
@@ -94,13 +105,7 @@ const GameHeader = ({
     const lavaPercent = Math.max(0, Math.min(100, (lavaResist / maxLavaResist) * 100));
     const icePercent = Math.max(0, Math.min(100, (iceResist / maxIceResist) * 100));
     const strengthPercent = Math.max(0, Math.min(100, (strength / maxStrength) * 100));
-
-    const showOxy = inWater || liquidType === 'water' || oxyPercent < 100;
-    const showLava = liquidType === 'lava' || lavaPercent < 100;
-    const showIce = onIce || icePercent < 100;
-    const showStrength = strengthPercent > 30; // Rādīt tikai kad sāk augt vai ja gribam vienmēr? 
-    // Uzdevumā teikts "jāpievieno vēlviena līnija", pieņemsim ka rādām vienmēr vai kad nepieciešams.
-    // Bet ja default ir 30%, tad varbūt labāk rādīt vienmēr.
+    const radioPercent = Math.max(0, Math.min(100, (radioactivity / maxRadioactivity) * 100));
 
     return (
         <HeaderContainer>
@@ -109,36 +114,54 @@ const GameHeader = ({
             </AmmoDisplay>
 
             <RightSection>
-                <BarsContainer style={{ gap: '12px' }}>
+                <BarsContainer>
                     {/* HP Bar */}
-                    <BarWrapper>
-                        <BarLabel>HP: {Math.round(hpPercent)}%</BarLabel>
-                        <BarFill $percent={hpPercent} $color="#ff3232" />
-                    </BarWrapper>
+                    <BarRow>
+                        <BarLabel>HP</BarLabel>
+                        <BarWrapper>
+                            <BarFill $percent={hpPercent} $color="#ff3232" />
+                        </BarWrapper>
+                    </BarRow>
 
                     {/* Oxygen Bar */}
-                    <BarWrapper>
-                        <BarLabel>O2: {Math.round(oxyPercent)}%</BarLabel>
-                        <BarFill $percent={oxyPercent} $color="#2ecdf1" />
-                    </BarWrapper>
+                    <BarRow>
+                        <BarLabel>OZ</BarLabel>
+                        <BarWrapper>
+                            <BarFill $percent={oxyPercent} $color="#2ecdf1" />
+                        </BarWrapper>
+                    </BarRow>
 
                     {/* Lava Bar */}
-                    <BarWrapper>
-                        <BarLabel>LAVA: {Math.round(lavaPercent)}%</BarLabel>
-                        <BarFill $percent={lavaPercent} $color="#ffa229" />
-                    </BarWrapper>
+                    <BarRow>
+                        <BarLabel>LAVA</BarLabel>
+                        <BarWrapper>
+                            <BarFill $percent={lavaPercent} $color="#ffa229" />
+                        </BarWrapper>
+                    </BarRow>
 
                     {/* Ice Bar */}
-                    <BarWrapper>
-                        <BarLabel>ICE: {Math.round(icePercent)}%</BarLabel>
-                        <BarFill $percent={icePercent} $color="#a5f3fc" />
-                    </BarWrapper>
+                    <BarRow>
+                        <BarLabel>ICE</BarLabel>
+                        <BarWrapper>
+                            <BarFill $percent={icePercent} $color="#a5f3fc" />
+                        </BarWrapper>
+                    </BarRow>
 
                     {/* Strength Bar */}
-                    <BarWrapper>
-                        <BarLabel>STRENGTH: {Math.round(strengthPercent)}%</BarLabel>
-                        <BarFill $percent={strengthPercent} $color="#eab308" />
-                    </BarWrapper>
+                    <BarRow>
+                        <BarLabel>STRNGTH</BarLabel>
+                        <BarWrapper>
+                            <BarFill $percent={strengthPercent} $color="#eab308" />
+                        </BarWrapper>
+                    </BarRow>
+
+                    {/* Radioactivity Bar */}
+                    <BarRow>
+                        <BarLabel>RADIO</BarLabel>
+                        <BarWrapper>
+                            <BarFill $percent={radioPercent} $color="#32cd32" />
+                        </BarWrapper>
+                    </BarRow>
                 </BarsContainer>
             </RightSection>
         </HeaderContainer>
@@ -157,6 +180,8 @@ GameHeader.propTypes = {
     maxIceResist: PropTypes.number,
     strength: PropTypes.number,
     maxStrength: PropTypes.number,
+    radioactivity: PropTypes.number,
+    maxRadioactivity: PropTypes.number,
     inWater: PropTypes.bool,
     liquidType: PropTypes.string,
     onIce: PropTypes.bool

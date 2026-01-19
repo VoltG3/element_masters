@@ -18,6 +18,11 @@ export const EditorTile = ({
     const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
     const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
     const isLavaTile = !!(tileObj && tileObj.flags && tileObj.flags.lava);
+    const isQuicksandTile = !!(tileObj && tileObj.flags && tileObj.flags.quicksand);
+    const isWaterfallTile = !!(tileObj && tileObj.flags && tileObj.flags.waterfall);
+    const isLavaWaterfallTile = !!(tileObj && tileObj.flags && tileObj.flags.lava_waterfall);
+    const isRadioactiveWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.radioactive_water);
+    const isRadioactiveWaterfallTile = !!(tileObj && tileObj.flags && tileObj.flags.radioactive_waterfall);
 
     const triggerId = objectMetadata?.[index]?.triggerId;
     const intensity = objectMetadata?.[index]?.intensity;
@@ -44,10 +49,10 @@ export const EditorTile = ({
                     {isLiquidTile ? (
                         <div style={{
                             width: '32px', height: '32px',
-                            background: isWaterTile ? 'rgba(0, 0, 255, 0.5)' : (isLavaTile ? 'rgba(255, 69, 0, 0.7)' : 'rgba(0, 255, 255, 0.3)'),
+                            background: isWaterTile ? 'rgba(58, 127, 184, 0.7)' : (isLavaTile ? 'rgba(255, 69, 0, 0.7)' : (isQuicksandTile ? 'rgba(218, 165, 32, 0.7)' : (isWaterfallTile ? 'rgba(58, 127, 184, 0.7)' : (isLavaWaterfallTile ? 'rgba(255, 69, 0, 0.7)' : (isRadioactiveWaterTile || isRadioactiveWaterfallTile ? 'rgba(50, 205, 50, 0.7)' : 'rgba(0, 255, 255, 0.3)'))))),
                             display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px'
                         }}>
-                            {isWaterTile ? 'WATER' : (isLavaTile ? 'LAVA' : 'LIQ')}
+                            {isWaterTile ? 'WATER' : (isLavaTile ? 'LAVA' : (isQuicksandTile ? 'QUICK' : (isWaterfallTile ? 'FALL' : (isLavaWaterfallTile ? 'L.FALL' : (isRadioactiveWaterTile ? 'RAD' : (isRadioactiveWaterfallTile ? 'RADFALL' : 'LIQ'))))))}
                         </div>
                     ) : (
                         <AnimatedItem

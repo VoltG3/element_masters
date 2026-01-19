@@ -20,6 +20,11 @@ export default class LiquidRegionSystem {
     this._regions = []; // { type, node, mask, sprite, noise1, noise2, capG, topEdges, waves:[] }
     this._waterTex = null;
     this._lavaTex = null;
+    this._quicksandTex = null;
+    this._waterfallTex = null;
+    this._lavaWaterfallTex = null;
+    this._radioactiveWaterTex = null;
+    this._radioactiveWaterfallTex = null;
     this._time = 0;
     this._noiseTex = null;
     this._playerState = null; // Will be set from PixiStage
@@ -68,9 +73,19 @@ export default class LiquidRegionSystem {
     this._regions = [];
     try { this._waterTex?.destroy(true); } catch {}
     try { this._lavaTex?.destroy(true); } catch {}
+    try { this._quicksandTex?.destroy(true); } catch {}
+    try { this._waterfallTex?.destroy(true); } catch {}
+    try { this._lavaWaterfallTex?.destroy(true); } catch {}
+    try { this._radioactiveWaterTex?.destroy(true); } catch {}
+    try { this._radioactiveWaterfallTex?.destroy(true); } catch {}
     try { this._noiseTex?.destroy(true); } catch {}
     this._waterTex = null;
     this._lavaTex = null;
+    this._quicksandTex = null;
+    this._waterfallTex = null;
+    this._lavaWaterfallTex = null;
+    this._radioactiveWaterTex = null;
+    this._radioactiveWaterfallTex = null;
     this._noiseTex = null;
   }
 
@@ -92,7 +107,14 @@ export default class LiquidRegionSystem {
       // rebuild textures at new tile size; regions will be rebuilt by caller
       try { this._waterTex?.destroy(true); } catch {}
       try { this._lavaTex?.destroy(true); } catch {}
-      this._waterTex = null; this._lavaTex = null;
+      try { this._quicksandTex?.destroy(true); } catch {}
+      try { this._waterfallTex?.destroy(true); } catch {}
+      try { this._lavaWaterfallTex?.destroy(true); } catch {}
+      try { this._radioactiveWaterTex?.destroy(true); } catch {}
+      try { this._radioactiveWaterfallTex?.destroy(true); } catch {}
+      this._waterTex = null; this._lavaTex = null; this._quicksandTex = null; this._waterfallTex = null;
+      this._lavaWaterfallTex = null;
+      this._radioactiveWaterTex = null; this._radioactiveWaterfallTex = null;
     }
   }
 
@@ -102,10 +124,15 @@ export default class LiquidRegionSystem {
     // Gentle drift speeds (px/ms) per liquid type
     const waterDrift = { x: 0.010, y: 0.004 };
     const lavaDrift = { x: -0.012, y: 0.006 };
+    const quicksandDrift = { x: 0.002, y: 0.008 };
+    const waterfallDrift = { x: 0, y: 0.15 }; // Fast vertical drift
+    const lavaWaterfallDrift = { x: 0, y: 0.12 }; // Lava falls a bit slower/thicker
+    const radioactiveWaterDrift = { x: 0.008, y: 0.003 };
+    const radioactiveWaterfallDrift = { x: 0, y: 0.06 }; // Slower vertical drift
     for (const r of this._regions) {
       const sprite = r.sprite;
       if (!sprite) continue;
-      const drift = r.type === 'lava' ? lavaDrift : waterDrift;
+      const drift = r.type === 'lava' ? lavaDrift : (r.type === 'quicksand' ? quicksandDrift : (r.type === 'waterfall' ? waterfallDrift : (r.type === 'lava_waterfall' ? lavaWaterfallDrift : (r.type === 'radioactive_waterfall' ? radioactiveWaterfallDrift : (r.type === 'radioactive_water' ? radioactiveWaterDrift : waterDrift)))));
       sprite.tilePosition.x += drift.x * dt;
       sprite.tilePosition.y += drift.y * dt;
       // Alpha: normally opaque, but becomes transparent when player is inside!
@@ -118,6 +145,19 @@ export default class LiquidRegionSystem {
         } else {
           sprite.alpha = 0.95; // Opaque when player is outside
         }
+      } else if (r.type === 'quicksand') {
+        const playerInRegion = this._checkPlayerInRegion(r);
+        if (playerInRegion) {
+          sprite.alpha = 0.70;
+        } else {
+          sprite.alpha = 1.0;
+        }
+      } else if (r.type === 'waterfall' || r.type === 'lava_waterfall' || r.type === 'radioactive_waterfall') {
+        const playerInRegion = this._checkPlayerInRegion(r);
+        sprite.alpha = playerInRegion ? 0.4 : 0.6;
+      } else if (r.type === 'radioactive_water') {
+        const playerInRegion = this._checkPlayerInRegion(r);
+        sprite.alpha = playerInRegion ? 0.55 : 0.90;
       } else {
         // Lava
         const playerInRegion = this._checkPlayerInRegion(r);
@@ -126,6 +166,30 @@ export default class LiquidRegionSystem {
         } else {
           sprite.alpha = 0.95; // Opaque when player is outside
         }
+      }
+
+      // Splash animation for waterfalls
+      if ((r.type === 'waterfall' || r.type === 'lava_waterfall' || r.type === 'radioactive_waterfall') && r.splashG && Array.isArray(r.bottomEdges)) {
+        const g = r.splashG;
+        g.clear();
+        const thickness = Math.max(2, Math.floor(this.tileSize * 0.25));
+        const F = 1000;
+        const cycle = (this._time % F) / F;
+        
+        for (const e of r.bottomEdges) {
+          // Animated foam/splash at the bottom
+          const splashHeight = thickness * (0.8 + Math.sin(this._time * 0.01 + e.x) * 0.2);
+          g.rect(e.x, e.y + this.tileSize - splashHeight, e.w, splashHeight);
+          
+          // Bubbles
+          for (let k = 0; k < 5; k++) {
+             const bx = e.x + ((e.x * 13 + k * 37 + this._time * 0.05) % e.w);
+             const by = e.y + this.tileSize - (Math.random() * thickness * 2);
+             g.circle(bx, by, 1 + Math.random() * 2);
+          }
+        }
+        const splashColor = r.type === 'lava_waterfall' ? 0xff4500 : (r.type === 'radioactive_waterfall' ? 0xadff2f : 0xffffff);
+        g.fill({ color: splashColor, alpha: 0.5 + Math.sin(this._time * 0.02) * 0.2 });
       }
 
       // Animate noise overlays to break repetition
@@ -208,6 +272,11 @@ export default class LiquidRegionSystem {
       if (!def || !def.flags || !def.flags.liquid) return null;
       if (def.flags.water) return 'water';
       if (def.flags.lava) return 'lava';
+      if (def.flags.quicksand) return 'quicksand';
+      if (def.flags.waterfall) return 'waterfall';
+      if (def.flags.lava_waterfall) return 'lava_waterfall';
+      if (def.flags.radioactive_water) return 'radioactive_water';
+      if (def.flags.radioactive_waterfall) return 'radioactive_waterfall';
       return 'liquid';
     };
 
@@ -270,7 +339,12 @@ export default class LiquidRegionSystem {
         mask.fill({ color: 0xffffff, alpha: 1 });
 
         const tex = type === 'lava' ? (this._lavaTex || (this._lavaTex = this._createLavaTexture(tileSize)))
-                                     : (this._waterTex || (this._waterTex = this._createWaterTexture(tileSize)));
+                                     : (type === 'quicksand' ? (this._quicksandTex || (this._quicksandTex = this._createQuicksandTexture(tileSize)))
+                                     : (type === 'waterfall' ? (this._waterfallTex || (this._waterfallTex = this._createWaterfallTexture(tileSize)))
+                                     : (type === 'lava_waterfall' ? (this._lavaWaterfallTex || (this._lavaWaterfallTex = this._createLavaWaterfallTexture(tileSize)))
+                                     : (type === 'radioactive_waterfall' ? (this._radioactiveWaterfallTex || (this._radioactiveWaterfallTex = this._createRadioactiveWaterfallTexture(tileSize)))
+                                     : (type === 'radioactive_water' ? (this._radioactiveWaterTex || (this._radioactiveWaterTex = this._createRadioactiveWaterTexture(tileSize)))
+                                     : (this._waterTex || (this._waterTex = this._createWaterTexture(tileSize))))))));
         
         // v8 addressMode iestatīšana
         if (tex.source && tex.source.style) {
@@ -284,7 +358,7 @@ export default class LiquidRegionSystem {
         });
         
         tiling.tileScale.set(1, 1);
-        tiling.alpha = type === 'lava' ? 0.98 : 0.92;
+        tiling.alpha = type === 'lava' ? 0.98 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.6 : 0.92);
         node.addChild(tiling);
 
         // Noise slāņi
@@ -296,8 +370,10 @@ export default class LiquidRegionSystem {
         const noise1 = new TilingSprite({ texture: noiseTex, width: worldW, height: worldH });
         const noise2 = new TilingSprite({ texture: noiseTex, width: worldW, height: worldH });
         
-        if (type === 'water') {
+        if (type === 'water' || type === 'radioactive_water') {
           noise1.alpha = 0.08; noise2.alpha = 0.1;
+        } else if (type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') {
+          noise1.alpha = 0.05; noise2.alpha = 0.08;
         } else {
           noise1.alpha = 0.12; noise2.alpha = 0.15;
         }
@@ -307,12 +383,17 @@ export default class LiquidRegionSystem {
         node.addChild(mask);
         node.mask = mask;
 
-        if (type === 'water') {
+        if (type === 'water' || type === 'radioactive_water') {
           const capG = new Graphics();
           node.addChild(capG);
           const topEdges = this._computeTopEdgeSpans(tileIndices, mapWidth, tileSize);
           // Saglabājam atsauces uz r reģistrā
           this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [] });
+        } else if (type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') {
+          const splashG = new Graphics();
+          node.addChild(splashG);
+          const bottomEdges = this._computeBottomEdgeSpans(tileIndices, mapWidth, tileSize);
+          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, splashG, bottomEdges });
         } else {
           this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, waves: [] });
         }
@@ -337,21 +418,171 @@ export default class LiquidRegionSystem {
         return Texture.from(canvas);
       }
 
-      _createLavaTexture(tileSize) {
-        const canvas = document.createElement('canvas');
-        const size = 64; 
-        canvas.width = size; canvas.height = size;
-        const ctx = canvas.getContext('2d');
+  _createLavaTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
 
-        // SEAMLESS gradients lavai
-        const g = ctx.createLinearGradient(0, 0, 0, size);
-        g.addColorStop(0, '#ffa229');
-        g.addColorStop(0.5, '#ffb84d');
-        g.addColorStop(1, '#ffa229');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, size, size);
+    // SEAMLESS gradients lavai
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#ffa229');
+    g.addColorStop(0.5, '#ffb84d');
+    g.addColorStop(1, '#ffa229');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
 
-        return Texture.from(canvas);
+    return Texture.from(canvas);
+  }
+
+  _createLavaWaterfallTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // SEAMLESS gradients lavai
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#6b1a07');   
+    g.addColorStop(0.5, '#c43f0f'); 
+    g.addColorStop(1, '#6b1a07');   
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+
+    // Lava streaks
+    ctx.fillStyle = '#ffed8a';
+    for (let k = 0; k < 10; k++) {
+      ctx.globalAlpha = 0.1 + Math.random() * 0.3;
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const h = 4 + Math.random() * 15;
+      const w = 1 + Math.random() * 2;
+      ctx.fillRect(x, y, w, h);
+      
+      if (y + h > size) {
+        ctx.fillRect(x, y - size, w, h);
+      }
+    }
+
+    return Texture.from(canvas);
+  }
+
+  _createQuicksandTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // SEAMLESS gradients quicksand (smilšu krāsa)
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#a6915b');
+    g.addColorStop(0.5, '#d1ba7d');
+    g.addColorStop(1, '#a6915b');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+
+    // grainy texture
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = '#5c5031';
+    for (let k = 0; k < 15; k++) {
+      ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+    }
+
+    return Texture.from(canvas);
+  }
+
+  _createWaterfallTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // SEAMLESS gradients (izmantojam to pašu ko ūdenim konsistencei)
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#3a7fb8');   
+    g.addColorStop(0.5, '#5ba3d9'); 
+    g.addColorStop(1, '#3a7fb8');   
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+
+    // Īsas svītriņas (dashes) nevis garas līnijas
+    ctx.fillStyle = '#ffffff';
+    for (let k = 0; k < 12; k++) {
+      ctx.globalAlpha = 0.1 + Math.random() * 0.3;
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const h = 4 + Math.random() * 12;
+      const w = 1 + Math.random() * 2;
+      ctx.fillRect(x, y, w, h);
+      
+      // Nodrošinām seamless wrap-around vertikāli
+      if (y + h > size) {
+        ctx.fillRect(x, y - size, w, h);
+      }
+    }
+    
+    // some horizontal variation
+    ctx.globalAlpha = 0.1;
+    for (let k = 0; k < 10; k++) {
+      ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+    }
+
+    return Texture.from(canvas);
+  }
+
+  _createRadioactiveWaterTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // SEAMLESS gradients toxic green
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#1a5c1a');   
+    g.addColorStop(0.5, '#32cd32'); 
+    g.addColorStop(1, '#1a5c1a');   
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+
+    // Some mini bubbles
+    ctx.fillStyle = '#adff2f';
+    for (let k = 0; k < 10; k++) {
+      ctx.globalAlpha = 0.2 + Math.random() * 0.3;
+      ctx.beginPath();
+      ctx.arc(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    return Texture.from(canvas);
+  }
+
+  _createRadioactiveWaterfallTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, '#1a5c1a');   
+    g.addColorStop(0.5, '#32cd32'); 
+    g.addColorStop(1, '#1a5c1a');   
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.fillStyle = '#adff2f';
+    for (let k = 0; k < 8; k++) {
+      ctx.globalAlpha = 0.1 + Math.random() * 0.2;
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const h = 4 + Math.random() * 10;
+      const w = 1 + Math.random() * 2;
+      ctx.fillRect(x, y, w, h);
+      if (y + h > size) {
+        ctx.fillRect(x, y - size, w, h);
+      }
+    }
+
+    return Texture.from(canvas);
   }
 
   _createNoiseTexture(w = 256, h = 256) {
@@ -394,6 +625,37 @@ export default class LiquidRegionSystem {
         if (start === null) { start = gx; prev = gx; continue; }
         if (gx === prev + 1) { prev = gx; continue; }
         // flush previous span
+        spans.push({ x: start * tileSize, y: gy * tileSize, w: (prev - start + 1) * tileSize });
+        start = gx; prev = gx;
+      }
+      if (start !== null) {
+        spans.push({ x: start * tileSize, y: gy * tileSize, w: (prev - start + 1) * tileSize });
+      }
+    }
+    return spans;
+  }
+
+  // Given tile indices of a region, compute horizontal spans representing its bottom boundary per row.
+  _computeBottomEdgeSpans(tileIndices, mapWidth, tileSize) {
+    const set = new Set(tileIndices);
+    const spans = [];
+    const tilesByRow = new Map();
+    for (const idx of tileIndices) {
+      const gy = Math.floor(idx / mapWidth);
+      const gx = idx % mapWidth;
+      const below = idx + mapWidth;
+      if (!set.has(below)) {
+        const rowList = tilesByRow.get(gy) || [];
+        rowList.push(gx);
+        tilesByRow.set(gy, rowList);
+      }
+    }
+    for (const [gy, cols] of tilesByRow.entries()) {
+      cols.sort((a, b) => a - b);
+      let start = null; let prev = null;
+      for (const gx of cols) {
+        if (start === null) { start = gx; prev = gx; continue; }
+        if (gx === prev + 1) { prev = gx; continue; }
         spans.push({ x: start * tileSize, y: gy * tileSize, w: (prev - start + 1) * tileSize });
         start = gx; prev = gx;
       }

@@ -15,6 +15,7 @@ export const MAX_HEALTH = 100;
 export const MAX_OXYGEN = 100;
 export const MAX_LAVA_RESIST = 100;
 export const MAX_ICE_RESIST = 100;
+export const MAX_RADIOACTIVITY = 100;
 
 // Combat Constants
 export const SHOOT_COOLDOWN = 350; // milliseconds

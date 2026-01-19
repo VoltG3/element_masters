@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react'
 import PropTypes from 'prop-types';
 import { Application, Container, Graphics, Assets } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
-import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder } from '../../../../Pixi/effects/weather';
+import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder, LavaRain as WeatherLavaRain, RadioactiveFog as WeatherRadioactiveFog, MeteorRain as WeatherMeteorRain } from '../../../../Pixi/effects/weather';
 import { WaterSplashFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
 import HealthBar from '../../../../Pixi/ui/HealthBar';
 import LAYERS from '../../../../renderer/stage/layers/LayerOrder';
@@ -41,6 +41,9 @@ const PixiStage = ({
   weatherRain = 0,
   weatherSnow = 0,
   weatherClouds = 0,
+  weatherLavaRain = 0,
+  weatherRadioactiveFog = 0,
+  weatherMeteorRain = 0,
   projectiles = EMPTY_ARRAY,
   healthBarEnabled = true,
   objectMetadata = EMPTY_OBJECT,
@@ -55,6 +58,7 @@ const PixiStage = ({
   showGrid = false,
   renderLayers = null, // null means all layers, otherwise an array of layer names to show
   pointerEvents = 'auto',
+  onWeatherEffectHit = null,
 }) => {
   const [isPixiReady, setIsPixiReady] = useState(false);
 
@@ -81,8 +85,8 @@ const PixiStage = ({
   const liquidLayerRef = useRef(null);
   const liquidSystemRef = useRef(null);
   const fogLayerRef = useRef(null);
-  const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null, fog: null });
-  const weatherPropsRef = useRef({ rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 });
+  const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null, fog: null, lavaRain: null, radioactiveFog: null, meteorRain: null });
+  const weatherPropsRef = useRef({ rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0, lavaRain: 0, radioactiveFog: 0, meteorRain: 0 });
   const projectilesLayerRef = useRef(null);
   const projectileSpritesRef = useRef(new Map());
   const entitiesLayerRef = useRef(null);
@@ -130,8 +134,11 @@ const PixiStage = ({
       clouds: Number(weatherClouds) || 0,
       fog: Number(weatherFog) || 0,
       thunder: Number(weatherThunder) || 0,
+      lavaRain: Number(weatherLavaRain) || 0,
+      radioactiveFog: Number(weatherRadioactiveFog) || 0,
+      meteorRain: Number(weatherMeteorRain) || 0,
     };
-  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder]);
+  }, [weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain]);
 
   // Background resolver and solid checker (memoized per map)
   const resolveBackgroundUrl = useMemo(() => createBackgroundResolver(), []);
@@ -440,9 +447,17 @@ const PixiStage = ({
           if (systems.rain.resize) systems.rain.resize(swNow, shNow);
           systems.rain.update(dt);
         }
+        if (systems.lavaRain) {
+          if (systems.lavaRain.resize) systems.lavaRain.resize(swNow, shNow);
+          systems.lavaRain.update(dt);
+        }
         if (systems.snow) {
           if (systems.snow.resize) systems.snow.resize(swNow, shNow);
           systems.snow.update(dt);
+        }
+        if (systems.meteorRain) {
+          if (systems.meteorRain.resize) systems.meteorRain.resize(swNow, shNow);
+          systems.meteorRain.update(dt);
         }
         if (systems.clouds) {
           if (systems.clouds.resize) systems.clouds.resize(swNow, shNow);
@@ -451,6 +466,10 @@ const PixiStage = ({
         if (systems.fog) {
           if (systems.fog.resize) systems.fog.resize(swNow, shNow);
           systems.fog.update(dt);
+        }
+        if (systems.radioactiveFog) {
+          if (systems.radioactiveFog.resize) systems.radioactiveFog.resize(swNow, shNow);
+          systems.radioactiveFog.update(dt);
         }
         if (systems.thunder) {
           if (systems.thunder.resize) systems.thunder.resize(swNow, shNow);
@@ -491,12 +510,16 @@ const PixiStage = ({
           if (u && u.g) {
             // Check if player is in water/lava (regardless of head position)
             const liquidType = sNow.liquidType;
-            const inLiquid = !!(sNow && sNow.inWater && (liquidType === 'water' || liquidType === 'lava'));
+            const inLiquid = !!(sNow && sNow.inWater && (liquidType === 'water' || liquidType === 'lava' || liquidType === 'quicksand' || liquidType === 'radioactive_water'));
 
             // Determine overlay color based on liquid type
             let overlayColor = 0x1d4875; // water (blue)
             if (liquidType === 'lava') {
               overlayColor = 0x8b2e0f; // lava (dark orange-red)
+            } else if (liquidType === 'quicksand') {
+              overlayColor = 0xa6915b; // quicksand (sand brown)
+            } else if (liquidType === 'radioactive_water') {
+              overlayColor = 0x1a5c1a; // toxic green
             }
 
             if (inLiquid) {
@@ -767,6 +790,11 @@ const PixiStage = ({
           if (yy != null) lavaSteamRef.current?.trigger({ x, y: yy, strength });
         } catch {}
       },
+      onMeteorHit: (data) => {
+        if (typeof onWeatherEffectHit === 'function') {
+          onWeatherEffectHit('meteor', data);
+        }
+      },
       getViewport: () => ({
         x: cameraPosRef.current.x,
         y: cameraPosRef.current.y,
@@ -780,19 +808,31 @@ const PixiStage = ({
     const getCloudsIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.clouds) || 0));
     const getThunderIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.thunder) || 0));
     const getFogIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.fog) || 0));
+    const getLavaRainIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.lavaRain) || 0));
+    const getRadioactiveFogIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.radioactiveFog) || 0));
+    const getMeteorRainIntensity = () => Math.max(0, Math.min(100, Number(weatherPropsRef.current.meteorRain) || 0));
 
     // Initialize systems if they don't exist
     if (!weatherSystemsRef.current.rain) {
       weatherSystemsRef.current.rain = new WeatherRain(weatherLayer, api, getRainIntensity);
     }
+    if (!weatherSystemsRef.current.lavaRain) {
+      weatherSystemsRef.current.lavaRain = new WeatherLavaRain(weatherLayer, api, getLavaRainIntensity);
+    }
     if (!weatherSystemsRef.current.snow) {
       weatherSystemsRef.current.snow = new WeatherSnow(weatherLayer, api, getSnowIntensity);
+    }
+    if (!weatherSystemsRef.current.meteorRain) {
+      weatherSystemsRef.current.meteorRain = new WeatherMeteorRain(weatherLayer, api, getMeteorRainIntensity);
     }
     if (!weatherSystemsRef.current.clouds) {
       weatherSystemsRef.current.clouds = new WeatherClouds(fogLayer, api, getCloudsIntensity);
     }
     if (!weatherSystemsRef.current.fog) {
       weatherSystemsRef.current.fog = new WeatherFog(fogLayer, api, getFogIntensity);
+    }
+    if (!weatherSystemsRef.current.radioactiveFog) {
+      weatherSystemsRef.current.radioactiveFog = new WeatherRadioactiveFog(fogLayer, api, getRadioactiveFogIntensity);
     }
     if (!weatherSystemsRef.current.thunder) {
       weatherSystemsRef.current.thunder = new WeatherThunder(fogLayer, api, getThunderIntensity);
@@ -801,11 +841,14 @@ const PixiStage = ({
     // Return cleanup to destroy all when stage unmounts or map changes
     return () => {
       try { weatherSystemsRef.current.rain?.destroy(); } catch {}
+      try { weatherSystemsRef.current.lavaRain?.destroy(); } catch {}
       try { weatherSystemsRef.current.snow?.destroy(); } catch {}
+      try { weatherSystemsRef.current.meteorRain?.destroy(); } catch {}
       try { weatherSystemsRef.current.clouds?.destroy(); } catch {}
       try { weatherSystemsRef.current.fog?.destroy(); } catch {}
+      try { weatherSystemsRef.current.radioactiveFog?.destroy(); } catch {}
       try { weatherSystemsRef.current.thunder?.destroy(); } catch {}
-      weatherSystemsRef.current = { rain: null, snow: null, clouds: null, thunder: null, fog: null };
+      weatherSystemsRef.current = { rain: null, lavaRain: null, snow: null, meteorRain: null, clouds: null, thunder: null, fog: null, radioactiveFog: null };
     };
   }, [mapWidth, mapHeight, tileSize, isSolidAt, isPixiReady]);
 
@@ -840,12 +883,16 @@ PixiStage.propTypes = {
   objectMetadata: PropTypes.object,
   weatherFog: PropTypes.number,
   weatherThunder: PropTypes.number,
+  weatherLavaRain: PropTypes.number,
+  weatherRadioactiveFog: PropTypes.number,
+  weatherMeteorRain: PropTypes.number,
   oxygenBarEnabled: PropTypes.bool,
   lavaBarEnabled: PropTypes.bool,
   waterSplashesEnabled: PropTypes.bool,
   lavaEmbersEnabled: PropTypes.bool,
   renderLayers: PropTypes.arrayOf(PropTypes.string),
   pointerEvents: PropTypes.string,
+  onWeatherEffectHit: PropTypes.func,
 };
 
 export default PixiStage;

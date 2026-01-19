@@ -26,13 +26,22 @@ export const PalettePanel = ({
         const isLiquid = !!(item.flags && item.flags.liquid);
         const isWater = !!(item.flags && item.flags.water);
         const isLava = !!(item.flags && item.flags.lava);
+        const isQuicksand = !!(item.flags && item.flags.quicksand);
+        const isWaterfall = !!(item.flags && item.flags.waterfall);
+        const isLavaWaterfall = !!(item.flags && item.flags.lava_waterfall);
+        const isRadioactive = !!(item.flags && item.flags.radioactive);
         const isSecret = item.type === 'secret';
         const isWeatherTrigger = item.type === 'weather_trigger';
         const isMessageTrigger = item.type === 'message_trigger';
         
         const swatchStyle = isWater
-            ? { background: 'linear-gradient(180deg,#2a5d8f,#174369)' }
-            : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' } : { background: '#eee' });
+            ? { background: 'linear-gradient(180deg,#3a7fb8,#5ba3d9)' }
+            : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' } 
+            : (isQuicksand ? { background: 'linear-gradient(180deg,#a6915b,#7d6d42)' } 
+            : (isWaterfall ? { background: 'linear-gradient(180deg,#3a7fb8,#5ba3d9)' } 
+            : (isLavaWaterfall ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' }
+            : (isRadioactive ? { background: 'linear-gradient(180deg,#1a5c1a,#32cd32)' }
+            : { background: '#eee' })))));
 
         return (
             <div
@@ -85,7 +94,7 @@ export const PalettePanel = ({
                         fontSize: 10, textAlign: 'center', lineHeight: 1.1,
                         ...swatchStyle
                     }}>
-                        {isLiquid ? (isWater ? 'WATER' : (isLava ? 'LAVA' : 'LIQ')) : (item.name || '—')}
+                        {isLiquid ? (isWater ? 'WATER' : (isLava ? 'LAVA' : (isQuicksand ? 'QUICK' : (isWaterfall ? 'FALL' : (isLavaWaterfall ? 'L.FALL' : (isRadioactive ? 'RAD' : 'LIQ')))))) : (item.name || '—')}
                     </div>
                 )}
             </div>
@@ -111,11 +120,18 @@ export const PalettePanel = ({
             )}
 
             {category === 'liquids' && (
-                <CollapsiblePanel title="Liquids (Blocks)" isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {liquids.map(li => renderPaletteItem(li, 'blue', 'tile'))}
-                    </div>
-                </CollapsiblePanel>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <CollapsiblePanel title="Liquids (Blocks)" isOpenDefault={true}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {liquids.filter(li => !li.flags?.radioactive).map(li => renderPaletteItem(li, 'blue', 'tile'))}
+                        </div>
+                    </CollapsiblePanel>
+                    <CollapsiblePanel title="Radioactive" isOpenDefault={true}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {liquids.filter(li => li.flags?.radioactive).map(li => renderPaletteItem(li, 'green', 'tile'))}
+                        </div>
+                    </CollapsiblePanel>
+                </div>
             )}
 
             {category === 'decorations' && (

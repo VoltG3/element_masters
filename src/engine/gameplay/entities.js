@@ -14,7 +14,7 @@ export function updateEntities(ctx, deltaMs) {
     mapHeight,
     TILE_SIZE,
     checkCollision,
-    isWaterAt,
+    isLiquidAt,
     getLiquidSample,
     spawnProjectile,
     playSfx,
@@ -62,19 +62,50 @@ export function updateEntities(ctx, deltaMs) {
 
     const def = entity.def;
     
+    // 1.2. Liquid damage (e.g. lava, radioactive water)
+    const liquidSample = getLiquidSample ? getLiquidSample({
+      x: entity.x,
+      y: entity.y,
+      width: entity.width,
+      height: entity.height,
+      TILE_SIZE,
+      mapWidth,
+      mapHeight
+    }) : { inLiquid: false };
+
+    if (liquidSample.inLiquid && liquidSample.params && liquidSample.params.dps > 0) {
+      entity.liquidDamageAcc = (entity.liquidDamageAcc || 0) + deltaMs;
+      while (entity.liquidDamageAcc >= 1000) {
+        entity.liquidDamageAcc -= 1000;
+        entity.health = Math.max(0, entity.health - liquidSample.params.dps);
+      }
+    } else {
+      entity.liquidDamageAcc = 0;
+    }
+
+    // 1.3. Weather damage (Lava Rain, Radioactive Fog)
+    const weather = mapData.weather || {};
+    const lavaRainInt = Number(weather.lavaRain || 0);
+    const radioFogInt = Number(weather.radioactiveFog || 0);
+
+    if (lavaRainInt > 0 || radioFogInt > 0) {
+      entity.weatherDamageAcc = (entity.weatherDamageAcc || 0) + deltaMs;
+      if (entity.weatherDamageAcc >= 1000) {
+        entity.weatherDamageAcc -= 1000;
+        let totalWeatherDps = 0;
+        if (lavaRainInt > 0) totalWeatherDps += (lavaRainInt / 100) * 10;
+        if (radioFogInt > 0) totalWeatherDps += (radioFogInt / 100) * 5;
+        
+        if (totalWeatherDps > 0) {
+          entity.health = Math.max(0, entity.health - totalWeatherDps);
+        }
+      }
+    } else {
+      entity.weatherDamageAcc = 0;
+    }
+
     // 1.5. Pushable objektu (Akmeņu) fizika
     if (entity.subtype === 'pushable' || def?.isPushable) {
-      // Šķidruma noteikšana
-      const liquidSample = getLiquidSample ? getLiquidSample({
-        x: entity.x,
-        y: entity.y,
-        width: entity.width,
-        height: entity.height,
-        TILE_SIZE,
-        mapWidth,
-        mapHeight
-      }) : { inLiquid: false };
-
       const inLiquid = liquidSample.inLiquid;
       const liquidType = liquidSample.type;
 
@@ -198,7 +229,7 @@ export function updateEntities(ctx, deltaMs) {
             
             return false;
           },
-          isWaterAt,
+          isLiquidAt,
           vx: entity.vx
         });
         entity.y = vp.y;
@@ -522,7 +553,7 @@ export function updateEntities(ctx, deltaMs) {
       mapWidth,
       mapHeight,
       checkCollision: checkEntityCollision,
-      isWaterAt: ctx.isWaterAt,
+      isLiquidAt: ctx.isLiquidAt,
       vx: entity.vx
     });
     entity.y = vp.y;

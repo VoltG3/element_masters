@@ -5,6 +5,7 @@ import { resizeMapData } from './editorTools/mapOperations';
 import { loadBackgroundOptions, loadMusicOptions } from './assetLoaders';
 import { Viewport } from './Viewport';
 import { NewMapModal } from './editorTools/NewMapModal';
+import { BuiltInMapsModal } from './editorTools/BuiltInMapsModal';
 import { EditorScene } from './EditorScene';
 import { EditorElements } from './EditorElements';
 import { EditorTools } from './EditorTools';
@@ -129,12 +130,15 @@ export const Editor = () => {
     // Metadata State
     const [mapName, setMapName] = useState("New Map");
     const [creatorName, setCreatorName] = useState("Anonymous");
+    const [mapDescription, setMapDescription] = useState("");
     const [createdAt, setCreatedAt] = useState(null);
     const [highlightedIndex, setHighlightedIndex] = useState(null);
     const [isNewMapModalOpen, setIsNewMapModalOpen] = useState(false);
+    const [isBuiltInMapsModalOpen, setIsBuiltInMapsModalOpen] = useState(false);
     const [isResizeWindowOpen, setIsResizeWindowOpen] = useState(false);
     const [tempMapName, setTempMapName] = useState("");
     const [tempCreatorName, setTempCreatorName] = useState("");
+    const [tempMapDescription, setTempMapDescription] = useState("");
     const [activePanel, setActivePanel] = useState(null);
 
     // Asset Options
@@ -153,6 +157,9 @@ export const Editor = () => {
     const [weatherClouds, setWeatherClouds] = useState(0);
     const [weatherFog, setWeatherFog] = useState(0);
     const [weatherThunder, setWeatherThunder] = useState(0);
+    const [weatherLavaRain, setWeatherLavaRain] = useState(0);
+    const [weatherRadioactiveFog, setWeatherRadioactiveFog] = useState(0);
+    const [weatherMeteorRain, setWeatherMeteorRain] = useState(0);
 
     const [playerPosition, setPlayerPosition] = useState({ x: 100, y: 100 });
 
@@ -167,10 +174,11 @@ export const Editor = () => {
         // 1. Save current map data to store
         updateMapData(activeMapId, {
             mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-            mapName, creatorName, createdAt,
+            mapName, creatorName, mapDescription, createdAt,
             selectedBackgroundImage, selectedBackgroundColor,
             backgroundParallaxFactor, selectedBackgroundMusic,
             weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+            weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
             playerPosition
         });
 
@@ -184,6 +192,7 @@ export const Editor = () => {
             setSecretMapData(nextMap.secretMapData);
             setObjectMetadata(nextMap.objectMetadata || {});
             setMapName(nextMap.name);
+            setMapDescription(nextMap.description || "");
             setCreatedAt(nextMap.createdAt || new Date().toISOString());
             setSelectedBackgroundImage(nextMap.selectedBackgroundImage);
             setSelectedBackgroundColor(nextMap.selectedBackgroundColor);
@@ -196,6 +205,9 @@ export const Editor = () => {
                 setWeatherClouds(nextMap.weather.clouds || 0);
                 setWeatherFog(nextMap.weather.fog || 0);
                 setWeatherThunder(nextMap.weather.thunder || 0);
+                setWeatherLavaRain(nextMap.weather.lavaRain || 0);
+                setWeatherRadioactiveFog(nextMap.weather.radioactiveFog || 0);
+                setWeatherMeteorRain(nextMap.weather.meteorRain || 0);
             }
             
             if (nextMap.playerPosition) {
@@ -218,6 +230,7 @@ export const Editor = () => {
         selectedBackgroundImage, selectedBackgroundColor,
         backgroundParallaxFactor, selectedBackgroundMusic,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         playerPosition
     ]);
 
@@ -236,6 +249,7 @@ export const Editor = () => {
             updateMapData(activeMapId, {
                 mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
                 name: mapName,
+                description: mapDescription,
                 selectedBackgroundImage, selectedBackgroundColor
             });
         }, 1000); // Debounce store updates
@@ -256,30 +270,33 @@ export const Editor = () => {
     } = useEditorSelection(mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, setTileMapData, setObjectMapData, setSecretMapData);
 
     const {
-        isPlayMode, handlePlay, handlePause, handleReset, handleReplay,
+        isPlayMode, handlePlay, handlePause, handleReset, handleReplay, handleStateUpdate,
         playModeObjectData, playModeSecretData, playModeWeather, gameMessage, revealedSecrets, gameEngineState, isGameOver
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
         selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
         registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         maps, activeMapId, switchMap, maps[activeMapId]?.spawnTriggerId,
         setTileMapData
     );
 
     const {
-        handleSaveMap, handleLoadMap, handleClearMap, openNewMapModal, confirmNewMap
+        handleSaveMap, handleLoadMap, handleLoadBuiltInMap, handleClearMap, openNewMapModal, confirmNewMap
     } = useEditorOperations(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-        mapName, creatorName, createdAt, selectedBackgroundImage, selectedBackgroundColor,
+        mapName, creatorName, mapDescription, createdAt, selectedBackgroundImage, selectedBackgroundColor,
         backgroundParallaxFactor, selectedBackgroundMusic, registryItems, setCreatedAt,
-        setMapWidth, setMapHeight, setMapName, setCreatorName,
+        setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
         setSelectedBackgroundImage, setSelectedBackgroundColor,
         setBackgroundParallaxFactor, setSelectedBackgroundMusic,
         setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
-        setIsNewMapModalOpen, setTempMapName, setTempCreatorName,
+        setIsNewMapModalOpen, setTempMapName, setTempCreatorName, setTempMapDescription,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder,
+        setWeatherLavaRain, setWeatherRadioactiveFog, setWeatherMeteorRain,
         maps, setMaps, activeMapId, setActiveMapId
     );
 
@@ -380,27 +397,40 @@ export const Editor = () => {
 
     return (
         <div className="editor-wrapper" style={{ position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <NewMapModal
+            <NewMapModal 
                 isOpen={isNewMapModalOpen}
                 tempMapName={tempMapName}
                 setTempMapName={setTempMapName}
                 tempCreatorName={tempCreatorName}
                 setTempCreatorName={setTempCreatorName}
-                confirmNewMap={() => confirmNewMap(tempMapName, tempCreatorName)}
+                tempMapDescription={tempMapDescription}
+                setTempMapDescription={setTempMapDescription}
+                confirmNewMap={confirmNewMap}
                 onClose={() => setIsNewMapModalOpen(false)}
+            />
+
+            <BuiltInMapsModal 
+                isOpen={isBuiltInMapsModalOpen}
+                onClose={() => setIsBuiltInMapsModalOpen(false)}
+                onSelect={handleLoadBuiltInMap}
             />
 
             <div className="editor-container" style={{
                 display: 'flex', flex: 1, flexDirection: 'row',
-                filter: isNewMapModalOpen ? 'blur(4px) brightness(0.7)' : 'none',
+                filter: (isNewMapModalOpen || isBuiltInMapsModalOpen) ? 'blur(4px) brightness(0.7)' : 'none',
                 transition: 'filter 0.2s ease',
-                pointerEvents: isNewMapModalOpen ? 'none' : 'auto',
+                pointerEvents: (isNewMapModalOpen || isBuiltInMapsModalOpen) ? 'none' : 'auto',
                 overflow: 'hidden'
             }}>
-                <EditorElements
+                <EditorElements 
                     mapName={mapName}
                     creatorName={creatorName}
+                    mapDescription={mapDescription}
+                    setMapName={setMapName}
+                    setCreatorName={setCreatorName}
+                    setMapDescription={setMapDescription}
                     openNewMapModal={openNewMapModal}
+                    openBuiltInModal={() => setIsBuiltInMapsModalOpen(true)}
                     saveMap={handleSaveMap}
                     loadMap={handleLoadMap}
                     clearMap={handleClearMap}
@@ -500,6 +530,12 @@ export const Editor = () => {
                         setWeatherFog={setWeatherFog}
                         weatherThunder={weatherThunder}
                         setWeatherThunder={setWeatherThunder}
+                        weatherLavaRain={weatherLavaRain}
+                        setWeatherLavaRain={setWeatherLavaRain}
+                        weatherRadioactiveFog={weatherRadioactiveFog}
+                        setWeatherRadioactiveFog={setWeatherRadioactiveFog}
+                        weatherMeteorRain={weatherMeteorRain}
+                        setWeatherMeteorRain={setWeatherMeteorRain}
                         // Multi-map props
                         maps={maps}
                         activeMapId={activeMapId}
@@ -563,10 +599,14 @@ export const Editor = () => {
                                 backgroundColor={selectedBackgroundColor}
                                 backgroundParallaxFactor={backgroundParallaxFactor}
                                 weatherRain={playModeWeather.rain}
+                                weatherLavaRain={playModeWeather.lavaRain}
                                 weatherSnow={playModeWeather.snow}
+                                weatherMeteorRain={playModeWeather.meteorRain}
                                 weatherClouds={playModeWeather.clouds}
                                 weatherFog={playModeWeather.fog}
+                                weatherRadioactiveFog={playModeWeather.radioactiveFog}
                                 weatherThunder={playModeWeather.thunder}
+                                onWeatherEffectHit={(type, data) => handleStateUpdate('weatherEffectHit', { type, data })}
                                 isEditor={false}
                                 isEditorPlayMode={true}
                                 showGrid={showGrid}

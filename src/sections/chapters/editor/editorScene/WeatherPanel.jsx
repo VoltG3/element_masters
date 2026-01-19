@@ -10,13 +10,22 @@ export const WeatherPanel = ({
     weatherFog,
     setWeatherFog,
     weatherThunder,
-    setWeatherThunder
+    setWeatherThunder,
+    weatherLavaRain,
+    setWeatherLavaRain,
+    weatherRadioactiveFog,
+    setWeatherRadioactiveFog,
+    weatherMeteorRain,
+    setWeatherMeteorRain
 }) => {
     const weatherItems = [
         { label: 'Rain', value: weatherRain, setter: setWeatherRain, icon: '🌧️' },
+        { label: 'Lava Rain', value: weatherLavaRain, setter: setWeatherLavaRain, icon: '🔥' },
         { label: 'Snow', value: weatherSnow, setter: setWeatherSnow, icon: '❄️' },
+        { label: 'Meteor Rain', value: weatherMeteorRain, setter: setWeatherMeteorRain, icon: '☄️' },
         { label: 'Clouds', value: weatherClouds, setter: setWeatherClouds, icon: '☁️' },
         { label: 'Fog', value: weatherFog, setter: setWeatherFog, icon: '🌫️' },
+        { label: 'Radio Fog', value: weatherRadioactiveFog, setter: setWeatherRadioactiveFog, icon: '☢️' },
         { label: 'Thunder', value: weatherThunder, setter: setWeatherThunder, icon: '⚡' },
     ];
 

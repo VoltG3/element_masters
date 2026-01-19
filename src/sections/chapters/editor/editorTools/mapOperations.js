@@ -6,6 +6,7 @@ export const saveMap = async ({
     activeMapId,
     mapName,
     creatorName,
+    mapDescription,
     createdAt,
     registryItems,
     setCreatedAt
@@ -18,6 +19,7 @@ export const saveMap = async ({
             version: "2.0",
             projectName: mapName,
             author: creatorName,
+            description: mapDescription,
             date_created: createdDate,
             date_last_updated: currentDate,
             activeMapId: activeMapId
@@ -33,6 +35,7 @@ export const saveMap = async ({
         projectData.maps[map.id] = {
             id: map.id,
             name: map.name,
+            description: map.description || '',
             type: map.type,
             width: map.mapWidth,
             height: map.mapHeight,
@@ -83,12 +86,12 @@ export const saveMap = async ({
     }
 };
 
-export const loadMap = ({
-    event,
+export const applyMapData = (loaded, {
     setMapWidth,
     setMapHeight,
     setMapName,
     setCreatorName,
+    setMapDescription,
     setCreatedAt,
     setSelectedBackgroundImage,
     setSelectedBackgroundColor,
@@ -103,9 +106,164 @@ export const loadMap = ({
     setWeatherClouds,
     setWeatherFog,
     setWeatherThunder,
+    setWeatherLavaRain,
+    setWeatherRadioactiveFog,
+    setWeatherMeteorRain,
     // Multi-map setters
     setMaps,
     setActiveMapId
+}) => {
+    try {
+        // Check for multi-map format (version 2.0)
+        if (loaded.meta && loaded.meta.version === "2.0" && loaded.maps) {
+            const projectMaps = {};
+            
+            Object.keys(loaded.maps).forEach(mapId => {
+                const m = loaded.maps[mapId];
+                const bgLayer = m.layers.find(l => l.type === 'tile');
+                const objLayer = m.layers.find(l => l.type === 'object');
+                const secretLayer = m.layers.find(l => l.type === 'secret');
+                
+                projectMaps[mapId] = {
+                    id: mapId,
+                    name: m.name,
+                    description: m.description || '',
+                    type: m.type || 'overworld',
+                    mapWidth: m.width,
+                    mapHeight: m.height,
+                    tileMapData: bgLayer ? bgLayer.data : Array(m.width * m.height).fill(null),
+                    objectMapData: objLayer ? objLayer.data : Array(m.width * m.height).fill(null),
+                    secretMapData: secretLayer ? secretLayer.data : Array(m.width * m.height).fill(null),
+                    objectMetadata: m.objectMetadata || {},
+                    selectedBackgroundImage: m.backgroundImage,
+                    selectedBackgroundColor: m.backgroundColor,
+                    backgroundParallaxFactor: m.backgroundParallaxFactor || 0.3,
+                    selectedBackgroundMusic: m.backgroundMusic,
+                    weather: m.weather || { rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 },
+                    playerPosition: m.playerPosition || null,
+                    worldX: m.worldX || 0,
+                    worldY: m.worldY || 0
+                };
+            });
+            
+            setMaps(projectMaps);
+            setMapName(loaded.meta.projectName || "Loaded Project");
+            setCreatorName(loaded.meta.author || "Anonymous");
+            setMapDescription(loaded.meta.description || "");
+            setCreatedAt(loaded.meta.date_created || new Date().toISOString());
+            
+            const activeId = loaded.meta.activeMapId || Object.keys(projectMaps)[0];
+            setActiveMapId(activeId);
+            
+            const activeMap = projectMaps[activeId];
+            if (activeMap) {
+                setMapWidth(activeMap.mapWidth);
+                setMapHeight(activeMap.mapHeight);
+                setTileMapData(activeMap.tileMapData);
+                setObjectMapData(activeMap.objectMapData);
+                setSecretMapData(activeMap.secretMapData);
+                setObjectMetadata(activeMap.objectMetadata);
+                setSelectedBackgroundImage(activeMap.selectedBackgroundImage);
+                setSelectedBackgroundColor(activeMap.selectedBackgroundColor);
+                setBackgroundParallaxFactor(activeMap.backgroundParallaxFactor);
+                setSelectedBackgroundMusic(activeMap.selectedBackgroundMusic);
+                
+                setWeatherRain(activeMap.weather.rain);
+                setWeatherSnow(activeMap.weather.snow);
+                setWeatherClouds(activeMap.weather.clouds);
+                setWeatherFog(activeMap.weather.fog);
+                setWeatherThunder(activeMap.weather.thunder);
+                setWeatherLavaRain(activeMap.weather.lavaRain || 0);
+                setWeatherRadioactiveFog(activeMap.weather.radioactiveFog || 0);
+                setWeatherMeteorRain(activeMap.weather.meteorRain || 0);
+            }
+            
+            errorHandler.info('Project loaded successfully', {
+                component: 'Editor',
+                projectName: loaded.meta.projectName
+            });
+        } else if (loaded.meta) {
+            // Legacy 1.0 format
+            setMapWidth(loaded.meta.width);
+            setMapHeight(loaded.meta.height);
+
+            if (loaded.meta.name) setMapName(loaded.meta.name);
+            if (loaded.meta.author) setCreatorName(loaded.meta.author);
+            if (loaded.meta.date_map_created_at) setCreatedAt(loaded.meta.date_map_created_at);
+
+            const bgLayer = loaded.layers.find(l => l.name === 'background');
+            const objLayer = loaded.layers.find(l => l.name === 'entities');
+            const secretLayer = loaded.layers.find(l => l.name === 'secrets');
+            
+            const singleMap = {
+                id: 'main',
+                name: loaded.meta.name || "Main Map",
+                type: 'overworld',
+                mapWidth: loaded.meta.width,
+                mapHeight: loaded.meta.height,
+                tileMapData: bgLayer ? bgLayer.data : Array(loaded.meta.width * loaded.meta.height).fill(null),
+                objectMapData: objLayer ? objLayer.data : Array(loaded.meta.width * loaded.meta.height).fill(null),
+                secretMapData: secretLayer ? secretLayer.data : Array(loaded.meta.width * loaded.meta.height).fill(null),
+                objectMetadata: loaded.meta.objectMetadata || {},
+                selectedBackgroundImage: loaded.meta.backgroundImage,
+                selectedBackgroundColor: loaded.meta.backgroundColor,
+                backgroundParallaxFactor: loaded.meta.backgroundParallaxFactor || 0.3,
+                selectedBackgroundMusic: loaded.meta.backgroundMusic,
+                weather: loaded.meta.weather || { rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 },
+                playerPosition: null
+            };
+
+            setMaps({ 'main': singleMap });
+            setActiveMapId('main');
+
+            if (bgLayer) setTileMapData(bgLayer.data);
+            if (objLayer) setObjectMapData(objLayer.data);
+            if (secretLayer) setSecretMapData(secretLayer.data);
+            
+            // Set other states
+            if (loaded.meta.backgroundImage) setSelectedBackgroundImage(loaded.meta.backgroundImage);
+            if (loaded.meta.backgroundColor) setSelectedBackgroundColor(loaded.meta.backgroundColor);
+            if (loaded.meta.backgroundParallaxFactor !== undefined) setBackgroundParallaxFactor(loaded.meta.backgroundParallaxFactor);
+            if (loaded.meta.backgroundMusic) setSelectedBackgroundMusic(loaded.meta.backgroundMusic);
+            if (loaded.meta.objectMetadata) setObjectMetadata(loaded.meta.objectMetadata);
+            if (loaded.meta.weather) {
+                setWeatherRain(loaded.meta.weather.rain || 0);
+                setWeatherSnow(loaded.meta.weather.snow || 0);
+                setWeatherClouds(loaded.meta.weather.clouds || 0);
+                setWeatherFog(loaded.meta.weather.fog || 0);
+                setWeatherThunder(loaded.meta.weather.thunder || 0);
+                setWeatherLavaRain(loaded.meta.weather.lavaRain || 0);
+                setWeatherRadioactiveFog(loaded.meta.weather.radioactiveFog || 0);
+                setWeatherMeteorRain(loaded.meta.weather.meteorRain || 0);
+            }
+
+            errorHandler.info('Map loaded successfully (Converted to Project)', {
+                component: 'Editor',
+                mapName: loaded.meta.name
+            });
+        } else {
+            // Oldest format
+            if (loaded.width) setMapWidth(loaded.width);
+            if (loaded.height) setMapHeight(loaded.height);
+            if (loaded.tiles) setTileMapData(loaded.tiles);
+            setObjectMapData(Array(loaded.width * loaded.height).fill(null));
+
+            errorHandler.warn('Loaded map in legacy format', {
+                component: 'Editor'
+            });
+        }
+    } catch (error) {
+        errorHandler.error(error, {
+            component: 'Editor',
+            function: 'applyMapData'
+        });
+        alert('Error applying map data. Check console for details.');
+    }
+};
+
+export const loadMap = ({
+    event,
+    ...setters
 }) => {
     const fileReader = new FileReader();
     const file = event.target.files[0];
@@ -114,138 +272,7 @@ export const loadMap = ({
         fileReader.onload = (e) => {
             try {
                 const loaded = JSON.parse(e.target.result);
-                
-                // Check for multi-map format (version 2.0)
-                if (loaded.meta && loaded.meta.version === "2.0" && loaded.maps) {
-                    const projectMaps = {};
-                    
-                    Object.keys(loaded.maps).forEach(mapId => {
-                        const m = loaded.maps[mapId];
-                        const bgLayer = m.layers.find(l => l.type === 'tile');
-                        const objLayer = m.layers.find(l => l.type === 'object');
-                        const secretLayer = m.layers.find(l => l.type === 'secret');
-                        
-                        projectMaps[mapId] = {
-                            id: mapId,
-                            name: m.name,
-                            type: m.type || 'overworld',
-                            mapWidth: m.width,
-                            mapHeight: m.height,
-                            tileMapData: bgLayer ? bgLayer.data : Array(m.width * m.height).fill(null),
-                            objectMapData: objLayer ? objLayer.data : Array(m.width * m.height).fill(null),
-                            secretMapData: secretLayer ? secretLayer.data : Array(m.width * m.height).fill(null),
-                            objectMetadata: m.objectMetadata || {},
-                            selectedBackgroundImage: m.backgroundImage,
-                            selectedBackgroundColor: m.backgroundColor,
-                            backgroundParallaxFactor: m.backgroundParallaxFactor || 0.3,
-                            selectedBackgroundMusic: m.backgroundMusic,
-                            weather: m.weather || { rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 },
-                            playerPosition: m.playerPosition || null,
-                            worldX: m.worldX || 0,
-                            worldY: m.worldY || 0
-                        };
-                    });
-                    
-                    setMaps(projectMaps);
-                    setMapName(loaded.meta.projectName || "Loaded Project");
-                    setCreatorName(loaded.meta.author || "Anonymous");
-                    setCreatedAt(loaded.meta.date_created || new Date().toISOString());
-                    
-                    const activeId = loaded.meta.activeMapId || Object.keys(projectMaps)[0];
-                    setActiveMapId(activeId);
-                    
-                    const activeMap = projectMaps[activeId];
-                    if (activeMap) {
-                        setMapWidth(activeMap.mapWidth);
-                        setMapHeight(activeMap.mapHeight);
-                        setTileMapData(activeMap.tileMapData);
-                        setObjectMapData(activeMap.objectMapData);
-                        setSecretMapData(activeMap.secretMapData);
-                        setObjectMetadata(activeMap.objectMetadata);
-                        setSelectedBackgroundImage(activeMap.selectedBackgroundImage);
-                        setSelectedBackgroundColor(activeMap.selectedBackgroundColor);
-                        setBackgroundParallaxFactor(activeMap.backgroundParallaxFactor);
-                        setSelectedBackgroundMusic(activeMap.selectedBackgroundMusic);
-                        
-                        setWeatherRain(activeMap.weather.rain);
-                        setWeatherSnow(activeMap.weather.snow);
-                        setWeatherClouds(activeMap.weather.clouds);
-                        setWeatherFog(activeMap.weather.fog);
-                        setWeatherThunder(activeMap.weather.thunder);
-                    }
-                    
-                    errorHandler.info('Project loaded successfully', {
-                        component: 'Editor',
-                        projectName: loaded.meta.projectName
-                    });
-                } else if (loaded.meta) {
-                    // Legacy 1.0 format
-                    setMapWidth(loaded.meta.width);
-                    setMapHeight(loaded.meta.height);
-
-                    if (loaded.meta.name) setMapName(loaded.meta.name);
-                    if (loaded.meta.author) setCreatorName(loaded.meta.author);
-                    if (loaded.meta.date_map_created_at) setCreatedAt(loaded.meta.date_map_created_at);
-
-                    const bgLayer = loaded.layers.find(l => l.name === 'background');
-                    const objLayer = loaded.layers.find(l => l.name === 'entities');
-                    const secretLayer = loaded.layers.find(l => l.name === 'secrets');
-                    
-                    const singleMap = {
-                        id: 'main',
-                        name: loaded.meta.name || "Main Map",
-                        type: 'overworld',
-                        mapWidth: loaded.meta.width,
-                        mapHeight: loaded.meta.height,
-                        tileMapData: bgLayer ? bgLayer.data : Array(loaded.meta.width * loaded.meta.height).fill(null),
-                        objectMapData: objLayer ? objLayer.data : Array(loaded.meta.width * loaded.meta.height).fill(null),
-                        secretMapData: secretLayer ? secretLayer.data : Array(loaded.meta.width * loaded.meta.height).fill(null),
-                        objectMetadata: loaded.meta.objectMetadata || {},
-                        selectedBackgroundImage: loaded.meta.backgroundImage,
-                        selectedBackgroundColor: loaded.meta.backgroundColor,
-                        backgroundParallaxFactor: loaded.meta.backgroundParallaxFactor || 0.3,
-                        selectedBackgroundMusic: loaded.meta.backgroundMusic,
-                        weather: loaded.meta.weather || { rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0 },
-                        playerPosition: null
-                    };
-
-                    setMaps({ 'main': singleMap });
-                    setActiveMapId('main');
-
-                    if (bgLayer) setTileMapData(bgLayer.data);
-                    if (objLayer) setObjectMapData(objLayer.data);
-                    if (secretLayer) setSecretMapData(secretLayer.data);
-                    
-                    // Set other states
-                    if (loaded.meta.backgroundImage) setSelectedBackgroundImage(loaded.meta.backgroundImage);
-                    if (loaded.meta.backgroundColor) setSelectedBackgroundColor(loaded.meta.backgroundColor);
-                    if (loaded.meta.backgroundParallaxFactor !== undefined) setBackgroundParallaxFactor(loaded.meta.backgroundParallaxFactor);
-                    if (loaded.meta.backgroundMusic) setSelectedBackgroundMusic(loaded.meta.backgroundMusic);
-                    if (loaded.meta.objectMetadata) setObjectMetadata(loaded.meta.objectMetadata);
-                    if (loaded.meta.weather) {
-                        setWeatherRain(loaded.meta.weather.rain || 0);
-                        setWeatherSnow(loaded.meta.weather.snow || 0);
-                        setWeatherClouds(loaded.meta.weather.clouds || 0);
-                        setWeatherFog(loaded.meta.weather.fog || 0);
-                        setWeatherThunder(loaded.meta.weather.thunder || 0);
-                    }
-
-                    errorHandler.info('Map loaded successfully (Converted to Project)', {
-                        component: 'Editor',
-                        mapName: loaded.meta.name
-                    });
-                } else {
-                    // Oldest format
-                    if (loaded.width) setMapWidth(loaded.width);
-                    if (loaded.height) setMapHeight(loaded.height);
-                    if (loaded.tiles) setTileMapData(loaded.tiles);
-                    setObjectMapData(Array(loaded.width * loaded.height).fill(null));
-
-                    errorHandler.warn('Loaded map in legacy format', {
-                        component: 'Editor',
-                        fileName: file.name
-                    });
-                }
+                applyMapData(loaded, setters);
             } catch (error) {
                 errorHandler.error(error, {
                     component: 'Editor',
@@ -264,6 +291,21 @@ export const loadMap = ({
             });
             alert('Error reading file!');
         };
+    }
+};
+
+export const loadBuiltInMap = ({
+    mapData,
+    ...setters
+}) => {
+    try {
+        applyMapData(mapData, setters);
+    } catch (error) {
+        errorHandler.error(error, {
+            component: 'Editor',
+            function: 'loadBuiltInMap'
+        });
+        alert('Error loading built-in map.');
     }
 };
 

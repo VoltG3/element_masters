@@ -16,7 +16,8 @@ import {
     MAX_HEALTH,
     MAX_OXYGEN,
     MAX_LAVA_RESIST,
-    MAX_ICE_RESIST
+    MAX_ICE_RESIST,
+    MAX_RADIOACTIVITY
 } from '../constants/gameConstants';
 import errorHandler from '../services/errorHandler';
 
@@ -52,6 +53,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         maxLavaResist: MAX_LAVA_RESIST,
         iceResist: MAX_ICE_RESIST,
         maxIceResist: MAX_ICE_RESIST,
+        radioactivity: MAX_RADIOACTIVITY * 0.2, // 20% default
+        maxRadioactivity: MAX_RADIOACTIVITY,
         strength: 30,
         maxStrength: 100,
         lastPushTime: 0,
@@ -77,6 +80,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     const liquidDamageAccumulatorRef = useRef(0);          // Accumulated time for liquid DPS ticking (e.g., lava)
     const oxygenDepleteAccRef = useRef(0);                 // O2 depletion DPS accumulator
     const lavaDepleteAccRef = useRef(0);                   // Lava resist depletion DPS accumulator
+    const weatherDamageAccRef = useRef(0);                // Weather damage DPS accumulator
     const entitiesRef = useRef([]);                        // Active moving entities (tanks, etc.)
 
     // Refs for props to avoid stale closures in the game loop
@@ -121,9 +125,18 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             } catch {}
         };
         window.addEventListener('game-sound-user-gesture', onUserGesture);
+
+        const onWeatherHit = (e) => {
+            if (e.detail) {
+                handleWeatherEffectHit(e.detail.type, e.detail.data);
+            }
+        };
+        window.addEventListener('weather-effect-hit', onWeatherHit);
+
         return () => {
             window.removeEventListener('game-sound-toggle', onToggle);
             window.removeEventListener('game-sound-user-gesture', onUserGesture);
+            window.removeEventListener('weather-effect-hit', onWeatherHit);
         };
     }, []);
 
@@ -163,6 +176,47 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
 
     // Track revealed secrets locally to prevent duplicate reveals before state updates
     const localRevealedRef = useRef(new Set());
+
+    // Weather effects impact handling (meteors, etc.)
+    const handleWeatherEffectHit = (type, data) => {
+        if (type === 'meteor') {
+            const { x, y, size, isLarge } = data;
+            const damage = isLarge ? 40 : 20;
+            const radius = size * 1.5;
+
+            // 1. Check player impact
+            const p = gameState.current;
+            const dx = (p.x + p.width / 2) - x;
+            const dy = (p.y + p.height / 2) - y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < radius + p.width / 2) {
+                gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - damage);
+                gameState.current.hitTimerMs = 500;
+                // Add knockback
+                gameState.current.vx += (dx / dist) * 10;
+                gameState.current.vy -= 5;
+            }
+
+            // 2. Check entities impact
+            if (entitiesRef.current) {
+                entitiesRef.current.forEach(ent => {
+                    const edx = (ent.x + ent.width / 2) - x;
+                    const edy = (ent.y + ent.height / 2) - y;
+                    const edist = Math.sqrt(edx * edx + edy * edy);
+
+                    if (edist < radius + ent.width / 2) {
+                        ent.health = Math.max(0, (ent.health || 0) - damage);
+                        // Platforms don't take knockback, but others might
+                        if (ent.subtype !== 'platform') {
+                            ent.vx += (edx / edist) * 8;
+                            ent.vy -= 3;
+                        }
+                    }
+                });
+            }
+        }
+    };
 
     // Secrets detection wrapper
     const checkSecretsWrapper = (currentX, currentY, width, height, mapWidth, mapHeight) => {
@@ -332,6 +386,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         maxOxygen: MAX_OXYGEN,
                         lavaResist: MAX_LAVA_RESIST,
                         maxLavaResist: MAX_LAVA_RESIST,
+                        radioactivity: MAX_RADIOACTIVITY * 0.2,
+                        maxRadioactivity: MAX_RADIOACTIVITY,
                         strength: Number(registryPlayer?.strength) || 30,
                         maxStrength: Number(registryPlayer?.maxStrength) || 100,
                         lastPushTime: 0,
@@ -363,6 +419,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         maxOxygen: MAX_OXYGEN,
                         lavaResist: MAX_LAVA_RESIST,
                         maxLavaResist: MAX_LAVA_RESIST,
+                        radioactivity: MAX_RADIOACTIVITY * 0.2,
+                        maxRadioactivity: MAX_RADIOACTIVITY,
                         strength: 30,
                         maxStrength: 100,
                         lastPushTime: 0
@@ -382,6 +440,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     maxOxygen: MAX_OXYGEN,
                     lavaResist: MAX_LAVA_RESIST,
                     maxLavaResist: MAX_LAVA_RESIST,
+                    radioactivity: MAX_RADIOACTIVITY * 0.2,
+                    maxRadioactivity: MAX_RADIOACTIVITY,
                     strength: 30,
                     maxStrength: 100,
                     lastPushTime: 0
@@ -430,11 +490,10 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         );
     };
 
-    // New: water presence check at a world pixel
-    const isWaterAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles) => {
-        // Strict: Only treat WATER as buoyant/swimmable in vertical physics
+    // New: liquid type check at a world pixel
+    const getLiquidTypeAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles) => {
         const liq = getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems);
-        return !!(liq && liq.type === 'water');
+        return liq ? liq.type : null;
     };
 
     // Liquid sampling helper for update loop (AABB based)
@@ -472,13 +531,13 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             mapData,
             objectData,
             input,
-            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef },
+            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef },
             constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE },
             registryItems,
             helpers: {
                 checkCollision,
                 getSurfaceProperties: (x, y, w, h, mw, mh, ts, td, ri) => getSurfaceProperties(x, y, w, h, mw, mh, ts, td, ri),
-                isWaterAt: (wx, wy) => isWaterAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)),
+                isLiquidAt: (wx, wy) => getLiquidTypeAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)),
                 getLiquidSample: ({ x, y, width, height, TILE_SIZE: TS, mapWidth, mapHeight }) =>
                     sampleLiquid({ x, y, width, height }, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15))
             },

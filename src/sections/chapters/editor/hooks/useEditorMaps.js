@@ -5,6 +5,7 @@ export const useEditorMaps = () => {
         'main': {
             id: 'main',
             name: 'Overworld',
+            description: '',
             type: 'overworld',
             mapWidth: 20,
             mapHeight: 15,
@@ -40,6 +41,7 @@ export const useEditorMaps = () => {
         const newMap = {
             id,
             name: name || (type === 'overworld' ? 'New Overworld' : 'New Underworld'),
+            description: '',
             type,
             mapWidth: width,
             mapHeight: height,

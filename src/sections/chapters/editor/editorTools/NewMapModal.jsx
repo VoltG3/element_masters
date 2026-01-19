@@ -8,6 +8,8 @@ export const NewMapModal = ({
     setTempMapName,
     tempCreatorName,
     setTempCreatorName,
+    tempMapDescription,
+    setTempMapDescription,
     confirmNewMap,
     onClose
 }) => {
@@ -56,11 +58,20 @@ export const NewMapModal = ({
                         />
                     </div>
 
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: '#666' }}>Description:</label>
+                        <textarea
+                            value={tempMapDescription}
+                            onChange={(e) => setTempMapDescription(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', minHeight: '60px', resize: 'vertical' }}
+                        />
+                    </div>
+
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                         <ToolsEditorButton onClick={onClose} $variant="secondary" $small>
                             Cancel
                         </ToolsEditorButton>
-                        <ToolsEditorButton onClick={confirmNewMap} $variant="play" $small>
+                        <ToolsEditorButton onClick={() => confirmNewMap(tempMapName, tempCreatorName, tempMapDescription)} $variant="play" $small>
                             Create
                         </ToolsEditorButton>
                     </div>

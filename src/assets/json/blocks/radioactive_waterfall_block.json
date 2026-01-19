@@ -1,0 +1,22 @@
+{
+  "id": "radioactive_waterfall",
+  "name": "block.radioactive_waterfall",
+  "displayName": "Block Radioactive WaterFall",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "collision": false,
+  "flags": { "liquid": true, "radioactive": true, "radioactive_waterfall": true, "swimmable": true },
+  "liquid": {
+    "buoyancy": -0.25,
+    "drag": { "x": 0.7, "y": 0.95 },
+    "surface": false,
+    "damagePerSecond": 15,
+    "oxygen": {
+      "drainPerSecond": 0,
+      "regenPerSecond": 100,
+      "damagePerSecondWhenDepleted": 0
+    }
+  },
+  "tintBelowSurface": 1727514
+}

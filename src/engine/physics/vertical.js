@@ -6,7 +6,7 @@
 // - GRAVITY, TERMINAL_VELOCITY, JUMP_FORCE, TILE_SIZE
 // - width, height, mapWidth, mapHeight
 // - checkCollision(newX, newY, mapWidth, mapHeight)
-// - isWaterAt(wx, wy): optional helper to detect liquid tiles at a world pixel
+// - isLiquidAt(wx, wy): optional helper to detect liquid type at a world pixel
 // - vx: horizontal velocity (for deciding run/idle when landing)
 // - prevInWater: whether player was in water on previous frame
 // Returns: { y, vy, isGrounded, animation, inWater, headUnderWater, atSurface }
@@ -27,33 +27,68 @@ export function applyVerticalPhysics({
   mapHeight,
   checkCollision,
   vx,
-  isWaterAt,
+  isLiquidAt,
   prevInWater
 }) {
-  // Liquid defaults (can be overridden in future via per-tile sampling)
-  const LIQ_BUOYANCY = 0.5; // reduces effective gravity by 50%
-  const LIQ_DRAG_Y = 0.88;  // vertical damping per frame when in liquid
-  const LIQ_TERMINAL = Math.max(2, Math.floor(TERMINAL_VELOCITY * 0.4));
+  // Liquid defaults
+  let liqBuoyancy = 0.5; // reduces effective gravity by 50%
+  let liqDragY = 0.88;  // vertical damping per frame when in liquid
+  let liqTerminal = Math.max(2, Math.floor(TERMINAL_VELOCITY * 0.4));
+  let swimImpulseMult = 0.55;
 
   // Water detection using centerline points
   let inWater = false;
   let headUnderWater = false;
   let atSurface = false;
-  if (typeof isWaterAt === 'function') {
+  let activeLiquidType = null;
+
+  if (typeof isLiquidAt === 'function') {
     const cx = x + (width || TILE_SIZE) * 0.5;
     const headY = y + Math.min(4, (height || TILE_SIZE) * 0.125);
     const feetY = y + (height || TILE_SIZE) - 2;
     const chestY = y + (height || TILE_SIZE) * 0.45;
-    inWater = !!(isWaterAt(cx, feetY) || isWaterAt(cx, chestY));
-    headUnderWater = !!isWaterAt(cx, headY);
+    
+    const feetLiq = isLiquidAt(cx, feetY);
+    const chestLiq = isLiquidAt(cx, chestY);
+    const headLiq = isLiquidAt(cx, headY);
+    
+    activeLiquidType = feetLiq || chestLiq;
+    inWater = !!activeLiquidType;
+    headUnderWater = !!headLiq;
     atSurface = inWater && !headUnderWater;
+
+    // Apply per-liquid physics overrides
+    if (activeLiquidType === 'quicksand') {
+      liqBuoyancy = -0.15; // Negative buoyancy makes player sink!
+      liqDragY = 0.85;     // Higher drag
+      liqTerminal = 1.2;   // Very slow terminal velocity for sinking
+      swimImpulseMult = 0.35; // Harder to jump/swim
+    } else if (activeLiquidType === 'lava') {
+      liqBuoyancy = 0.3;
+      liqDragY = 0.82;
+    } else if (activeLiquidType === 'waterfall') {
+      liqBuoyancy = -0.5; // Acts like extra gravity
+      liqDragY = 0.95;     // Very low resistance
+      liqTerminal = TERMINAL_VELOCITY * 1.5; // Allow falling faster than usual terminal velocity
+    } else if (activeLiquidType === 'lava_waterfall') {
+      liqBuoyancy = -0.4; // Slightly more viscous than water
+      liqDragY = 0.92;
+      liqTerminal = TERMINAL_VELOCITY * 1.3;
+    } else if (activeLiquidType === 'radioactive_waterfall') {
+      liqBuoyancy = -0.2; // Slower fall than normal waterfall
+      liqDragY = 0.94;
+      liqTerminal = TERMINAL_VELOCITY * 0.7; // Slower speed
+    } else if (activeLiquidType === 'radioactive_water') {
+      liqBuoyancy = 0.45; // Slightly less buoyant than water
+      liqDragY = 0.86;
+    }
   }
 
   // Jump
   if (keys?.space || keys?.w) {
     if (inWater) {
       // Swim stroke (allow even when not grounded)
-      const swimImpulse = Math.max(2, Math.floor(JUMP_FORCE * 0.55));
+      const swimImpulse = Math.max(2, Math.floor(JUMP_FORCE * swimImpulseMult));
       vy = Math.min(vy, 0); // prevent extra downward boost
       vy -= swimImpulse * 0.5; // smaller continuous impulse
       animation = 'jump';
@@ -70,9 +105,9 @@ export function applyVerticalPhysics({
     if (!prevInWater) {
       vy *= 0.4;
     }
-    vy += GRAVITY * (1 - LIQ_BUOYANCY);
-    vy *= LIQ_DRAG_Y;
-    if (vy > LIQ_TERMINAL) vy = LIQ_TERMINAL;
+    vy += GRAVITY * (1 - liqBuoyancy);
+    vy *= liqDragY;
+    if (vy > liqTerminal) vy = liqTerminal;
   } else {
     vy += GRAVITY;
     if (vy > TERMINAL_VELOCITY) vy = TERMINAL_VELOCITY;

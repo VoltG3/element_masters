@@ -1,22 +1,22 @@
 {
-  "id": "water_block",
-  "name": "block.water",
-  "displayName": "Block Water",
+  "id": "radioactive_water",
+  "name": "block.radioactive_water",
+  "displayName": "Radioactive Water",
   "type": "block",
   "width": 1,
   "height": 1,
   "collision": false,
-  "flags": { "liquid": true, "water": true, "swimmable": true },
+  "flags": { "liquid": true, "radioactive": true, "radioactive_water": true, "swimmable": true },
   "liquid": {
     "buoyancy": 0.5,
     "drag": { "x": 0.55, "y": 0.65 },
     "surface": true,
-    "damagePerSecond": 0,
+    "damagePerSecond": 15,
     "oxygen": {
       "drainPerSecond": 20,
       "regenPerSecond": 35,
       "damagePerSecondWhenDepleted": 10
     }
   },
-  "tintBelowSurface": 3829853
+  "tintBelowSurface": 1727514
 }

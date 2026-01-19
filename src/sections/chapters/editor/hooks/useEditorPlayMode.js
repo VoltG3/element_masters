@@ -9,6 +9,7 @@ export const useEditorPlayMode = (
     selectedBackgroundImage, selectedBackgroundColor, backgroundParallaxFactor, 
     registryItems, playerPosition, setPlayerPosition, setObjectMetadata,
     weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+    weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
     maps, activeMapId, switchMap, spawnTriggerId,
     setTileMapData
 ) => {
@@ -20,7 +21,8 @@ export const useEditorPlayMode = (
     const [playModeObjectData, setPlayModeObjectData] = useState([]);
     const [playModeSecretData, setPlayModeSecretData] = useState([]);
     const [playModeWeather, setPlayModeWeather] = useState({
-        rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0
+        rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0,
+        lavaRain: 0, radioactiveFog: 0, meteorRain: 0
     });
     const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
     const messageTimerRef = useRef(null);
@@ -69,9 +71,12 @@ export const useEditorPlayMode = (
             date_map_last_updated: engineInitId, 
             weather: {
                 rain: isPlayMode ? playModeWeather.rain : weatherRain,
+                lavaRain: isPlayMode ? playModeWeather.lavaRain : weatherLavaRain,
                 snow: isPlayMode ? playModeWeather.snow : weatherSnow,
+                meteorRain: isPlayMode ? playModeWeather.meteorRain : weatherMeteorRain,
                 clouds: isPlayMode ? playModeWeather.clouds : weatherClouds,
                 fog: isPlayMode ? playModeWeather.fog : weatherFog,
+                radioactiveFog: isPlayMode ? playModeWeather.radioactiveFog : weatherRadioactiveFog,
                 thunder: isPlayMode ? playModeWeather.thunder : weatherThunder
             }
         },
@@ -84,6 +89,7 @@ export const useEditorPlayMode = (
         mapWidth, mapHeight, activeMapId, spawnTriggerId, selectedBackgroundImage, selectedBackgroundColor, 
         backgroundParallaxFactor, tileMapData, currentPlayObjectData, objectMetadata,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         playModeWeather,
         isPlayMode, maps, engineInitId
     ]);
@@ -282,6 +288,9 @@ export const useEditorPlayMode = (
                 setGameMessage(prev => ({ ...prev, isVisible: false }));
                 messageTimerRef.current = null;
             }, duration || 8000);
+        } else if (newState === 'weatherEffectHit' && payload) {
+            const { type, data } = payload;
+            window.dispatchEvent(new CustomEvent('weather-effect-hit', { detail: { type, data } }));
         }
     }, [playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 
@@ -327,7 +336,10 @@ export const useEditorPlayMode = (
             snow: weatherSnow,
             clouds: weatherClouds,
             fog: weatherFog,
-            thunder: weatherThunder
+            thunder: weatherThunder,
+            lavaRain: weatherLavaRain,
+            radioactiveFog: weatherRadioactiveFog,
+            meteorRain: weatherMeteorRain
         });
         setRevealedSecrets([]);
         lastSyncedMapIdRef.current = activeMapId;
@@ -371,6 +383,7 @@ export const useEditorPlayMode = (
         handlePause,
         handleReset,
         handleReplay,
+        handleStateUpdate,
         playModeObjectData: currentPlayObjectData,
         playModeSecretData: currentPlaySecretData,
         playModeWeather,

@@ -10,7 +10,7 @@ import { updateEntities } from '../gameplay/entities';
 // - input
 // - refs: { gameState, isInitialized, lastTimeRef, projectilesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef }
 // - constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE }
-// - helpers: { checkCollision, isWaterAt, getLiquidSample }
+// - helpers: { checkCollision, isLiquidAt, getLiquidSample }
 // - actions: {
 //     collectItem(x, y, mapWidth, objectData),
 //     checkHazardDamage(x, y, mapWidth, objectData, deltaMs),
@@ -30,9 +30,9 @@ export function updateFrame(ctx, timestamp) {
     actions
   } = ctx;
 
-  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef } = refs;
+  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
-  const { checkCollision, isWaterAt, getLiquidSample } = helpers;
+  const { checkCollision, isLiquidAt, getLiquidSample } = helpers;
   const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, playSfx, updateProjectiles, setPlayer, onGameOver } = actions;
 
   // Keep RAF alive even if init not finished yet
@@ -192,8 +192,8 @@ export function updateFrame(ctx, timestamp) {
     mapHeight,
     checkCollision: checkCollisionExtended,
     vx,
-    isWaterAt: (wx, wy) => {
-      try { return typeof isWaterAt === 'function' ? !!isWaterAt(wx, wy) : false; } catch { return false; }
+    isLiquidAt: (wx, wy) => {
+      try { return typeof isLiquidAt === 'function' ? isLiquidAt(wx, wy) : null; } catch { return null; }
     },
     prevInWater: !!gameState.current.inWater
   });
@@ -223,6 +223,8 @@ export function updateFrame(ctx, timestamp) {
   if (inWater || liquidType) {
     if (liquidType === 'lava') {
       vx *= 0.78;
+    } else if (liquidType === 'quicksand') {
+      vx *= 0.72; // Quicksand is very thick
     } else {
       vx *= 0.82;
     }
@@ -245,7 +247,7 @@ export function updateFrame(ctx, timestamp) {
     const lavaParams = liquidParams?.resistance || { drainPerSecond: 25, regenPerSecond: 40, damagePerSecondWhenDepleted: 15 };
 
     // Oxygen: drains only while head is under water; otherwise regenerates to 100 even after leaving water
-    if (headUnderWater && (liquidType === 'water' || inWater)) {
+    if (headUnderWater && (liquidType === 'water' || liquidType === 'quicksand' || liquidType === 'radioactive_water')) {
       oxy -= (Math.max(0, Number(oxyParams.drainPerSecond) || 0) * dt) / 1000;
     } else {
       oxy += (Math.max(0, Number(oxyParams.regenPerSecond) || 0) * dt) / 1000;
@@ -265,6 +267,24 @@ export function updateFrame(ctx, timestamp) {
     gameState.current.lavaResist = lavaRes;
     gameState.current.maxLavaResist = maxLava;
 
+    // Radioactivity: fills up in radioactive liquid; slowly returns to 20% outside
+    const maxRadio = Math.max(1, Number(gameState.current.maxRadioactivity || 100));
+    let radio = Number(gameState.current.radioactivity);
+    if (!Number.isFinite(radio)) radio = maxRadio * 0.2;
+
+    if (liquidType === 'radioactive_water' || liquidType === 'radioactive_waterfall') {
+      radio += (15 * dt) / 1000; 
+    } else {
+      if (radio > maxRadio * 0.2) {
+        radio -= (5 * dt) / 1000;
+      } else if (radio < maxRadio * 0.2) {
+        radio += (2 * dt) / 1000;
+      }
+    }
+    radio = Math.max(0, Math.min(maxRadio, radio));
+    gameState.current.radioactivity = radio;
+    gameState.current.maxRadioactivity = maxRadio;
+
     // Apply depletion health damage when at zero and still in corresponding liquid
     const tickDepleteDps = (accRef, dpsValue) => {
       const v = Math.max(0, Number(dpsValue) || 0);
@@ -282,7 +302,7 @@ export function updateFrame(ctx, timestamp) {
     };
 
     // Oxygen depleted and still underwater → damage
-    if ((headUnderWater && (liquidType === 'water' || inWater)) && oxy <= 0) {
+    if ((headUnderWater && (liquidType === 'water' || liquidType === 'quicksand' || liquidType === 'radioactive_water')) && oxy <= 0) {
       tickDepleteDps(oxygenDepleteAccRef, oxyParams.damagePerSecondWhenDepleted);
     } else if (oxygenDepleteAccRef) {
       oxygenDepleteAccRef.current = 0;
@@ -293,6 +313,29 @@ export function updateFrame(ctx, timestamp) {
       if (lavaDepleteAccRef) lavaDepleteAccRef.current = 0;
     } else if (lavaDepleteAccRef) {
       lavaDepleteAccRef.current = 0;
+    }
+
+    // Weather damage (Lava Rain, Radioactive Fog)
+    const weather = mapData.weather || {};
+    const lavaRainInt = Number(weather.lavaRain || 0);
+    const radioFogInt = Number(weather.radioactiveFog || 0);
+
+    if (lavaRainInt > 0 || radioFogInt > 0) {
+      weatherDamageAccRef.current += dt;
+      if (weatherDamageAccRef.current >= 1000) {
+        weatherDamageAccRef.current -= 1000;
+        let totalWeatherDps = 0;
+        if (lavaRainInt > 0) totalWeatherDps += (lavaRainInt / 100) * 10; // Max 10 DPS
+        if (radioFogInt > 0) totalWeatherDps += (radioFogInt / 100) * 5;  // Max 5 DPS
+        
+        if (totalWeatherDps > 0) {
+          gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - totalWeatherDps);
+          const HIT_FLASH_MS = 500;
+          gameState.current.hitTimerMs = Math.max(Number(gameState.current.hitTimerMs) || 0, HIT_FLASH_MS);
+        }
+      }
+    } else {
+      weatherDamageAccRef.current = 0;
     }
   } catch {}
 
@@ -367,7 +410,7 @@ export function updateFrame(ctx, timestamp) {
       mapHeight,
       TILE_SIZE,
       checkCollision,
-      isWaterAt,
+      isLiquidAt,
       getLiquidSample,
       spawnProjectile,
       playSfx,

@@ -1,7 +1,7 @@
 import { Sprite, AnimatedSprite, Texture, Rectangle, Container, Graphics } from 'pixi.js';
 import { getTexture, msToSpeed, getRegItem } from './helpers';
 import { buildSpriteFromDef } from './playerManager';
-import { isWaterDef, isLavaDef } from './liquidRendering';
+import { isWaterDef, isLavaDef, isQuicksandDef, isWaterfallDef, isLavaWaterfallDef, isRadioactiveWaterDef, isRadioactiveWaterfallDef, createWaterFrames, createLavaFrames, createQuicksandFrames } from './liquidRendering';
 import HealthBar from '../../../../Pixi/ui/HealthBar';
 
 // Build layers: tiles, objects, and secret overlays
@@ -97,7 +97,7 @@ export const rebuildLayers = (refs, options) => {
 
     let sprite;
     let frames = null;
-    if (isWaterDef(def) || isLavaDef(def) || def.type === 'entity' || def.subtype === 'platform') {
+    if (isWaterDef(def) || isLavaDef(def) || isWaterfallDef(def) || isLavaWaterfallDef(def) || isRadioactiveWaterDef(def) || isRadioactiveWaterfallDef(def) || def.type === 'entity' || def.subtype === 'platform') {
       // liquids are handled by LiquidRegionSystem; skip per-tile sprite
       // entities and platforms are handled by separate managers
       continue;

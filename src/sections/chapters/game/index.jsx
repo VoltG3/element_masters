@@ -13,18 +13,7 @@ import { setSoundEnabled } from '../../../store/slices/settingsSlice';
 import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
 
-// Import maps (static files usually need to be imported or fetched in React/Webpack)
-import map1 from '../../../assets/maps/Multiple_Worlds.json';
-import map2 from '../../../assets/maps/Weather.json';
-import map3 from '../../../assets/maps/Secret_Room_as_in_Wizordum.json';
-import map4 from '../../../assets/maps/Secret_Room_as_in_Wolfenstein_3D.json';
-import map5 from '../../../assets/maps/stones_iterations.json';
-import map6 from '../../../assets/maps/stone_iterations_player_dead_as_in_Supaplex.json';
-
-
-
-// Simulate file list from folder
-const BUILT_IN_MAPS = [map1, map2, map3, map4, map5, map6];
+import { BUILT_IN_MAPS } from '../../../constants/builtInMaps';
 
 // Styled Components
 const GameContainer = styled.div`
@@ -52,8 +41,9 @@ const ModalContent = styled.div`
     background-color: #fff;
     padding: 20px;
     border-radius: 8px;
-    width: 500px;
-    max-height: 80%;
+    width: 900px;
+    max-width: 95%;
+    max-height: 85%;
     overflow-y: auto;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     display: flex;
@@ -68,29 +58,35 @@ const ModalTitle = styled.h2`
 `;
 
 const MapList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 15px;
+    padding: 5px;
 `;
 
 const MapCard = styled.div`
     border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 10px;
+    border-radius: 8px;
+    padding: 15px;
     cursor: pointer;
     background-color: #f9f9f9;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s ease;
 
     &:hover {
-        background-color: #e8e8e8;
+        background-color: #f0f7ff;
+        border-color: #2196f3;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
 `;
 
 const MapTitle = styled.div`
     font-weight: bold;
     font-size: 16px;
+    color: #333;
 `;
 
 const MapAuthor = styled.div`
@@ -98,10 +94,26 @@ const MapAuthor = styled.div`
     color: #666;
 `;
 
+const MapDescription = styled.div`
+    font-size: 11px;
+    color: #777;
+    font-style: italic;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 45px;
+`;
+
 const MapInfo = styled.div`
-    text-align: right;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
     font-size: 11px;
     color: #555;
+    display: flex;
+    justify-content: space-between;
 `;
 
 const WinCounterOverlay = styled.div`
@@ -412,6 +424,13 @@ export default function Game() {
             window.dispatchEvent(new CustomEvent('game-settings-update', { 
                 detail: { [settingKey]: value } 
             }));
+        } else if (action === 'weatherEffectHit' && payload) {
+            const { type, data } = payload;
+            // Šo darbību mēs izmantosim, lai nodotu informāciju dzinējam caur ref vai eventu
+            // Bet labāk ir tieši izsaukt dzinēja funkciju, ja tāda ir.
+            // Tā kā useGameEngine ir hook, mēs nevaram viegli izsaukt tā iekšējo funkciju.
+            // Tomēr mēs varam izmantot window eventu vai ref.
+            window.dispatchEvent(new CustomEvent('weather-effect-hit', { detail: { type, data } }));
         } else if (action === 'showMessage' && payload) {
             const { text, duration } = payload;
             
@@ -662,6 +681,8 @@ export default function Game() {
                 maxIceResist={playerState.maxIceResist}
                 strength={playerState.strength}
                 maxStrength={playerState.maxStrength}
+                radioactivity={playerState.radioactivity}
+                maxRadioactivity={playerState.maxRadioactivity}
                 inWater={playerState.inWater}
                 liquidType={playerState.liquidType}
                 onIce={playerState.onIce}
@@ -711,6 +732,11 @@ export default function Game() {
                                             <MapTitle>{projectName}</MapTitle>
                                             <MapAuthor>By: {author}</MapAuthor>
                                         </div>
+                                        {map.meta?.description && (
+                                            <MapDescription title={map.meta.description}>
+                                                {map.meta.description}
+                                            </MapDescription>
+                                        )}
                                         <MapInfo>
                                             <div>Size: {sizeInfo}{subMapInfo}</div>
                                         </MapInfo>
@@ -755,10 +781,14 @@ export default function Game() {
                             backgroundParallaxFactor={(runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor)}
                             cameraScrollX={cameraScrollX}
                             weatherRain={runtimeSettings.weatherRain ?? 0}
+                            weatherLavaRain={runtimeSettings.weatherLavaRain ?? 0}
                             weatherSnow={runtimeSettings.weatherSnow ?? 0}
+                            weatherMeteorRain={runtimeSettings.weatherMeteorRain ?? 0}
                             weatherClouds={runtimeSettings.weatherClouds ?? 0}
                             weatherFog={runtimeSettings.weatherFog ?? 0}
+                            weatherRadioactiveFog={runtimeSettings.weatherRadioactiveFog ?? 0}
                             weatherThunder={runtimeSettings.weatherThunder ?? 0}
+                            onWeatherEffectHit={(type, data) => handleStateUpdate('weatherEffectHit', { type, data })}
                             healthBarEnabled={runtimeSettings.healthBarEnabled ?? true}
                             oxygenBarEnabled={runtimeSettings.oxygenBarEnabled ?? true}
                             lavaBarEnabled={runtimeSettings.lavaBarEnabled ?? true}
