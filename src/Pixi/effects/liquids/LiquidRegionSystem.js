@@ -1,4 +1,4 @@
-import { Container, Graphics, Texture, TilingSprite } from 'pixi.js';
+import { Container, Graphics, Texture, TilingSprite, Sprite } from 'pixi.js';
 
 // LiquidRegionSystem: groups contiguous liquid tiles (water/lava) into regions
 // and renders each region as a masked, animated tiling surface (weather-like style)
@@ -14,6 +14,7 @@ import { Container, Graphics, Texture, TilingSprite } from 'pixi.js';
 export default class LiquidRegionSystem {
   constructor(container, opts = {}) {
     this.container = container;
+    this.bgContainer = opts.bgContainer || null;
     this.mapWidth = opts.mapWidth || 0;
     this.mapHeight = opts.mapHeight || 0;
     this.tileSize = opts.tileSize || 32;
@@ -83,7 +84,9 @@ export default class LiquidRegionSystem {
     try {
       for (const r of this._regions) {
         try { if (r.node && r.node.parent) r.node.parent.removeChild(r.node); } catch {}
+        try { if (r.bgNode && r.bgNode.parent) r.bgNode.parent.removeChild(r.bgNode); } catch {}
         try { r.node?.destroy({ children: true }); } catch {}
+        try { r.bgNode?.destroy({ children: true }); } catch {}
       }
     } catch {}
     this._regions = [];
@@ -103,12 +106,20 @@ export default class LiquidRegionSystem {
     this._radioactiveWaterTex = null;
     this._radioactiveWaterfallTex = null;
     this._noiseTex = null;
+    if (this._gradTextures) {
+      for (const k in this._gradTextures) {
+        try { this._gradTextures[k].destroy(true); } catch {}
+      }
+      this._gradTextures = null;
+    }
   }
 
   clear() {
     for (const r of this._regions) {
       try { r.node?.parent && r.node.parent.removeChild(r.node); } catch {}
+      try { r.bgNode?.parent && r.bgNode.parent.removeChild(r.bgNode); } catch {}
       try { r.node?.destroy({ children: true }); } catch {}
+      try { r.bgNode?.destroy({ children: true }); } catch {}
     }
     this._regions = [];
   }
@@ -395,6 +406,54 @@ export default class LiquidRegionSystem {
         node.addChild(mask);
         node.mask = mask;
 
+        // Background slānis (zIndex 28) - lai aizsegtu fonu caur ūdeni
+        let bgNode = null;
+        if (this.bgContainer) {
+          bgNode = new Container();
+          const bgMask = new Graphics();
+          bgMask.clear();
+          for (let k = 0; k < tileIndices.length; k++) {
+            const idx = tileIndices[k];
+            const gx = (idx % mapWidth);
+            const gy = Math.floor(idx / mapWidth);
+            bgMask.rect(gx * tileSize - bleed, gy * tileSize - bleed, tileSize + bleed * 2, tileSize + bleed * 2);
+          }
+          bgMask.fill({ color: 0xffffff, alpha: 1 });
+          bgNode.addChild(bgMask);
+          bgNode.mask = bgMask;
+
+          const bgG = new Graphics();
+          let minY = Infinity, maxY = -Infinity;
+          for (let k = 0; k < tileIndices.length; k++) {
+            const gy = Math.floor(tileIndices[k] / mapWidth) * tileSize;
+            if (gy < minY) minY = gy;
+            if (gy + tileSize > maxY) maxY = gy + tileSize;
+          }
+
+          if (!this._gradTextures) this._gradTextures = {};
+          if (!this._gradTextures[type]) {
+            let color, bottomColor;
+            if (type.includes('lava')) {
+              color = '#881100'; bottomColor = '#220000';
+            } else if (type.includes('radioactive')) {
+              color = '#004400'; bottomColor = '#001100';
+            } else if (type === 'quicksand') {
+              color = '#5d4037'; bottomColor = '#2d1d19';
+            } else { 
+              color = '#2a5d8f'; bottomColor = '#0b1d2e';
+            }
+            this._gradTextures[type] = this._createGradientTexture(color, bottomColor);
+          }
+
+          const bgSprite = new Sprite(this._gradTextures[type]);
+          bgSprite.width = worldW;
+          bgSprite.height = worldH;
+          bgSprite.y = 0;
+          
+          bgNode.addChild(bgSprite);
+          this.bgContainer.addChild(bgNode);
+        }
+
         const baseAlpha = type === 'lava' ? 0.98 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.6 : 0.92);
 
         if (type === 'water' || type === 'radioactive_water') {
@@ -402,17 +461,30 @@ export default class LiquidRegionSystem {
           node.addChild(capG);
           const topEdges = this._computeTopEdgeSpans(tileIndices, mapWidth, tileSize);
           // Saglabājam atsauces uz r reģistrā
-          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [], tileIndicesSet, currentAlpha: baseAlpha });
+          this._regions.push({ type, node, bgNode, mask, sprite: tiling, noise1, noise2, capG, topEdges, waves: [], tileIndicesSet, currentAlpha: baseAlpha });
         } else if (type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') {
           const splashG = new Graphics();
           node.addChild(splashG);
           const bottomEdges = this._computeBottomEdgeSpans(tileIndices, mapWidth, tileSize);
-          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, splashG, bottomEdges, tileIndicesSet, currentAlpha: baseAlpha });
+          this._regions.push({ type, node, bgNode, mask, sprite: tiling, noise1, noise2, splashG, bottomEdges, tileIndicesSet, currentAlpha: baseAlpha });
         } else {
-          this._regions.push({ type, node, mask, sprite: tiling, noise1, noise2, waves: [], tileIndicesSet, currentAlpha: baseAlpha });
+          this._regions.push({ type, node, bgNode, mask, sprite: tiling, noise1, noise2, waves: [], tileIndicesSet, currentAlpha: baseAlpha });
         }
 
         this.container.addChild(node);
+      }
+
+      _createGradientTexture(topColor, bottomColor) {
+        const canvas = document.createElement('canvas');
+        const size = 64; 
+        canvas.width = 2; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 0, size);
+        g.addColorStop(0, topColor);
+        g.addColorStop(1, bottomColor);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 2, size);
+        return Texture.from(canvas);
       }
 
       _createWaterTexture(tileSize) {

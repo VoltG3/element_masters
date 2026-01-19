@@ -4,6 +4,7 @@ export const LAYERS = Object.freeze({
   parallax: 10,
   tiles: 20,
   tilesAnim: 25,
+  liquidBackground: 28,
   objBehind: 30,
   secretsBelow: 35,
   player: 40,

@@ -83,6 +83,7 @@ const PixiStage = ({
   const playerStateRef = useRef(null);
   const weatherLayerRef = useRef(null);
   const liquidLayerRef = useRef(null);
+  const liquidBgLayerRef = useRef(null);
   const liquidSystemRef = useRef(null);
   const fogLayerRef = useRef(null);
   const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null, fog: null, lavaRain: null, radioactiveFog: null, meteorRain: null });
@@ -205,6 +206,7 @@ const PixiStage = ({
       const playerLayer = new Container();
       const entitiesLayer = new Container();
       const weatherLayer = new Container();
+      const liquidBgLayer = new Container();
       const liquidLayer = new Container();
       const liquidFxLayer = new Container();
       const fogLayer = new Container();
@@ -224,6 +226,7 @@ const PixiStage = ({
       entitiesLayer.zIndex = LAYERS.player;
       weatherLayer.zIndex = LAYERS.weather;
       fogLayer.zIndex = LAYERS.fog;
+      liquidBgLayer.zIndex = LAYERS.liquidBackground;
       liquidLayer.zIndex = LAYERS.liquids;
       liquidFxLayer.zIndex = LAYERS.liquidFx;
       projLayer.zIndex = LAYERS.projectiles;
@@ -236,6 +239,7 @@ const PixiStage = ({
       secretLayerRef.current = { below: secretBelowLayer, above: secretAboveLayer };
       weatherLayerRef.current = weatherLayer;
       playerLayerRef.current = playerLayer;
+      liquidBgLayerRef.current = liquidBgLayer;
       liquidLayerRef.current = liquidLayer;
       fogLayerRef.current = fogLayer;
       projectilesLayerRef.current = projLayer;
@@ -255,7 +259,7 @@ const PixiStage = ({
         objects: [objBehind, objFront, secretBelowLayer, secretAboveLayer, entitiesLayer, projLayer],
         player: [playerLayer],
         weather: [weatherLayer, fogLayer],
-        liquids: [liquidLayer, liquidFxLayer],
+        liquids: [liquidBgLayer, liquidLayer, liquidFxLayer],
         overlay: [overlayLayer]
       };
 
@@ -267,7 +271,7 @@ const PixiStage = ({
           });
         });
       } else {
-        app.stage.addChild(bg, bgAnim, parallaxLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, overlayLayer);
+        app.stage.addChild(bg, bgAnim, parallaxLayer, liquidBgLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, overlayLayer);
       }
 
       // Preload textures to avoid Assets cache warnings and ensure textures are ready
@@ -354,7 +358,12 @@ const PixiStage = ({
       try {
         if (liquidSystemRef.current) liquidSystemRef.current.destroy();
         if (liquidLayerRef.current) {
-          liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+          liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { 
+            mapWidth, 
+            mapHeight, 
+            tileSize,
+            bgContainer: liquidBgLayerRef.current
+          });
         }
       } catch (e) { console.warn('LiquidRegionSystem init failed:', e); }
 
@@ -746,7 +755,12 @@ const PixiStage = ({
                 try {
                     if (liquidSystemRef.current) liquidSystemRef.current.destroy();
                     if (liquidLayerRef.current) {
-                        liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { mapWidth, mapHeight, tileSize });
+                        liquidSystemRef.current = new LiquidRegionSystem(liquidLayerRef.current, { 
+                            mapWidth, 
+                            mapHeight, 
+                            tileSize,
+                            bgContainer: liquidBgLayerRef.current
+                        });
                         liquidSystemRef.current.build({ mapWidth, mapHeight, tileSize, tileMapData, registryItems });
                         liquidSystemRef.current._lastTileData = tileDataString; // Track what we built
                     }
