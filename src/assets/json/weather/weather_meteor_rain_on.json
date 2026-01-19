@@ -1,0 +1,14 @@
+{
+  "id": "weather_meteor_rain_on",
+  "name": "weather.meteor_rain_on",
+  "displayName": "Meteor Rain On (0%)",
+  "type": "weather_trigger",
+  "weatherType": "meteorRain",
+  "weatherAction": "on",
+  "hasIntensity": true,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "☄️",
+  "isHiddenInGame": true,
+  "collision": false
+}

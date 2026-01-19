@@ -60,7 +60,8 @@ export const EditorTools = ({
         const colors = {
             tile: { bg: '#e6f7ff', text: '#1890ff' },
             object: { bg: '#fff1f0', text: '#f5222d' },
-            secret: { bg: '#f9f0ff', text: '#722ed1' }
+            secret: { bg: '#f9f0ff', text: '#722ed1' },
+            props: { bg: '#fffbe6', text: '#faad14' }
         };
         const active = colors[layer] || colors.tile;
         return {
@@ -74,7 +75,8 @@ export const EditorTools = ({
         const colors = {
             tile: { bg: '#e6f7ff', border: '#91d5ff', text: '#1890ff' },
             object: { bg: '#fff1f0', border: '#ffa39e', text: '#f5222d' },
-            secret: { bg: '#f9f0ff', border: '#d3adf7', text: '#722ed1' }
+            secret: { bg: '#f9f0ff', border: '#d3adf7', text: '#722ed1' },
+            props: { bg: '#fffbe6', border: '#ffe58f', text: '#faad14' }
         };
         const active = colors[activeLayer] || colors.tile;
         return {
@@ -213,13 +215,13 @@ export const EditorTools = ({
                         {/* Active Layer Indicator */}
                         <ToolsInnerGroup>
                             <LayerIndicator {...getLayerIndicatorData()}>
-                                Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : 'Sectors')}
+                                Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : (activeLayer === 'secret' ? 'Sectors' : 'Properties'))}
                             </LayerIndicator>
                         </ToolsInnerGroup>
 
-                        {/* Layers: Block - Object - Sector */}
+                        {/* Layers: Block - Object - Sector - Props */}
                         <ToolsInnerGroup>
-                            {['tile', 'object', 'secret'].map(layer => {
+                            {['tile', 'object', 'secret', 'props'].map(layer => {
                                 const { isActive, bgColor, textColor } = getEraserData(layer);
                                 const isDisabled = isPlayMode;
                                 return (
@@ -228,10 +230,10 @@ export const EditorTools = ({
                                         onClick={() => !isDisabled && handlePaletteSelect(null, layer)}
                                         $active={isActive && !isDisabled}
                                         $disabled={isDisabled}
-                                        title={isDisabled ? "Disabled in Play Mode" : `Erase ${layer === 'tile' ? 'Blocks' : (layer === 'object' ? 'Objects' : 'Sectors')}`}
+                                        title={isDisabled ? "Disabled in Play Mode" : `Erase ${layer === 'tile' ? 'Blocks' : (layer === 'object' ? 'Objects' : (layer === 'secret' ? 'Sectors' : 'Properties'))}`}
                                     >
                                         <EraserButtonInner $bgColor={bgColor} $textColor={textColor} $active={isActive && !isDisabled}>
-                                            ⌫{layer === 'tile' ? 'B' : (layer === 'object' ? 'O' : 'S')}
+                                            ⌫{layer === 'tile' ? 'B' : (layer === 'object' ? 'O' : (layer === 'secret' ? 'S' : 'P'))}
                                         </EraserButtonInner>
                                         {isDisabled && <StrikeThrough />}
                                     </EraserButtonContainer>

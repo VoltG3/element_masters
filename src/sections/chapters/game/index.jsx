@@ -511,6 +511,9 @@ export default function Game() {
                 backgroundParallaxFactor: (runtimeSettings.backgroundParallaxFactor ?? activeMapData?.meta?.backgroundParallaxFactor ?? 0.3),
                 weatherRain: (runtimeSettings.weatherRain ?? 0),
                 weatherSnow: (runtimeSettings.weatherSnow ?? 0),
+                weatherLavaRain: (runtimeSettings.weatherLavaRain ?? 0),
+                weatherRadioactiveFog: (runtimeSettings.weatherRadioactiveFog ?? 0),
+                weatherMeteorRain: (runtimeSettings.weatherMeteorRain ?? 0),
                 weatherClouds: clouds,
                 weatherFog: fog,
                 weatherThunder: thunder,
@@ -653,7 +656,9 @@ export default function Game() {
     };
 
     return (
-        <GameContainer>
+        <GameContainer onClick={() => {
+            window.dispatchEvent(new CustomEvent('game-sound-user-gesture'));
+        }}>
         
             {/* Game Header */}
             {/* UI Overlays */}

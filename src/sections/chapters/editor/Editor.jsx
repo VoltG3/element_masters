@@ -250,11 +250,28 @@ export const Editor = () => {
                 mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
                 name: mapName,
                 description: mapDescription,
-                selectedBackgroundImage, selectedBackgroundColor
+                selectedBackgroundImage, selectedBackgroundColor,
+                selectedBackgroundMusic, backgroundParallaxFactor,
+                weather: {
+                    rain: weatherRain,
+                    snow: weatherSnow,
+                    clouds: weatherClouds,
+                    fog: weatherFog,
+                    thunder: weatherThunder,
+                    lavaRain: weatherLavaRain,
+                    radioactiveFog: weatherRadioactiveFog,
+                    meteorRain: weatherMeteorRain
+                },
+                playerPosition
             });
         }, 1000); // Debounce store updates
         return () => clearTimeout(timeout);
-    }, [activeMapId, updateMapData, mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, mapName, selectedBackgroundImage, selectedBackgroundColor]);
+    }, [
+        activeMapId, updateMapData, mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
+        mapName, mapDescription, selectedBackgroundImage, selectedBackgroundColor, selectedBackgroundMusic, backgroundParallaxFactor,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
+        playerPosition
+    ]);
 
     const selectedBgOption = backgroundOptions.find((bg) => bg.metaPath === selectedBackgroundImage) || backgroundOptions[0];
     const selectedBackgroundUrl = selectedBgOption && selectedBackgroundImage ? selectedBgOption.src : null;
@@ -264,10 +281,10 @@ export const Editor = () => {
         blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, alternativeSecrets, obstacles 
     } = useEditorRegistry(registryItems);
 
-    const {
+    const { 
         selection, setSelection, selectionMode, setSelectionMode, previewPosition, setPreviewPosition,
-        originalMapData, setOriginalMapData, moveSelection, commitSelection, cancelSelection
-    } = useEditorSelection(mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, setTileMapData, setObjectMapData, setSecretMapData);
+        originalMapData, setOriginalMapData, moveSelection, commitSelection, cancelSelection 
+    } = useEditorSelection(mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata);
 
     const {
         isPlayMode, handlePlay, handlePause, handleReset, handleReplay, handleStateUpdate,
@@ -287,10 +304,10 @@ export const Editor = () => {
     } = useEditorOperations(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
         mapName, creatorName, mapDescription, createdAt, selectedBackgroundImage, selectedBackgroundColor,
-        backgroundParallaxFactor, selectedBackgroundMusic, registryItems, setCreatedAt,
+        backgroundParallaxFactor, selectedBackgroundMusic, playerPosition, registryItems, setCreatedAt,
         setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
         setSelectedBackgroundImage, setSelectedBackgroundColor,
-        setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+        setBackgroundParallaxFactor, setSelectedBackgroundMusic, setPlayerPosition,
         setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
         setIsNewMapModalOpen, setTempMapName, setTempCreatorName, setTempMapDescription,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
@@ -302,13 +319,15 @@ export const Editor = () => {
 
     const {
         hoverIndex, setHoverIndex, bucketPreviewIndices, setBucketPreviewIndices,
-        handleGridMouseDown, handleGridMouseMove, paintTile
+        handleGridMouseDown, handleGridMouseMove, handleGridMouseUp,
+        handleResizeStart, handleMoveStart, paintTile
     } = useEditorPainting(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, 
         setTileMapData, setObjectMapData, setSecretMapData,
         activeTool, brushSize, activeLayer, selectedTile, selection, 
-        setSelection, setPreviewPosition, setOriginalMapData, setDragStart, isDragging, setIsDragging,
-        setActivePanel, setHighlightedIndex, registryItems
+        setSelection, setPreviewPosition, setOriginalMapData, dragStart, setDragStart, isDragging, setIsDragging,
+        setActivePanel, setHighlightedIndex, highlightedIndex, registryItems,
+        objectMetadata, setObjectMetadata
     );
 
     // Side Effects
@@ -335,60 +354,19 @@ export const Editor = () => {
         });
     };
 
-    const handlePaletteSelect = (item, layer) => {
+    const handlePaletteSelect = useCallback((item, layer) => {
         setSelectedTile(item);
         setActiveLayer(layer);
         setActiveTool('brush');
         setSelection(null);
-    };
+    }, []);
 
     // Grid Event Handlers
-    const handleGridMouseEnter = (index) => handleGridMouseMove(index);
     
-    const handleGridMouseUp = (index) => {
-        if (activeTool === 'move' && isDragging && dragStart && index !== null) {
-            const hx = index % mapWidth;
-            const hy = Math.floor(index / mapWidth);
-            const x1 = Math.min(dragStart.x, hx);
-            const y1 = Math.min(dragStart.y, hy);
-            const x2 = Math.max(dragStart.x, hx);
-            const y2 = Math.max(dragStart.y, hy);
-            const w = x2 - x1 + 1;
-            const h = y2 - y1 + 1;
-
-            const tileData = [];
-            const objectData = [];
-            const secretData = [];
-
-            for (let y = y1; y <= y2; y++) {
-                for (let x = x1; x <= x2; x++) {
-                    const idx = y * mapWidth + x;
-                    tileData.push(tileMapData[idx]);
-                    objectData.push(objectMapData[idx]);
-                    secretData.push(secretMapData[idx]);
-                }
-            }
-
-            setSelection({
-                x: x1, y: y1, w, h,
-                originalX: x1, originalY: y1,
-                tileData, objectData, secretData
-            });
-            setPreviewPosition({ x: x1, y: y1 });
-            setOriginalMapData({
-                tileMap: [...tileMapData],
-                objectMap: [...objectMapData],
-                secretMap: [...secretMapData]
-            });
-            setDragStart(null);
-        }
-        setIsDragging(false);
-    };
-
-    const handleGridMouseLeave = () => {
+    const handleGridMouseLeave = useCallback(() => {
         setHoverIndex(null);
         setBucketPreviewIndices(new Set());
-    };
+    }, [setHoverIndex, setBucketPreviewIndices]);
 
     const totalTiles = mapWidth * mapHeight;
     const filledBlocks = tileMapData.filter(t => t !== null).length;
@@ -570,15 +548,20 @@ export const Editor = () => {
                             dragStart={dragStart}
                             isDragging={isDragging}
                             handleGridMouseDown={handleGridMouseDown}
-                            handleGridMouseEnter={handleGridMouseEnter}
+                            handleGridMouseEnter={handleGridMouseMove}
                             handleGridMouseUp={handleGridMouseUp}
                             handleGridMouseLeave={handleGridMouseLeave}
+                            handleResizeStart={handleResizeStart}
+                            handleMoveStart={handleMoveStart}
                             setIsDragging={setIsDragging}
                             weatherRain={weatherRain}
                             weatherSnow={weatherSnow}
                             weatherClouds={weatherClouds}
                             weatherFog={weatherFog}
                             weatherThunder={weatherThunder}
+                            weatherLavaRain={weatherLavaRain}
+                            weatherRadioactiveFog={weatherRadioactiveFog}
+                            weatherMeteorRain={weatherMeteorRain}
                         />
                     ) : (
                         <div style={{ flex: 1, position: 'relative', backgroundColor: '#000' }}>

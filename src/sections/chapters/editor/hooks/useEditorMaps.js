@@ -22,7 +22,10 @@ export const useEditorMaps = () => {
                 snow: 0,
                 clouds: 0,
                 fog: 0,
-                thunder: 0
+                thunder: 0,
+                lavaRain: 0,
+                radioactiveFog: 0,
+                meteorRain: 0
             },
             playerPosition: { x: 100, y: 100 },
             worldX: 50,
@@ -58,7 +61,10 @@ export const useEditorMaps = () => {
                 snow: 0,
                 clouds: 0,
                 fog: 0,
-                thunder: 0
+                thunder: 0,
+                lavaRain: 0,
+                radioactiveFog: 0,
+                meteorRain: 0
             },
             playerPosition: null, // Only one map should have player eventually
             worldX: 50,

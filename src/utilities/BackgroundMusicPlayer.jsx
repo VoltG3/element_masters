@@ -15,7 +15,7 @@ export default function BackgroundMusicPlayer({ metaPath, enabled = false, volum
   let musicContext = null;
   try {
     // utilities -> ../assets/sound/background
-    musicContext = require.context('../assets/sound/background', false, /\.ogg$/);
+    musicContext = require.context('../assets/sound/background', false, /\.(ogg|mp3|wav|m4a)$/i);
   } catch (e) {
     musicContext = null;
   }

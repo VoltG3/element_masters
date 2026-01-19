@@ -1,43 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export const useEditorSelection = (mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, setTileMapData, setObjectMapData, setSecretMapData) => {
+export const useEditorSelection = (mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata) => {
     const [selection, setSelection] = useState(null);
     const [selectionMode, setSelectionMode] = useState('cut'); // 'cut' or 'copy'
     const [previewPosition, setPreviewPosition] = useState(null);
     const [originalMapData, setOriginalMapData] = useState(null);
 
-    // Keyboard handler for Enter (commit) and Escape (cancel)
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (selection) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitSelection();
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cancelSelection();
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selection, previewPosition, originalMapData, selectionMode]);
-
-    const moveSelection = (dx, dy) => {
+    const moveSelection = useCallback((dx, dy) => {
         if (!selection || !previewPosition) return;
         setPreviewPosition({ 
             x: previewPosition.x + dx, 
             y: previewPosition.y + dy 
         });
-    };
+    }, [selection, previewPosition]);
 
-    const commitSelection = () => {
+    const cancelSelection = useCallback(() => {
+        setSelection(null);
+        setPreviewPosition(null);
+        setOriginalMapData(null);
+    }, []);
+
+    const commitSelection = useCallback(() => {
         if (!selection || !previewPosition || !originalMapData) return;
 
         const newTileMap = [...originalMapData.tileMap];
         const newObjectMap = [...originalMapData.objectMap];
         const newSecretMap = [...originalMapData.secretMap];
+        const newObjectMetadata = { ...originalMapData.objectMetadata };
 
         // If cut mode, clear original position
         if (selectionMode === 'cut') {
@@ -48,6 +37,7 @@ export const useEditorSelection = (mapWidth, mapHeight, tileMapData, objectMapDa
                         newTileMap[idx] = null;
                         newObjectMap[idx] = null;
                         newSecretMap[idx] = null;
+                        delete newObjectMetadata[idx];
                     }
                 }
             }
@@ -65,6 +55,10 @@ export const useEditorSelection = (mapWidth, mapHeight, tileMapData, objectMapDa
                     newTileMap[destIdx] = selection.tileData[srcDataIdx];
                     newObjectMap[destIdx] = selection.objectData[srcDataIdx];
                     newSecretMap[destIdx] = selection.secretData?.[srcDataIdx] || null;
+                    
+                    if (selection.metadata && selection.metadata[`${px},${py}`]) {
+                        newObjectMetadata[destIdx] = { ...selection.metadata[`${px},${py}`] };
+                    }
                 }
             }
         }
@@ -72,16 +66,29 @@ export const useEditorSelection = (mapWidth, mapHeight, tileMapData, objectMapDa
         setTileMapData(newTileMap);
         setObjectMapData(newObjectMap);
         setSecretMapData(newSecretMap);
+        setObjectMetadata(newObjectMetadata);
         setSelection(null);
         setPreviewPosition(null);
         setOriginalMapData(null);
-    };
+    }, [selection, previewPosition, originalMapData, selectionMode, mapWidth, mapHeight, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata]);
 
-    const cancelSelection = () => {
-        setSelection(null);
-        setPreviewPosition(null);
-        setOriginalMapData(null);
-    };
+    // Keyboard handler for Enter (commit) and Escape (cancel)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (selection) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitSelection();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelSelection();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selection, previewPosition, originalMapData, selectionMode, commitSelection, cancelSelection]);
 
     return {
         selection,

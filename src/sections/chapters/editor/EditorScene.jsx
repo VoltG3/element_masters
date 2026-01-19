@@ -7,6 +7,7 @@ import { BackgroundPanel } from './editorScene/BackgroundPanel';
 import { MusicPanel } from './editorScene/MusicPanel';
 import { WeatherPanel } from './editorScene/WeatherPanel';
 import { SceneEditorButton, RightSidebarContainer } from './styles/EditorSceneButtonStyle';
+import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
 
 export const EditorScene = ({
     handleMapResize,
@@ -60,6 +61,7 @@ export const EditorScene = ({
 
     return (
         <div style={{ display: 'contents' }}>
+            <BackgroundMusicPlayer metaPath={selectedBackgroundMusic} enabled={true} volume={0.4} />
             {/* Right side buttons */}
             <RightSidebarContainer>
                 <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Maps & Minimap">🗺️</SceneEditorButton>

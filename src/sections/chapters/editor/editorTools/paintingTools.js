@@ -36,13 +36,19 @@ export const floodFill = (startIndex, targetId, currentData, mapWidth, mapHeight
 
 export const paintTile = ({
     index, brushSize, activeLayer, selectedTile,
-    mapWidth, mapHeight, tileMapData, objectMapData, secretMapData,
-    setTileMapData, setObjectMapData, setSecretMapData
+    mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
+    setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
 }) => {
-    const targetData = activeLayer === 'tile' ? tileMapData : (activeLayer === 'object' ? objectMapData : secretMapData);
-    const setTargetData = activeLayer === 'tile' ? setTileMapData : (activeLayer === 'object' ? setObjectMapData : setSecretMapData);
+    const isPropsLayer = activeLayer === 'props';
+    const targetLayer = isPropsLayer ? 'object' : activeLayer;
+
+    const targetData = targetLayer === 'tile' ? tileMapData : (targetLayer === 'object' ? objectMapData : secretMapData);
+    const setTargetData = targetLayer === 'tile' ? setTileMapData : (targetLayer === 'object' ? setObjectMapData : setSecretMapData);
     
     const newData = [...targetData];
+    let newMetadata = objectMetadata ? { ...objectMetadata } : null;
+    let metadataChanged = false;
+
     const x = index % mapWidth;
     const y = Math.floor(index / mapWidth);
 
@@ -52,9 +58,30 @@ export const paintTile = ({
             const targetY = y + dy;
             if (targetX < mapWidth && targetY < mapHeight) {
                 const targetIndex = targetY * mapWidth + targetX;
-                newData[targetIndex] = selectedTile ? selectedTile.id : null;
+                
+                if (isPropsLayer) {
+                    // In props layer, we erase metadata and the object itself
+                    newData[targetIndex] = null;
+                    if (newMetadata && newMetadata[targetIndex]) {
+                        delete newMetadata[targetIndex];
+                        metadataChanged = true;
+                    }
+                } else {
+                    newData[targetIndex] = selectedTile ? selectedTile.id : null;
+                    // If we are painting/erasing in object layer, we should also handle metadata
+                    if (targetLayer === 'object' && selectedTile === null) {
+                        if (newMetadata && newMetadata[targetIndex]) {
+                            delete newMetadata[targetIndex];
+                            metadataChanged = true;
+                        }
+                    }
+                }
             }
         }
     }
+
     setTargetData(newData);
+    if (metadataChanged && setObjectMetadata) {
+        setObjectMetadata(newMetadata);
+    }
 };

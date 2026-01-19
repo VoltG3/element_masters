@@ -1,5 +1,5 @@
 export const loadBackgroundOptions = () => {
-    const bgContext = require.context('../../../assets/background', false, /\.(png|jpe?g|svg)$/);
+    const bgContext = require.context('../../../assets/background', false, /\.(png|jpe?g|svg|webp)$/i);
     return bgContext.keys().map((key) => {
         const mod = bgContext(key);
         const url = mod.default || mod;
@@ -9,7 +9,7 @@ export const loadBackgroundOptions = () => {
 };
 
 export const loadMusicOptions = () => {
-    const musicContext = require.context('../../../assets/sound/background', false, /\.ogg$/);
+    const musicContext = require.context('../../../assets/sound/background', false, /\.(ogg|mp3|wav|m4a)$/i);
     return musicContext.keys().map((key) => {
         const mod = musicContext(key);
         const name = key.replace('./', '');

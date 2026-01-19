@@ -71,6 +71,36 @@ export default function GameSettings() {
     } catch {}
     return 0;
   });
+  // New: Lava Rain (0..100)
+  const [lavaRain, setLavaRain] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_weather_lavarain');
+      if (ls !== null) return Math.max(0, Math.min(100, parseInt(ls, 10) || 0));
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.weatherLavaRain === 'number') return Math.max(0, Math.min(100, g.weatherLavaRain));
+    } catch {}
+    return 0;
+  });
+  // New: Radioactive Fog (0..100)
+  const [radioactiveFog, setRadioactiveFog] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_weather_radioactivefog');
+      if (ls !== null) return Math.max(0, Math.min(100, parseInt(ls, 10) || 0));
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.weatherRadioactiveFog === 'number') return Math.max(0, Math.min(100, g.weatherRadioactiveFog));
+    } catch {}
+    return 0;
+  });
+  // New: Meteor Rain (0..100)
+  const [meteorRain, setMeteorRain] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_weather_meteorrain');
+      if (ls !== null) return Math.max(0, Math.min(100, parseInt(ls, 10) || 0));
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.weatherMeteorRain === 'number') return Math.max(0, Math.min(100, g.weatherMeteorRain));
+    } catch {}
+    return 0;
+  });
   // UI: Health bar visibility
   const [healthBarEnabled, setHealthBarEnabled] = useState(() => {
     try {
@@ -173,6 +203,9 @@ export default function GameSettings() {
       if (patch.weatherClouds !== undefined) setClouds(patch.weatherClouds);
       if (patch.weatherFog !== undefined) setFog(patch.weatherFog);
       if (patch.weatherThunder !== undefined) setThunder(patch.weatherThunder);
+      if (patch.weatherLavaRain !== undefined) setLavaRain(patch.weatherLavaRain);
+      if (patch.weatherRadioactiveFog !== undefined) setRadioactiveFog(patch.weatherRadioactiveFog);
+      if (patch.weatherMeteorRain !== undefined) setMeteorRain(patch.weatherMeteorRain);
       if (patch.backgroundParallaxFactor !== undefined) setParallax(patch.backgroundParallaxFactor);
       if (patch.healthBarEnabled !== undefined) setHealthBarEnabled(!!patch.healthBarEnabled);
       if (patch.oxygenBarEnabled !== undefined) setOxygenBarEnabled(!!patch.oxygenBarEnabled);
@@ -202,6 +235,9 @@ export default function GameSettings() {
         if (typeof g.weatherClouds === 'number') setClouds(Math.max(0, Math.min(100, g.weatherClouds)));
         if (typeof g.weatherFog === 'number') setFog(Math.max(0, Math.min(100, g.weatherFog)));
         if (typeof g.weatherThunder === 'number') setThunder(Math.max(0, Math.min(100, g.weatherThunder)));
+        if (typeof g.weatherLavaRain === 'number') setLavaRain(Math.max(0, Math.min(100, g.weatherLavaRain)));
+        if (typeof g.weatherRadioactiveFog === 'number') setRadioactiveFog(Math.max(0, Math.min(100, g.weatherRadioactiveFog)));
+        if (typeof g.weatherMeteorRain === 'number') setMeteorRain(Math.max(0, Math.min(100, g.weatherMeteorRain)));
         if (typeof g.healthBarEnabled === 'boolean') setHealthBarEnabled(!!g.healthBarEnabled);
         if (typeof g.oxygenBarEnabled === 'boolean') setOxygenBarEnabled(!!g.oxygenBarEnabled);
         if (typeof g.lavaBarEnabled === 'boolean') setLavaBarEnabled(!!g.lavaBarEnabled);
@@ -557,7 +593,7 @@ export default function GameSettings() {
         />
         <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(thunder) ? thunder : 0}</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <label style={{ fontSize: 12, width: 120 }}>Mākoņi (Clouds)</label>
         <input
           type="range"
@@ -573,6 +609,57 @@ export default function GameSettings() {
           }}
         />
         <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(clouds) ? clouds : 0}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Lavas lietus</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(lavaRain) ? lavaRain : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setLavaRain(v);
+            try { localStorage.setItem('game_weather_lavarain', String(v)); } catch {}
+            emitUpdate({ weatherLavaRain: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(lavaRain) ? lavaRain : 0}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Radioakt. migla</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(radioactiveFog) ? radioactiveFog : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setRadioactiveFog(v);
+            try { localStorage.setItem('game_weather_radioactivefog', String(v)); } catch {}
+            emitUpdate({ weatherRadioactiveFog: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(radioactiveFog) ? radioactiveFog : 0}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 12, width: 120 }}>Meteorītu lietus</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Number.isFinite(meteorRain) ? meteorRain : 0}
+          onChange={(e) => {
+            const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0));
+            setMeteorRain(v);
+            try { localStorage.setItem('game_weather_meteorrain', String(v)); } catch {}
+            emitUpdate({ weatherMeteorRain: v });
+          }}
+        />
+        <span style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{Number.isFinite(meteorRain) ? meteorRain : 0}</span>
       </div>
     </section>
   );

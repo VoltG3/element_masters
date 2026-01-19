@@ -34,12 +34,41 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
       }
   }
 
-  if (index < 0 || index >= objectLayerData.length) return;
+  // 1. Check direct tile first (priority)
+  let foundIndex = -1;
+  const directObjId = objectLayerData[index];
+  if (directObjId) {
+    foundIndex = index;
+  } else {
+    // 2. Check if we are inside any property region
+    const metadata = mapData?.meta?.objectMetadata;
+    if (metadata) {
+      for (const [idxStr, meta] of Object.entries(metadata)) {
+        const idx = parseInt(idxStr);
+        const w = meta.width || 1;
+        const h = meta.height || 1;
+        if (w > 1 || h > 1) {
+          const ox = idx % mapWidth;
+          const oy = Math.floor(idx / mapWidth);
+          if (gridX >= ox && gridX < ox + w && gridY >= oy && gridY < oy + h) {
+            // Check if there's actually an object at this base index
+            if (objectLayerData[idx]) {
+              foundIndex = idx;
+              break; 
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (foundIndex === -1) return;
+  const actualIndex = foundIndex;
 
   const metadata = mapData?.meta?.objectMetadata;
-  const currentMeta = metadata?.[index];
+  const currentMeta = metadata?.[actualIndex];
 
-  const objId = objectLayerData[index];
+  const objId = objectLayerData[actualIndex];
   if (!objId) return;
 
   const objDef = registryItems.find(r => r.id === objId);
@@ -61,7 +90,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
           gameState.current.lastWeatherTrigger = {};
       }
       
-      const lastVal = gameState.current.lastWeatherTrigger[index];
+      const lastVal = gameState.current.lastWeatherTrigger[actualIndex];
       if (lastVal !== value) {
           if (onStateUpdate) {
               onStateUpdate('updateWeather', {
@@ -69,7 +98,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
                   value: value
               });
           }
-          gameState.current.lastWeatherTrigger[index] = value;
+          gameState.current.lastWeatherTrigger[actualIndex] = value;
           
           if (objDef.sfx) {
               try {
@@ -89,8 +118,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
           gameState.current.lastMessageTrigger = {};
       }
 
-      const lastMsg = gameState.current.lastMessageTrigger[index];
-      // Mēs rādām ziņojumu tikai tad, ja tas ir jauns vai ja iepriekšējais ir beidzies (debounce)
+      const lastMsg = gameState.current.lastMessageTrigger[actualIndex];
       if (lastMsg !== message) {
           if (onStateUpdate) {
               onStateUpdate('showMessage', {
@@ -98,7 +126,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
                   duration: 8000 // 8 sekundes
               });
           }
-          gameState.current.lastMessageTrigger[index] = message;
+          gameState.current.lastMessageTrigger[actualIndex] = message;
           
           if (objDef.sfx) {
               try {

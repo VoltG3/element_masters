@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ObjectLinks } from './viewport/ObjectLinks';
 import { EditorTile } from './viewport/EditorTile';
 import PixiStage from '../game/PixiStage';
@@ -30,17 +30,40 @@ export const Viewport = ({
     handleGridMouseEnter,
     handleGridMouseUp,
     handleGridMouseLeave,
+    handleResizeStart,
+    handleMoveStart,
     setIsDragging,
     selectedTile,
     weatherRain,
     weatherSnow,
     weatherClouds,
     weatherFog,
-    weatherThunder
+    weatherThunder,
+    weatherLavaRain,
+    weatherRadioactiveFog,
+    weatherMeteorRain
 }) => {
     const isEraserActive = activeTool === 'brush' && selectedTile === null;
     const isBrushActive = activeTool === 'brush';
     const isBucketActive = activeTool === 'bucket';
+
+    const regions = React.useMemo(() => {
+        const res = [];
+        if (!objectMetadata) return res;
+        for (const [idxStr, meta] of Object.entries(objectMetadata)) {
+            if (meta.width > 1 || meta.height > 1) {
+                const idx = parseInt(idxStr);
+                res.push({ 
+                    idx, 
+                    x: idx % mapWidth, 
+                    y: Math.floor(idx / mapWidth), 
+                    w: meta.width || 1, 
+                    h: meta.height || 1 
+                });
+            }
+        }
+        return res;
+    }, [objectMetadata, mapWidth]);
 
     const getLayerColor = (layer, alpha = 0.5) => {
         if (layer === 'tile') return `rgba(24, 144, 255, ${alpha})`;
@@ -70,10 +93,10 @@ export const Viewport = ({
         };
     };
 
-    const getLayerFilter = (layer) => {
+    const getLayerFilter = useCallback((layer) => {
         if (!isEraserActive) return 'none';
         return activeLayer === layer ? 'none' : 'grayscale(100%) opacity(0.2) blur(2px)';
-    };
+    }, [isEraserActive, activeLayer]);
 
     const getOverlayColor = () => {
         if (!isEraserActive) return 'transparent';
@@ -130,7 +153,7 @@ export const Viewport = ({
                 />
 
                 {/* Weather Effects Overlay */}
-                {(weatherRain > 0 || weatherSnow > 0 || weatherClouds > 0 || weatherFog > 0 || weatherThunder > 0) && (
+                {(weatherRain > 0 || weatherSnow > 0 || weatherClouds > 0 || weatherFog > 0 || weatherThunder > 0 || weatherLavaRain > 0 || weatherRadioactiveFog > 0 || weatherMeteorRain > 0) && (
                     <div
                         style={{
                             position: 'absolute', top: 0, left: 0,
@@ -150,6 +173,9 @@ export const Viewport = ({
                             weatherClouds={weatherClouds}
                             weatherFog={weatherFog}
                             weatherThunder={weatherThunder}
+                            weatherLavaRain={weatherLavaRain}
+                            weatherRadioactiveFog={weatherRadioactiveFog}
+                            weatherMeteorRain={weatherMeteorRain}
                             renderLayers={['weather']}
                             pointerEvents="none"
                         />
@@ -228,6 +254,8 @@ export const Viewport = ({
                             }
                         }
 
+                        const parentRegion = regions.find(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+
                         return (
                             <EditorTile 
                                 key={index}
@@ -238,10 +266,14 @@ export const Viewport = ({
                                 objObj={objObj}
                                 secretObj={secretObj}
                                 objectMetadata={objectMetadata}
+                                isHighlighted={highlightedIndex === index || (parentRegion && highlightedIndex === parentRegion.idx)}
+                                parentRegionIndex={parentRegion ? parentRegion.idx : null}
                                 borderStyle={borderStyle}
                                 bgStyle={bgStyle}
                                 handleGridMouseDown={handleGridMouseDown}
                                 handleGridMouseEnter={handleGridMouseEnter}
+                                handleResizeStart={handleResizeStart}
+                                handleMoveStart={handleMoveStart}
                                 filter={getLayerFilter}
                             />
                         );

@@ -1,0 +1,14 @@
+{
+  "id": "weather_radioactive_fog_on",
+  "name": "weather.radioactive_fog_on",
+  "displayName": "Radio Fog On (0%)",
+  "type": "weather_trigger",
+  "weatherType": "radioactiveFog",
+  "weatherAction": "on",
+  "hasIntensity": true,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "☢️",
+  "isHiddenInGame": true,
+  "collision": false
+}

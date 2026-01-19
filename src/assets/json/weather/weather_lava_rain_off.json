@@ -1,0 +1,14 @@
+{
+  "id": "weather_lava_rain_off",
+  "name": "weather.lava_rain_off",
+  "displayName": "Lava Rain Off",
+  "type": "weather_trigger",
+  "weatherType": "lavaRain",
+  "weatherAction": "off",
+  "hasIntensity": false,
+  "width": 1,
+  "height": 1,
+  "editorIcon": "🔇🔥",
+  "isHiddenInGame": true,
+  "collision": false
+}

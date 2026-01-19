@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const ObjectLinks = ({ mapWidth, mapHeight, objectMapData, objectMetadata }) => {
+export const ObjectLinks = React.memo(({ mapWidth, mapHeight, objectMapData, objectMetadata }) => {
     const links = [];
     const portals = [];
     const targets = [];
@@ -53,4 +53,4 @@ export const ObjectLinks = ({ mapWidth, mapHeight, objectMapData, objectMetadata
             {links}
         </svg>
     );
-};
+});

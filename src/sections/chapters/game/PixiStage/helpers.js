@@ -37,7 +37,7 @@ export const createBackgroundResolver = () => {
   try {
     // webpack require.context (CRA)
     // relative to this file: '../../../../assets/background'
-    bgContext = require.context('../../../../assets/background', false, /\.(png|jpe?g|svg)$/);
+    bgContext = require.context('../../../../assets/background', false, /\.(png|jpe?g|svg|webp)$/i);
   } catch (e) {
     bgContext = null;
   }

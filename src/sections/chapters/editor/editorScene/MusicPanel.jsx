@@ -1,6 +1,4 @@
 import React from 'react';
-import BackgroundMusicPlayer from '../../../../utilities/BackgroundMusicPlayer';
-
 export const MusicPanel = ({ 
     musicOptions, 
     selectedBackgroundMusic, 
@@ -19,7 +17,6 @@ export const MusicPanel = ({
                         <option key={m.name} value={m.metaPath}>{m.name}</option>
                     ))}
                 </select>
-                <BackgroundMusicPlayer metaPath={selectedBackgroundMusic} enabled={true} volume={0.4} />
                 <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
                     Status: {selectedBackgroundMusic ? 'Music selected' : 'Silence'}
                 </div>

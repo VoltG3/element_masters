@@ -97,6 +97,7 @@ export const applyMapData = (loaded, {
     setSelectedBackgroundColor,
     setBackgroundParallaxFactor,
     setSelectedBackgroundMusic,
+    setPlayerPosition,
     setTileMapData,
     setObjectMapData,
     setSecretMapData,
@@ -176,6 +177,8 @@ export const applyMapData = (loaded, {
                 setWeatherLavaRain(activeMap.weather.lavaRain || 0);
                 setWeatherRadioactiveFog(activeMap.weather.radioactiveFog || 0);
                 setWeatherMeteorRain(activeMap.weather.meteorRain || 0);
+
+                if (activeMap.playerPosition) setPlayerPosition(activeMap.playerPosition);
             }
             
             errorHandler.info('Project loaded successfully', {
@@ -236,6 +239,7 @@ export const applyMapData = (loaded, {
                 setWeatherRadioactiveFog(loaded.meta.weather.radioactiveFog || 0);
                 setWeatherMeteorRain(loaded.meta.weather.meteorRain || 0);
             }
+            if (loaded.meta.playerPosition) setPlayerPosition(loaded.meta.playerPosition);
 
             errorHandler.info('Map loaded successfully (Converted to Project)', {
                 component: 'Editor',

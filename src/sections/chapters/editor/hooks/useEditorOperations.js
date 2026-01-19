@@ -5,11 +5,11 @@ export const useEditorOperations = (
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
     mapName, creatorName, mapDescription, createdAt,
     selectedBackgroundImage, selectedBackgroundColor,
-    backgroundParallaxFactor, selectedBackgroundMusic,
+    backgroundParallaxFactor, selectedBackgroundMusic, playerPosition,
     registryItems, setCreatedAt,
     setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
     setSelectedBackgroundImage, setSelectedBackgroundColor,
-    setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+    setBackgroundParallaxFactor, setSelectedBackgroundMusic, setPlayerPosition,
     setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
     setIsNewMapModalOpen, setTempMapName, setTempCreatorName, setTempMapDescription,
     weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
@@ -20,20 +20,52 @@ export const useEditorOperations = (
     maps, setMaps, activeMapId, setActiveMapId
 ) => {
     const handleSaveMap = useCallback(() => {
+        // Construct the updated maps object with current active map data
+        // to ensure latest changes are saved even if debounce hasn't run
+        const currentMapData = {
+            ...maps[activeMapId],
+            mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
+            name: mapName,
+            description: mapDescription,
+            selectedBackgroundImage, selectedBackgroundColor,
+            backgroundParallaxFactor, selectedBackgroundMusic,
+            weather: {
+                rain: weatherRain,
+                snow: weatherSnow,
+                clouds: weatherClouds,
+                fog: weatherFog,
+                thunder: weatherThunder,
+                lavaRain: weatherLavaRain,
+                radioactiveFog: weatherRadioactiveFog,
+                meteorRain: weatherMeteorRain
+            },
+            playerPosition
+        };
+
+        const updatedMaps = {
+            ...maps,
+            [activeMapId]: currentMapData
+        };
+
         saveMap({
-            maps, activeMapId,
+            maps: updatedMaps, 
+            activeMapId,
             mapName, creatorName, mapDescription, createdAt,
             registryItems, setCreatedAt
         });
     }, [
-        maps, activeMapId, mapName, creatorName, mapDescription, createdAt, registryItems, setCreatedAt
+        maps, activeMapId, mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
+        mapName, creatorName, mapDescription, createdAt, selectedBackgroundImage, selectedBackgroundColor,
+        backgroundParallaxFactor, selectedBackgroundMusic, playerPosition, registryItems, setCreatedAt,
+        weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
+        weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain
     ]);
 
     const handleLoadMap = useCallback((event) => {
         loadMap({
             event, setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
             setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
-            setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+            setBackgroundParallaxFactor, setSelectedBackgroundMusic, setPlayerPosition,
             setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
             setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder,
             setWeatherLavaRain, setWeatherRadioactiveFog, setWeatherMeteorRain,
@@ -42,7 +74,7 @@ export const useEditorOperations = (
     }, [
         setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
         setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
-        setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+        setBackgroundParallaxFactor, setSelectedBackgroundMusic, setPlayerPosition,
         setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
         setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder,
         setWeatherLavaRain, setWeatherRadioactiveFog, setWeatherMeteorRain,
@@ -53,7 +85,7 @@ export const useEditorOperations = (
         loadBuiltInMap({
             mapData, setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
             setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
-            setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+            setBackgroundParallaxFactor, setSelectedBackgroundMusic, setPlayerPosition,
             setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
             setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder,
             setWeatherLavaRain, setWeatherRadioactiveFog, setWeatherMeteorRain,
@@ -62,7 +94,7 @@ export const useEditorOperations = (
     }, [
         setMapWidth, setMapHeight, setMapName, setCreatorName, setMapDescription,
         setCreatedAt, setSelectedBackgroundImage, setSelectedBackgroundColor,
-        setBackgroundParallaxFactor, setSelectedBackgroundMusic,
+        setBackgroundParallaxFactor, setSelectedBackgroundMusic, setPlayerPosition,
         setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
         setWeatherRain, setWeatherSnow, setWeatherClouds, setWeatherFog, setWeatherThunder,
         setWeatherLavaRain, setWeatherRadioactiveFog, setWeatherMeteorRain,

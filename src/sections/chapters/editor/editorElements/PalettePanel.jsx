@@ -218,6 +218,24 @@ export const PalettePanel = ({
                         </div>
                     </CollapsiblePanel>
 
+                    <CollapsiblePanel title="Weather Lava Rain" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'lavaRain').map(w => renderPaletteItem(w, 'red', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Radio Fog" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'radioactiveFog').map(w => renderPaletteItem(w, 'green', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title="Weather Meteor Rain" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {weather && weather.filter(w => w.weatherType === 'meteorRain').map(w => renderPaletteItem(w, 'orange', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
                     <CollapsiblePanel title="Messages" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}

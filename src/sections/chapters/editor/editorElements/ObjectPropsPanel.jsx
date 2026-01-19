@@ -199,6 +199,45 @@ export const ObjectPropsPanel = ({
                                     </select>
                                 </div>
                             )}
+
+                            {/* Size Configuration */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px', paddingTop: '5px', borderTop: '1px solid #eee' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <label style={{ fontSize: '11px', color: '#666' }}>W:</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="50"
+                                        value={metadata.width || 1}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setObjectMetadata(prev => ({
+                                                ...prev,
+                                                [index]: { ...prev[index], width: isNaN(val) ? 1 : Math.max(1, val) }
+                                            }));
+                                        }}
+                                        style={{ width: '40px', padding: '2px 4px', fontSize: '12px', border: '1px solid #ccc', borderRadius: '3px' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <label style={{ fontSize: '11px', color: '#666' }}>H:</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="50"
+                                        value={metadata.height || 1}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setObjectMetadata(prev => ({
+                                                ...prev,
+                                                [index]: { ...prev[index], height: isNaN(val) ? 1 : Math.max(1, val) }
+                                            }));
+                                        }}
+                                        style={{ width: '40px', padding: '2px 4px', fontSize: '12px', border: '1px solid #ccc', borderRadius: '3px' }}
+                                    />
+                                </div>
+                                <span style={{ fontSize: '10px', color: '#999' }}>Drag handles on map to resize</span>
+                            </div>
                         </div>
                     );
                 })}

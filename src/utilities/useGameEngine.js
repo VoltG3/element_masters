@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useInput } from './useInput';
 import { findItemById } from '../engine/registry';
-import { checkHazardDamage, spawnProjectile as spawnProjectileExternal, collectItem, checkInteractables, updateProjectiles } from '../engine/gameplay';
+import { checkHazardDamage, spawnProjectile as spawnProjectileExternal, collectItem, checkInteractables, updateProjectiles, handleWeatherEffectHit } from '../engine/gameplay';
 import { checkSecretDetection } from '../engine/gameplay/secrets';
 import { playSfx } from '../engine/audio';
 import { updateFrame } from '../engine/loop/updateFrame';
@@ -126,17 +126,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         };
         window.addEventListener('game-sound-user-gesture', onUserGesture);
 
-        const onWeatherHit = (e) => {
-            if (e.detail) {
-                handleWeatherEffectHit(e.detail.type, e.detail.data);
-            }
-        };
-        window.addEventListener('weather-effect-hit', onWeatherHit);
-
         return () => {
             window.removeEventListener('game-sound-toggle', onToggle);
             window.removeEventListener('game-sound-user-gesture', onUserGesture);
-            window.removeEventListener('weather-effect-hit', onWeatherHit);
         };
     }, []);
 
@@ -178,45 +170,20 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     const localRevealedRef = useRef(new Set());
 
     // Weather effects impact handling (meteors, etc.)
-    const handleWeatherEffectHit = (type, data) => {
-        if (type === 'meteor') {
-            const { x, y, size, isLarge } = data;
-            const damage = isLarge ? 40 : 20;
-            const radius = size * 1.5;
-
-            // 1. Check player impact
-            const p = gameState.current;
-            const dx = (p.x + p.width / 2) - x;
-            const dy = (p.y + p.height / 2) - y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < radius + p.width / 2) {
-                gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - damage);
-                gameState.current.hitTimerMs = 500;
-                // Add knockback
-                gameState.current.vx += (dx / dist) * 10;
-                gameState.current.vy -= 5;
-            }
-
-            // 2. Check entities impact
-            if (entitiesRef.current) {
-                entitiesRef.current.forEach(ent => {
-                    const edx = (ent.x + ent.width / 2) - x;
-                    const edy = (ent.y + ent.height / 2) - y;
-                    const edist = Math.sqrt(edx * edx + edy * edy);
-
-                    if (edist < radius + ent.width / 2) {
-                        ent.health = Math.max(0, (ent.health || 0) - damage);
-                        // Platforms don't take knockback, but others might
-                        if (ent.subtype !== 'platform') {
-                            ent.vx += (edx / edist) * 8;
-                            ent.vy -= 3;
-                        }
-                    }
-                });
-            }
-        }
+    const handleWeatherEffectHitWrapper = (type, data) => {
+        handleWeatherEffectHit(type, data, { gameState, entitiesRef });
     };
+
+    // Listen for weather effect hits from the UI/Renderer
+    useEffect(() => {
+        const onHit = (e) => {
+            if (e && e.detail) {
+                handleWeatherEffectHitWrapper(e.detail.type, e.detail.data);
+            }
+        };
+        window.addEventListener('weather-effect-hit', onHit);
+        return () => window.removeEventListener('weather-effect-hit', onHit);
+    }, []);
 
     // Secrets detection wrapper
     const checkSecretsWrapper = (currentX, currentY, width, height, mapWidth, mapHeight) => {
