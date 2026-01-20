@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const AnimatedItem = ({ textures, texture, speed, style, alt, className, spriteSheet }) => {
+const AnimatedItem = ({ textures, texture, speed, style, alt, className, spriteSheet, frameIndex }) => {
     const [index, setIndex] = useState(0);
 
     useEffect(() => {
@@ -30,10 +30,10 @@ const AnimatedItem = ({ textures, texture, speed, style, alt, className, spriteS
         const total = spriteSheet.totalSprites || 1;
         const rows = Math.ceil(total / columns);
         
-        // Editorā parasti rādām pirmo kadru (index 0)
-        const frameIndex = 0;
-        const col = frameIndex % columns;
-        const row = Math.floor(frameIndex / columns);
+        // Editorā parasti rādām pirmo kadru (index 0) vai norādīto kadru
+        const currentFrame = frameIndex !== undefined ? frameIndex : 0;
+        const col = currentFrame % columns;
+        const row = Math.floor(currentFrame / columns);
 
         return (
             <div className={className} style={{

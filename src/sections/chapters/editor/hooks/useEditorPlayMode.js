@@ -138,6 +138,12 @@ export const useEditorPlayMode = (
                 newData[payload] = null;
                 return newData;
             });
+        } else if (newState === 'setObjectFrame' && payload !== undefined) {
+            const { index, frame } = payload;
+            setObjectMetadata(prev => ({
+                ...prev,
+                [index]: { ...prev[index], currentFrame: frame }
+            }));
         } else if (newState === 'switchMap' && payload !== undefined) {
             const { targetMapId, triggerId } = payload;
             if (switchMap && targetMapId) {

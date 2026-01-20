@@ -2,13 +2,15 @@ import React from 'react';
 
 export const ObjectPropsPanel = ({ 
     objectMapData, 
+    secretMapData,
     registryItems, 
     mapWidth, 
     objectMetadata, 
     highlightedIndex, 
     setHighlightedIndex, 
     setObjectMetadata,
-    maps
+    maps,
+    createMap
 }) => {
     const mapList = Object.values(maps || {});
     const listRef = React.useRef(null);
@@ -33,14 +35,25 @@ export const ObjectPropsPanel = ({
                 <strong>2.</strong> Configure <strong>Trigger ID</strong> for links, <strong>Intensity</strong> for weather or <strong>Message Text</strong>.
             </p>
             <div ref={listRef} style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-                {objectMapData.map((id, index) => {
-                    if (!id) return null;
-                    const def = registryItems.find(r => r.id === id);
-                    const isWeather = def && def.type === 'weather_trigger';
-                    const isMessage = def && def.type === 'message_trigger';
-                    const isPortalOrTarget = id.includes('portal') || id.includes('target') || id === 'portal_target';
+                {Array.from({ length: objectMapData.length }).map((_, index) => {
+                    const objId = objectMapData[index];
+                    const secretId = secretMapData ? secretMapData[index] : null;
                     
-                    if (!def || (!isPortalOrTarget && !isWeather && !isMessage)) return null;
+                    if (!objId && !secretId) return null;
+
+                    const objDef = objId ? registryItems.find(r => r.id === objId) : null;
+                    const secretDef = secretId ? registryItems.find(r => r.id === secretId) : null;
+                    
+                    const isWeather = objDef && objDef.type === 'weather_trigger';
+                    const isMessage = objDef && objDef.type === 'message_trigger';
+                    const isPortalOrTarget = objId && (objId.includes('portal') || objId.includes('target') || objId === 'portal_target');
+                    const isDoor = objDef && objDef.subtype === 'door';
+                    const isRoomArea = secretDef && secretDef.subtype === 'room';
+
+                    if (!isPortalOrTarget && !isWeather && !isMessage && !isRoomArea && !isDoor) return null;
+
+                    const def = objDef || secretDef;
+                    const id = objId || secretId;
 
                     const x = index % mapWidth;
                     const y = Math.floor(index / mapWidth);
@@ -66,7 +79,7 @@ export const ObjectPropsPanel = ({
                         >
                             <div style={{ fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    {(isWeather || isMessage) ? def.editorIcon : (id.includes('portal') && !id.includes('target') ? '🔵' : '🎯')} {def.displayName || def.name}
+                                    {isRoomArea ? '🏠' : ((isWeather || isMessage) ? def.editorIcon : (id.includes('portal') && !id.includes('target') ? '🔵' : '🎯'))} {def.displayName || def.name}
                                 </span>
                                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                                     <span style={{ color: '#666', fontSize: '11px' }}>({x}, {y})</span>
@@ -90,7 +103,93 @@ export const ObjectPropsPanel = ({
                                 </div>
                             </div>
 
-                            {(!isWeather && !isMessage) && (
+                            {isRoomArea && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Room Name:</label>
+                                        <input
+                                            type="text"
+                                            value={metadata.roomName || ''}
+                                            placeholder="Enter house name"
+                                            onChange={(e) => {
+                                                setObjectMetadata(prev => ({
+                                                    ...prev,
+                                                    [index]: { ...prev[index], roomName: e.target.value }
+                                                }));
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                padding: '4px 8px',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                fontSize: '13px',
+                                            }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Size:</label>
+                                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                            <input
+                                                type="number"
+                                                value={metadata.width || 1}
+                                                min="1"
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setObjectMetadata(prev => ({
+                                                        ...prev,
+                                                        [index]: { ...prev[index], width: isNaN(val) ? 1 : val }
+                                                    }));
+                                                }}
+                                                style={{ width: '50px', padding: '2px 5px' }}
+                                            />
+                                            <span>x</span>
+                                            <input
+                                                type="number"
+                                                value={metadata.height || 1}
+                                                min="1"
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setObjectMetadata(prev => ({
+                                                        ...prev,
+                                                        [index]: { ...prev[index], height: isNaN(val) ? 1 : val }
+                                                    }));
+                                                }}
+                                                style={{ width: '50px', padding: '2px 5px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    {metadata.linkedMapId ? (
+                                        <div style={{ fontSize: '11px', color: 'green' }}>
+                                            Linked to Map ID: {metadata.linkedMapId}
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                if (createMap) {
+                                                    const mapId = createMap('room', metadata.roomName || 'Room Area', metadata.width || 1, metadata.height || 1);
+                                                    setObjectMetadata(prev => ({
+                                                        ...prev,
+                                                        [index]: { ...prev[index], linkedMapId: mapId }
+                                                    }));
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '6px',
+                                                backgroundColor: '#4CAF50',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold'
+                                            }}
+                                        >
+                                            Confirm
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {(!isWeather && !isMessage && !isRoomArea) && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Trigger ID:</label>
                                     <input
@@ -171,32 +270,82 @@ export const ObjectPropsPanel = ({
                                 </div>
                             )}
 
-                            {id.includes('portal') && !id.includes('target') && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Target Map:</label>
-                                    <select
-                                        value={metadata.targetMapId || ''}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setObjectMetadata(prev => ({
-                                                ...prev,
-                                                [index]: { ...prev[index], targetMapId: val === '' ? null : val }
-                                            }));
-                                        }}
-                                        style={{
-                                            flex: 1,
-                                            padding: '4px 8px',
-                                            border: '1px solid #ccc',
-                                            borderRadius: '4px',
-                                            fontSize: '13px',
-                                            backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
-                                        }}
-                                    >
-                                        <option value="">Current Map</option>
-                                        {mapList.map(m => (
-                                            <option key={m.id} value={m.id}>{m.name}</option>
-                                        ))}
-                                    </select>
+                            {( (id.includes('portal') && !id.includes('target')) || isDoor ) && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '5px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Target Map:</label>
+                                        <select
+                                            value={metadata.targetMapId || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setObjectMetadata(prev => ({
+                                                    ...prev,
+                                                    [index]: { ...prev[index], targetMapId: val === '' ? null : val }
+                                                }));
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                padding: '4px 8px',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                fontSize: '13px',
+                                                backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
+                                            }}
+                                        >
+                                            <option value="">Current Map</option>
+                                            {mapList.map(m => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Spawn ID:</label>
+                                        <input
+                                            type="number"
+                                            value={metadata.spawnTriggerId !== undefined ? metadata.spawnTriggerId : ''}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                setObjectMetadata(prev => ({
+                                                    ...prev,
+                                                    [index]: { ...prev[index], spawnTriggerId: isNaN(val) ? null : val }
+                                                }));
+                                            }}
+                                            placeholder="Trigger ID to spawn at"
+                                            style={{
+                                                flex: 1,
+                                                padding: '4px 8px',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                fontSize: '13px',
+                                                backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
+                                            }}
+                                        />
+                                    </div>
+                                    {isDoor && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Delay (s):</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={metadata.delaySeconds !== undefined ? metadata.delaySeconds : (objDef.interaction?.delaySeconds || 0.5)}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setObjectMetadata(prev => ({
+                                                        ...prev,
+                                                        [index]: { ...prev[index], delaySeconds: isNaN(val) ? 0.5 : val }
+                                                    }));
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '4px 8px',
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '4px',
+                                                    fontSize: '13px',
+                                                    backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

@@ -125,6 +125,8 @@ export const Editor = () => {
     const [activeTool, setActiveTool] = useState('brush');
     const [activeLayer, setActiveLayer] = useState('tile');
     const [dragStart, setDragStart] = useState(null);
+    const [isRoomAreaVisible, setIsRoomAreaVisible] = useState(false);
+    const [isWorldViewOpen, setIsWorldViewOpen] = useState(false);
     const stateRef = useRef({ mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata });
 
     // Metadata State
@@ -234,12 +236,13 @@ export const Editor = () => {
         playerPosition
     ]);
 
-    const handleCreateMap = useCallback((type) => {
-        const name = prompt(`Enter ${type} map name:`, `New ${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        if (name) {
-            const newId = createNewMap(type, name, mapWidth, mapHeight);
-            // Optionally switch to it immediately
-            // switchMap(newId); 
+    const handleCreateMap = useCallback((type, name, width, height) => {
+        const finalName = name || prompt(`Enter ${type} map name:`, `New ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        if (finalName) {
+            const finalWidth = width || mapWidth;
+            const finalHeight = height || mapHeight;
+            const newId = createNewMap(type, finalName, finalWidth, finalHeight);
+            return newId;
         }
     }, [createNewMap, mapWidth, mapHeight]);
 
@@ -373,6 +376,12 @@ export const Editor = () => {
     const emptyBlocks = totalTiles - filledBlocks;
     const objectsCount = objectMapData.filter(o => o !== null).length;
 
+    const onAddRoomArea = useCallback(() => {
+        setIsWorldViewOpen(false);
+        setActiveTool('area');
+        setActiveLayer('secret');
+    }, []);
+
     return (
         <div className="editor-wrapper" style={{ position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <NewMapModal 
@@ -434,6 +443,7 @@ export const Editor = () => {
                     mapWidth={mapWidth}
                     mapHeight={mapHeight}
                     objectMapData={objectMapData}
+                    secretMapData={secretMapData}
                     objectMetadata={objectMetadata}
                     setObjectMetadata={setObjectMetadata}
                     registryItems={registryItems}
@@ -443,6 +453,7 @@ export const Editor = () => {
                     setActivePanel={setActivePanel}
                     togglePanel={togglePanel}
                     maps={maps}
+                    createMap={handleCreateMap}
                 />
 
                 <div style={{ display: 'flex', flex: 1, flexDirection: 'column', overflow: 'hidden' }}>
@@ -474,6 +485,8 @@ export const Editor = () => {
                         setSelectedBackgroundColor={setSelectedBackgroundColor}
                         showBackgroundImage={showBackgroundImage}
                         setShowBackgroundImage={setShowBackgroundImage}
+                        isRoomAreaVisible={isRoomAreaVisible}
+                        setIsRoomAreaVisible={setIsRoomAreaVisible}
                     />
                     
                     <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
@@ -482,6 +495,9 @@ export const Editor = () => {
                         handleMapResize={handleMapResize}
                         isResizeWindowOpen={isResizeWindowOpen}
                         setIsResizeWindowOpen={setIsResizeWindowOpen}
+                        isWorldViewOpen={isWorldViewOpen}
+                        setIsWorldViewOpen={setIsWorldViewOpen}
+                        onAddRoomArea={onAddRoomArea}
                         mapWidth={mapWidth}
                         mapHeight={mapHeight}
                         tileMapData={tileMapData}
@@ -562,6 +578,8 @@ export const Editor = () => {
                             weatherLavaRain={weatherLavaRain}
                             weatherRadioactiveFog={weatherRadioactiveFog}
                             weatherMeteorRain={weatherMeteorRain}
+                            mapType={maps[activeMapId]?.type || 'overworld'}
+                            isRoomAreaVisible={isRoomAreaVisible}
                         />
                     ) : (
                         <div style={{ flex: 1, position: 'relative', backgroundColor: '#000' }}>
@@ -593,6 +611,7 @@ export const Editor = () => {
                                 isEditor={false}
                                 isEditorPlayMode={true}
                                 showGrid={showGrid}
+                                mapType={maps[activeMapId]?.type || 'overworld'}
                             />
                             {isGameOver && (
                                 <GameOverOverlay>

@@ -159,6 +159,37 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
       return;
   }
 
+  // Check for Door logic
+  if (objDef.subtype === 'door') {
+    if (keys.e) {
+      // 1. Play sound
+      const sound = currentMeta?.sound || objDef.interaction?.sound;
+      if (sound) {
+        try { playShotSfx(sound, objDef.sfxVolume || 0.5); } catch {}
+      }
+
+      // 2. Change frame to 'opening'
+      if (onStateUpdate) {
+        onStateUpdate('setObjectFrame', { index: actualIndex, frame: objDef.interaction?.frames?.opening || 1 });
+      }
+
+      // 3. Delay and switch map
+      const delayS = currentMeta?.delaySeconds !== undefined ? currentMeta.delaySeconds : (objDef.interaction?.delaySeconds || 0.5);
+      
+      if (onStateUpdate && currentMeta?.targetMapId) {
+        setTimeout(() => {
+          onStateUpdate('switchMap', {
+            targetMapId: currentMeta.targetMapId,
+            triggerId: currentMeta.spawnTriggerId
+          });
+        }, delayS * 1000);
+      }
+      return;
+    }
+    // If not pressed E, but we are just standing there - the frame is handled by layerBuilder (closed or inside)
+    return;
+  }
+
   if (!objDef.name || !objDef.name.startsWith('interactable.')) return;
 
   // Check for Teleport logic

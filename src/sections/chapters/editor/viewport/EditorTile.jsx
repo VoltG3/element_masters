@@ -17,7 +17,9 @@ export const EditorTile = React.memo(({
     handleGridMouseEnter,
     handleResizeStart,
     handleMoveStart,
-    filter
+    filter,
+    mapType,
+    isRoomAreaVisible
 }) => {
     const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
     const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
@@ -31,8 +33,11 @@ export const EditorTile = React.memo(({
     const actualIndex = parentRegionIndex !== null ? parentRegionIndex : index;
     const triggerId = objectMetadata?.[actualIndex]?.triggerId;
     const intensity = objectMetadata?.[actualIndex]?.intensity;
-    const width = objectMetadata?.[actualIndex]?.width || 1;
-    const height = objectMetadata?.[actualIndex]?.height || 1;
+    
+    // Dimensijas ņemam no tiešā indeksa, lai izvairītos no citu objektu (piem. Room Area) 
+    // ietekmes uz 1x1 objektiem, kas atrodas to robežās.
+    const width = objectMetadata?.[index]?.width || 1;
+    const height = objectMetadata?.[index]?.height || 1;
 
     const handleMouseDown = (e) => {
         // If we're clicking a tile that's part of a region, we should interact with the anchor
@@ -51,8 +56,8 @@ export const EditorTile = React.memo(({
 
     const isResizable = React.useMemo(() => {
         if (!objObj && !secretObj) return false;
-        // Specifically requested to disable for these types
-        if (secretObj && secretObj.type === 'secret') return false;
+        // Specifically requested to disable for these types, except Room Areas which MUST be resizable
+        if (secretObj && secretObj.type === 'secret' && secretObj.subtype !== 'room') return false;
         if (objObj && (objObj.type === 'crack_block' || objObj.type === 'wolf_secret')) return false;
         return true;
     }, [objObj, secretObj]);
@@ -149,10 +154,10 @@ export const EditorTile = React.memo(({
             {objObj && (
                 <div style={{
                     position: 'absolute', 
-                    top: '2px',
-                    left: '2px',
-                    width: `${width * 32 - 4}px`,
-                    height: `${height * 32 - 4}px`,
+                    top: objObj.type === 'decoration' ? '0' : '2px',
+                    left: objObj.type === 'decoration' ? '0' : '2px',
+                    width: objObj.type === 'decoration' ? `${width * 32}px` : `${width * 32 - 4}px`,
+                    height: objObj.type === 'decoration' ? `${height * 32}px` : `${height * 32 - 4}px`,
                     zIndex: 3,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     filter: filter ? filter('object') : 'none', transition: 'filter 0.3s ease',
@@ -166,7 +171,14 @@ export const EditorTile = React.memo(({
                             texture={objObj.texture}
                             speed={objObj.animationSpeed}
                             spriteSheet={objObj.spriteSheet}
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.3)' }}
+                            frameIndex={objectMetadata?.[actualIndex]?.currentFrame !== undefined ? objectMetadata[actualIndex].currentFrame : (objObj.subtype === 'door' && mapType === 'room' ? (objObj.interaction?.frames?.inside || 2) : 0)}
+                            style={{ 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: objObj.type === 'decoration' ? 'cover' : 'contain', 
+                                backgroundColor: objObj.type === 'decoration' ? 'transparent' : 'rgba(255,255,255,0.1)', 
+                                border: objObj.type === 'decoration' ? 'none' : '1px dashed rgba(255,255,255,0.3)' 
+                            }}
                         />
                     )}
 
@@ -191,6 +203,33 @@ export const EditorTile = React.memo(({
                             {intensity}%
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Room Area Visibility Overlay */}
+            {isRoomAreaVisible && secretObj && secretObj.subtype === 'room' && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0,
+                    width: `${width * 32}px`,
+                    height: `${height * 32}px`,
+                    backgroundColor: 'rgba(255, 255, 0, 0.2)',
+                    border: '2px solid gold',
+                    boxSizing: 'border-box',
+                    zIndex: 4,
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#000',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 2px #fff'
+                }}>
+                    <span style={{ fontSize: '14px' }}>🏠</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{objectMetadata?.[actualIndex]?.roomName || 'Unnamed'}</span>
+                    <span style={{ fontSize: '9px' }}>{width}x{height}m</span>
                 </div>
             )}
         </div>

@@ -159,11 +159,18 @@ export const PalettePanel = ({
             )}
 
             {category === 'interactables' && (
-                <CollapsiblePanel title="Interactables" isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {interactables.map(i => renderPaletteItem(i, 'purple', 'object'))}
-                    </div>
-                </CollapsiblePanel>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <CollapsiblePanel title="Doors" isOpenDefault={true}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {interactables.filter(i => i.subtype === 'door').map(i => renderPaletteItem(i, 'purple', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+                    <CollapsiblePanel title="Other Interactables" isOpenDefault={true}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {interactables.filter(i => i.subtype !== 'door').map(i => renderPaletteItem(i, 'purple', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+                </div>
             )}
 
             {category === 'hazards' && (
@@ -176,6 +183,12 @@ export const PalettePanel = ({
 
             {category === 'secrets' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <CollapsiblePanel title="empty" isOpenDefault={true}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {secrets && secrets.filter(s => s.subtype === 'room').map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                        </div>
+                    </CollapsiblePanel>
+
                     <CollapsiblePanel title="Open Area" isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {secrets && secrets.filter(s => s.subtype === 'open').map(s => renderPaletteItem(s, 'purple', 'secret'))}
@@ -184,7 +197,7 @@ export const PalettePanel = ({
                     
                     <CollapsiblePanel title="Secret Area" isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {secrets && secrets.filter(s => s.subtype !== 'open').map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                            {secrets && secrets.filter(s => s.subtype !== 'open' && s.subtype !== 'room').map(s => renderPaletteItem(s, 'purple', 'secret'))}
                         </div>
                     </CollapsiblePanel>
 

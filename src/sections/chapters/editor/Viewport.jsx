@@ -41,7 +41,9 @@ export const Viewport = ({
     weatherThunder,
     weatherLavaRain,
     weatherRadioactiveFog,
-    weatherMeteorRain
+    weatherMeteorRain,
+    mapType,
+    isRoomAreaVisible
 }) => {
     const isEraserActive = activeTool === 'brush' && selectedTile === null;
     const isBrushActive = activeTool === 'brush';
@@ -240,6 +242,19 @@ export const Viewport = ({
                                 const maxY = Math.max(dragStart.y, hy);
                                 if (x >= minX && x <= maxX && y >= minY && y <= maxY) { borderStyle = '1px dashed blue'; bgStyle = 'rgba(0, 0, 255, 0.1)'; }
                             } else if (!isDragging && hoverIndex === index) borderStyle = '2px solid blue';
+                        } else if (activeTool === 'area') {
+                            if (isDragging && dragStart && hoverIndex !== null) {
+                                const hx = hoverIndex % mapWidth;
+                                const hy = Math.floor(hoverIndex / mapWidth);
+                                const minX = Math.min(dragStart.x, hx);
+                                const minY = Math.min(dragStart.y, hy);
+                                const maxX = Math.max(dragStart.x, hx);
+                                const maxY = Math.max(dragStart.y, hy);
+                                if (x >= minX && x <= maxX && y >= minY && y <= maxY) { 
+                                    borderStyle = '1px dashed gold'; 
+                                    bgStyle = 'rgba(255, 255, 0, 0.2)'; 
+                                }
+                            } else if (!isDragging && hoverIndex === index) borderStyle = '2px solid gold';
                         }
 
                         if (highlightedIndex === index) { borderStyle = '3px solid gold'; bgStyle = 'rgba(255, 215, 0, 0.4)'; }
@@ -275,6 +290,8 @@ export const Viewport = ({
                                 handleResizeStart={handleResizeStart}
                                 handleMoveStart={handleMoveStart}
                                 filter={getLayerFilter}
+                                mapType={mapType}
+                                isRoomAreaVisible={isRoomAreaVisible}
                             />
                         );
                     })}

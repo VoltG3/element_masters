@@ -8,7 +8,8 @@ export const WorldView = ({
     currentMapData,
     createMap,
     deleteMap,
-    updateMapData
+    updateMapData,
+    onAddRoomArea
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -44,6 +45,15 @@ export const WorldView = ({
         
         // Sync mapLayoutsRef with allMaps, but preserve positions for maps being dragged
         const layouts = mapLayoutsRef.current;
+        
+        // Remove layouts for deleted maps
+        const currentIds = new Set(allMaps.map(m => m.id));
+        Object.keys(layouts).forEach(id => {
+            if (!currentIds.has(id)) {
+                delete layouts[id];
+            }
+        });
+
         allMaps.forEach(map => {
             const isDragging = dragRef.current && dragRef.current.id === map.id;
             const w = map.mapWidth * baseTileSize;
@@ -314,6 +324,13 @@ export const WorldView = ({
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#5D4037', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
                 >
                     + Underworld
+                </button>
+                <button 
+                    onClick={onAddRoomArea}
+                    title="Mark Room Area on Map"
+                    style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#f39c12', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
+                >
+                    + m<sup>2</sup>
                 </button>
                 <div style={{ marginLeft: 'auto', color: '#ccc', fontSize: '11px' }}>
                     Double-click map to select. Drag to move.

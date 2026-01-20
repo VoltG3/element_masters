@@ -55,6 +55,7 @@ const PixiStage = ({
   lavaEmbersEnabled = true,
   isEditor = false,
   isEditorPlayMode = false,
+  mapType = 'overworld',
   showGrid = false,
   renderLayers = null, // null means all layers, otherwise an array of layer names to show
   pointerEvents = 'auto',
@@ -729,7 +730,7 @@ const PixiStage = ({
         if (bgRef.current && objBehindRef.current && objFrontRef.current) {
             rebuildLayers(
                 { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor, isEditorPlayMode }
+                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor, isEditorPlayMode, mapType }
             );
 
             // Rebuild player visuals if visuals changed or player not created yet

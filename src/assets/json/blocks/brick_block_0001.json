@@ -1,0 +1,15 @@
+{
+  "id": "brick_block_0001",
+  "name": "block.brick_0001",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/blocks/brick_block_0001.png",
+  "renderAbovePlayer": false,
+  "collision": {
+    "top": true,
+    "bottom": true,
+    "left": true,
+    "right": true
+  }
+}

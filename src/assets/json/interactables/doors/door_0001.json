@@ -1,0 +1,26 @@
+{
+  "id": "door_0001",
+  "name": "interactable.door_0001",
+  "type": "interactable",
+  "subtype": "door",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/interactables/doors/door_0001.png",
+  "collision": true,
+  "renderAbovePlayer": false,
+  "spriteSheet": {
+    "enabled": true,
+    "totalSprites": 3,
+    "columns": 2,
+    "rows": 2
+  },
+  "interaction": {
+    "sound": null,
+    "delaySeconds": 0.5,
+    "frames": {
+      "closed": 0,
+      "opening": 1,
+      "inside": 2
+    }
+  }
+}

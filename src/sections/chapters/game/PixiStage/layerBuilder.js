@@ -17,7 +17,8 @@ export const rebuildLayers = (refs, options) => {
     registryItems,
     objectMetadata,
     isEditor,
-    isEditorPlayMode
+    isEditorPlayMode,
+    mapType
   } = options;
 
   const { bgRef, objBehindRef, objFrontRef, secretLayerRef } = refs;
@@ -182,7 +183,16 @@ export const rebuildLayers = (refs, options) => {
       const columns = def.spriteSheet.columns || totalSprites;
       
       const healthPercent = Math.max(0, Math.min(100, (health / maxH) * 100));
-      let frameIndex = Math.floor((1 - healthPercent / 100) * (totalSprites - 1));
+      let frameIndex = 0;
+      
+      if (meta.currentFrame !== undefined) {
+        frameIndex = meta.currentFrame;
+      } else if (def.subtype === 'door' && mapType === 'room') {
+        frameIndex = def.interaction?.frames?.inside || 2;
+      } else {
+        frameIndex = Math.floor((1 - healthPercent / 100) * (totalSprites - 1));
+      }
+      
       frameIndex = Math.max(0, Math.min(totalSprites - 1, frameIndex));
 
       const baseTexture = getTexture(def.texture);
@@ -225,8 +235,10 @@ export const rebuildLayers = (refs, options) => {
       visualElement.y = 0;
     }
     
-    visualElement.width = tileSize;
-    visualElement.height = tileSize;
+    const objWidth = (meta.width || def.width || 1) * tileSize;
+    const objHeight = (meta.height || def.height || 1) * tileSize;
+    visualElement.width = objWidth;
+    visualElement.height = objHeight;
 
     // Create a container if we need a health bar or just to keep it clean
     const container = new Container();
@@ -262,7 +274,7 @@ export const rebuildLayers = (refs, options) => {
     if (def.isDestructible && health < maxH && health > 0) {
       try {
         const hb = new HealthBar({
-          width: tileSize,
+          width: objWidth,
           height: 4,
           offsetX: 0,
           offsetY: -5

@@ -26,35 +26,38 @@ import {
     GridIcon
 } from './styles/EditorToolsButton';
 
-export const EditorTools = ({
-    mapName, 
-    creatorName, 
-    activePanel, 
-    togglePanel,
-    showGrid, 
-    setShowGrid,
-    isPlayMode,
-    handlePlay,
-    handlePause,
-    handleReset,
-    activeTool,
-    setActiveTool,
-    brushSize,
-    setBrushSize,
-    activeLayer,
-    selection,
-    moveSelection,
-    selectionMode,
-    setSelectionMode,
-    commitSelection,
-    cancelSelection,
-    selectedTile,
-    handlePaletteSelect,
-    selectedBackgroundColor,
-    setSelectedBackgroundColor,
-    showBackgroundImage,
-    setShowBackgroundImage
-}) => {
+export const EditorTools = (props) => {
+    const {
+        mapName, 
+        creatorName, 
+        activePanel, 
+        togglePanel,
+        showGrid, 
+        setShowGrid,
+        isPlayMode,
+        handlePlay,
+        handlePause,
+        handleReset,
+        activeTool,
+        setActiveTool,
+        brushSize,
+        setBrushSize,
+        activeLayer,
+        selection,
+        moveSelection,
+        selectionMode,
+        setSelectionMode,
+        commitSelection,
+        cancelSelection,
+        selectedTile,
+        handlePaletteSelect,
+        selectedBackgroundColor,
+        setSelectedBackgroundColor,
+        showBackgroundImage,
+        setShowBackgroundImage,
+        isRoomAreaVisible,
+        setIsRoomAreaVisible
+    } = props;
     const getEraserData = (layer) => {
         const isActive = selectedTile === null && activeLayer === layer;
         const colors = {
@@ -93,12 +96,13 @@ export const EditorTools = ({
                 <ToolsSection>
                     <ToolsGroup>
 
-                        {/* Brush - Bucket - Move */}
+                        {/* Brush - Bucket - Move - Area */}
                         <ToolsRow>
                             {[
                                 { id: 'brush', icon: '🖌️', title: 'Brush (B)' },
                                 { id: 'bucket', icon: '🪣', title: 'Fill Bucket (F)' },
-                                { id: 'move', icon: '✋', title: 'Move Selection (M)' }
+                                { id: 'move', icon: '✋', title: 'Move Selection (M)' },
+                                { id: 'area', icon: <span style={{fontSize: '14px', fontWeight: 'bold'}}>m<sup>2</sup></span>, title: 'Room Area Tool' }
                             ].map(tool => (
                                 <ToolsEditorButton
                                     key={tool.id}
@@ -193,6 +197,16 @@ export const EditorTools = ({
                                 <GridIcon>
                                     {showGrid ? '▦' : '▢'}
                                 </GridIcon>
+                            </ToolsEditorButton>
+
+                            {/* Room Area Visibility */}
+                            <ToolsEditorButton
+                                onClick={() => setIsRoomAreaVisible(!isRoomAreaVisible)}
+                                $active={isRoomAreaVisible}
+                                $square
+                                title={isRoomAreaVisible ? "Hide Room Areas Overlay" : "Show Room Areas Overlay"}
+                            >
+                                <span style={{ fontSize: '14px' }}>🏠</span>
                             </ToolsEditorButton>
 
                             {/* Background Color Picker */}

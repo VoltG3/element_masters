@@ -51,10 +51,12 @@ export const EditorScene = ({
     switchMap,
     createMap,
     deleteMap,
-    updateMapData
+    updateMapData,
+    isWorldViewOpen,
+    setIsWorldViewOpen,
+    onAddRoomArea
 }) => {
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
-    const [isWorldViewOpen, setIsWorldViewOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isBackgroundOpen, setIsBackgroundOpen] = useState(false);
     const [isMusicOpen, setIsMusicOpen] = useState(false);
@@ -116,6 +118,7 @@ export const EditorScene = ({
                         createMap={createMap}
                         deleteMap={deleteMap}
                         updateMapData={updateMapData}
+                        onAddRoomArea={onAddRoomArea}
                         // Current map live data
                         currentMapData={{
                             id: activeMapId,

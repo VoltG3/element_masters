@@ -88,6 +88,9 @@ export const useEditorPainting = (
         if (activeTool === 'brush') {
             setIsDragging(true);
             paintTile(index);
+        } else if (activeTool === 'area') {
+            setIsDragging(true);
+            setDragStart({ x: index % mapWidth, y: Math.floor(index / mapWidth) });
         } else if (activeTool === 'bucket') {
             const isPropsLayer = activeLayer === 'props';
             const targetLayer = isPropsLayer ? 'object' : activeLayer;
@@ -230,6 +233,33 @@ export const useEditorPainting = (
     }, [setHoverIndex, activeTool, isDragging, paintTile, activeLayer, tileMapData, objectMapData, secretMapData, mapWidth, mapHeight, setBucketPreviewIndices, resizeState, moveState, objectMetadata, setObjectMetadata, setObjectMapData, setSecretMapData, setHighlightedIndex]);
 
     const handleGridMouseUp = useCallback((index) => {
+        if (activeTool === 'area' && isDragging && dragStart && index !== null) {
+            const hx = index % mapWidth;
+            const hy = Math.floor(index / mapWidth);
+            const x1 = Math.min(dragStart.x, hx);
+            const y1 = Math.min(dragStart.y, hy);
+            const x2 = Math.max(dragStart.x, hx);
+            const y2 = Math.max(dragStart.y, hy);
+            const w = x2 - x1 + 1;
+            const h = y2 - y1 + 1;
+            const baseIndex = y1 * mapWidth + x1;
+
+            setSecretMapData(prev => {
+                const next = [...prev];
+                next[baseIndex] = 'room_area';
+                return next;
+            });
+            setObjectMetadata(prev => ({
+                ...prev,
+                [baseIndex]: { ...prev[baseIndex], width: w, height: h, roomName: 'New Room' }
+            }));
+            setHighlightedIndex(baseIndex);
+            if (setActivePanel) setActivePanel('props');
+            setIsDragging(false);
+            setDragStart(null);
+            return;
+        }
+
         if (activeTool === 'move' && isDragging && !resizeState && !moveState && dragStart && index !== null) {
             const hx = index % mapWidth;
             const hy = Math.floor(index / mapWidth);

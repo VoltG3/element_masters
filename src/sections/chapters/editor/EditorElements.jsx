@@ -48,6 +48,7 @@ export const EditorElements = ({
     mapWidth,
     mapHeight,
     objectMapData,
+    secretMapData,
     objectMetadata,
     setObjectMetadata,
     registryItems,
@@ -56,7 +57,8 @@ export const EditorElements = ({
     activePanel,
     setActivePanel,
     togglePanel,
-    maps
+    maps,
+    createMap
 }) => {
     const [lastPanel, setLastPanel] = React.useState(null);
 
@@ -173,6 +175,7 @@ export const EditorElements = ({
                             {displayPanel === 'props' && (
                                 <ObjectPropsPanel 
                                     objectMapData={objectMapData}
+                                    secretMapData={secretMapData}
                                     registryItems={registryItems}
                                     mapWidth={mapWidth}
                                     objectMetadata={objectMetadata}
@@ -180,6 +183,7 @@ export const EditorElements = ({
                                     setHighlightedIndex={setHighlightedIndex}
                                     setObjectMetadata={setObjectMetadata}
                                     maps={maps}
+                                    createMap={createMap}
                                 />
                             )}
                         </PanelBody>
