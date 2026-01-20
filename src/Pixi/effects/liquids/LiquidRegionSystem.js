@@ -28,6 +28,9 @@ export default class LiquidRegionSystem {
     this._radioactiveWaterfallTex = null;
     this._time = 0;
     this._noiseTex = null;
+    this._lavaDetailTex = null;
+    this._waterDetailTex = null;
+    this._quicksandDetailTex = null;
     this._playerState = null; // Will be set from PixiStage
   }
 
@@ -98,6 +101,9 @@ export default class LiquidRegionSystem {
     try { this._radioactiveWaterTex?.destroy(true); } catch {}
     try { this._radioactiveWaterfallTex?.destroy(true); } catch {}
     try { this._noiseTex?.destroy(true); } catch {}
+    try { this._lavaDetailTex?.destroy(true); } catch {}
+    try { this._waterDetailTex?.destroy(true); } catch {}
+    try { this._quicksandDetailTex?.destroy(true); } catch {}
     this._waterTex = null;
     this._lavaTex = null;
     this._quicksandTex = null;
@@ -106,6 +112,9 @@ export default class LiquidRegionSystem {
     this._radioactiveWaterTex = null;
     this._radioactiveWaterfallTex = null;
     this._noiseTex = null;
+    this._lavaDetailTex = null;
+    this._waterDetailTex = null;
+    this._quicksandDetailTex = null;
     if (this._gradTextures) {
       for (const k in this._gradTextures) {
         try { this._gradTextures[k].destroy(true); } catch {}
@@ -139,9 +148,13 @@ export default class LiquidRegionSystem {
       try { this._lavaWaterfallTex?.destroy(true); } catch {}
       try { this._radioactiveWaterTex?.destroy(true); } catch {}
       try { this._radioactiveWaterfallTex?.destroy(true); } catch {}
+      try { this._lavaDetailTex?.destroy(true); } catch {}
+      try { this._waterDetailTex?.destroy(true); } catch {}
+      try { this._quicksandDetailTex?.destroy(true); } catch {}
       this._waterTex = null; this._lavaTex = null; this._quicksandTex = null; this._waterfallTex = null;
       this._lavaWaterfallTex = null;
       this._radioactiveWaterTex = null; this._radioactiveWaterfallTex = null;
+      this._lavaDetailTex = null; this._waterDetailTex = null; this._quicksandDetailTex = null;
     }
   }
 
@@ -149,13 +162,13 @@ export default class LiquidRegionSystem {
     const dt = Math.max(0, Number(dtMs) || 16.67);
     this._time += dt;
     // Gentle drift speeds (px/ms) per liquid type
-    const waterDrift = { x: 0.010, y: 0.004 };
-    const lavaDrift = { x: -0.012, y: 0.006 };
-    const quicksandDrift = { x: 0.002, y: 0.008 };
+    const waterDrift = { x: 0, y: 0 }; // Static (bubbles added via texture/noise)
+    const lavaDrift = { x: 0, y: 0 }; // Static (floating pieces added via noise/texture)
+    const quicksandDrift = { x: 0, y: 0 }; // Static (pixels fade via noise)
     const waterfallDrift = { x: 0, y: 0.15 }; // Fast vertical drift
     const lavaWaterfallDrift = { x: 0, y: 0.12 }; // Lava falls a bit slower/thicker
-    const radioactiveWaterDrift = { x: 0.008, y: 0.003 };
-    const radioactiveWaterfallDrift = { x: 0, y: 0.06 }; // Slower vertical drift
+    const radioactiveWaterDrift = { x: 0, y: 0 }; // Static
+    const radioactiveWaterfallDrift = { x: 0, y: 0.12 }; // Match lava waterfall speed or similar
     for (const r of this._regions) {
       const sprite = r.sprite;
       if (!sprite) continue;
@@ -214,14 +227,35 @@ export default class LiquidRegionSystem {
         g.fill({ color: splashColor, alpha: 0.5 + Math.sin(this._time * 0.02) * 0.2 });
       }
 
-      // Animate noise overlays to break repetition
+      // Animate noise/detail overlays
       if (r.noise1) {
-        r.noise1.tilePosition.x += drift.x * 1.6 * dt;
-        r.noise1.tilePosition.y += drift.y * 1.2 * dt;
+        if (r.type === 'water') {
+          r.noise1.tilePosition.y -= 0.015 * dt; // Bubbles go UP
+          r.noise1.tilePosition.x += Math.sin(this._time * 0.001) * 0.005 * dt; 
+        } else if (r.type === 'lava') {
+          r.noise1.tilePosition.x += 0.004 * dt; 
+          r.noise1.tilePosition.y += 0.002 * dt;
+        } else if (r.type === 'quicksand') {
+          // Fade effect for pixels
+          r.noise1.alpha = 0.4 + Math.sin(this._time * 0.001) * 0.2;
+          r.noise1.tilePosition.x += 0.001 * dt;
+        } else if (r.type.includes('waterfall')) {
+          r.noise1.tilePosition.y += drift.y * 0.8 * dt;
+          r.noise1.tilePosition.x += Math.sin(this._time * 0.002) * 0.02 * dt;
+        } else {
+          r.noise1.tilePosition.x += 0.008 * dt;
+          r.noise1.tilePosition.y += 0.004 * dt;
+        }
       }
       if (r.noise2) {
-        r.noise2.tilePosition.x += -drift.x * 1.1 * dt;
-        r.noise2.tilePosition.y += drift.y * 0.9 * dt;
+        if (r.type === 'quicksand') {
+          r.noise2.alpha = 0.2 + Math.cos(this._time * 0.0015) * 0.1;
+        } else if (r.type.includes('waterfall')) {
+          r.noise2.tilePosition.y += drift.y * 1.2 * dt;
+        } else {
+          r.noise2.tilePosition.x -= 0.005 * dt;
+          r.noise2.tilePosition.y += 0.003 * dt;
+        }
       }
 
       // Update interactive surface waves (small ripples from impacts)
@@ -384,19 +418,37 @@ export default class LiquidRegionSystem {
         tiling.alpha = type === 'lava' ? 0.98 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.6 : 0.92);
         node.addChild(tiling);
 
-        // Noise slāņi
-        const noiseTex = this._noiseTex || (this._noiseTex = this._createNoiseTexture(256, 256));
-        if (noiseTex.source && noiseTex.source.style) {
-          noiseTex.source.style.addressMode = 'repeat';
+        // Noise/Detail slāņi
+        let detailTex1, detailTex2;
+        if (type.includes('lava')) {
+          detailTex1 = this._lavaDetailTex || (this._lavaDetailTex = this._createLavaDetailTexture());
+          detailTex2 = this._noiseTex || (this._noiseTex = this._createNoiseTexture());
+        } else if (type === 'quicksand') {
+          detailTex1 = this._quicksandDetailTex || (this._quicksandDetailTex = this._createQuicksandDetailTexture());
+          detailTex2 = this._noiseTex || (this._noiseTex = this._createNoiseTexture());
+        } else if (type.includes('radioactive')) {
+          detailTex1 = this._noiseTex || (this._noiseTex = this._createNoiseTexture());
+          detailTex2 = this._noiseTex;
+        } else {
+          // water, waterfall
+          detailTex1 = this._waterDetailTex || (this._waterDetailTex = this._createWaterDetailTexture());
+          detailTex2 = this._noiseTex || (this._noiseTex = this._createNoiseTexture());
         }
 
-        const noise1 = new TilingSprite({ texture: noiseTex, width: worldW, height: worldH });
-        const noise2 = new TilingSprite({ texture: noiseTex, width: worldW, height: worldH });
+        if (detailTex1.source && detailTex1.source.style) detailTex1.source.style.addressMode = 'repeat';
+        if (detailTex2.source && detailTex2.source.style) detailTex2.source.style.addressMode = 'repeat';
+
+        const noise1 = new TilingSprite({ texture: detailTex1, width: worldW, height: worldH });
+        const noise2 = new TilingSprite({ texture: detailTex2, width: worldW, height: worldH });
         
         if (type === 'water' || type === 'radioactive_water') {
-          noise1.alpha = 0.08; noise2.alpha = 0.1;
+          noise1.alpha = 0.25; noise2.alpha = 0.15;
         } else if (type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') {
-          noise1.alpha = 0.05; noise2.alpha = 0.08;
+          noise1.alpha = 0.2; noise2.alpha = 0.15;
+        } else if (type === 'lava') {
+          noise1.alpha = 0.4; noise2.alpha = 0.2;
+        } else if (type === 'quicksand') {
+          noise1.alpha = 0.6; noise2.alpha = 0.3;
         } else {
           noise1.alpha = 0.12; noise2.alpha = 0.15;
         }
@@ -487,22 +539,18 @@ export default class LiquidRegionSystem {
         return Texture.from(canvas);
       }
 
-      _createWaterTexture(tileSize) {
-        const canvas = document.createElement('canvas');
-        const size = 64; // Power of Two obligāts v8 tilingam
-        canvas.width = size; canvas.height = size;
-        const ctx = canvas.getContext('2d');
+  _createWaterTexture(tileSize) {
+    const canvas = document.createElement('canvas');
+    const size = 64; 
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
 
-        // SEAMLESS gradients (sākums un beigas ir #3a7fb8)
-        const g = ctx.createLinearGradient(0, 0, 0, size);
-        g.addColorStop(0, '#3a7fb8');   
-        g.addColorStop(0.5, '#5ba3d9'); 
-        g.addColorStop(1, '#3a7fb8');   
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, size, size);
+    // Solid color instead of gradient to remove horizontal bars
+    ctx.fillStyle = '#3a7fb8';
+    ctx.fillRect(0, 0, size, size);
 
-        return Texture.from(canvas);
-      }
+    return Texture.from(canvas);
+  }
 
   _createLavaTexture(tileSize) {
     const canvas = document.createElement('canvas');
@@ -510,12 +558,8 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // SEAMLESS gradients lavai
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#ffcc00');
-    g.addColorStop(0.5, '#ffff00');
-    g.addColorStop(1, '#ffcc00');
-    ctx.fillStyle = g;
+    // Solid color instead of gradient
+    ctx.fillStyle = '#ffcc00';
     ctx.fillRect(0, 0, size, size);
 
     return Texture.from(canvas);
@@ -527,27 +571,20 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // SEAMLESS gradients lavai
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#ffcc00');   
-    g.addColorStop(0.5, '#ffff00'); 
-    g.addColorStop(1, '#ffcc00');   
-    ctx.fillStyle = g;
+    // No horizontal gradient to remove bars
+    ctx.fillStyle = '#ffcc00';
     ctx.fillRect(0, 0, size, size);
 
-    // Lava streaks
+    // Lava pieces/streaks (vertical) - these go down
     ctx.fillStyle = '#ffed8a';
     for (let k = 0; k < 10; k++) {
-      ctx.globalAlpha = 0.1 + Math.random() * 0.3;
+      ctx.globalAlpha = 0.2 + Math.random() * 0.3;
       const x = Math.random() * size;
       const y = Math.random() * size;
-      const h = 4 + Math.random() * 15;
-      const w = 1 + Math.random() * 2;
+      const h = 10 + Math.random() * 15;
+      const w = 3 + Math.random() * 4; // Wider "chunks"
       ctx.fillRect(x, y, w, h);
-      
-      if (y + h > size) {
-        ctx.fillRect(x, y - size, w, h);
-      }
+      if (y + h > size) ctx.fillRect(x, y - size, w, h);
     }
 
     return Texture.from(canvas);
@@ -559,18 +596,14 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // SEAMLESS gradients quicksand (smilšu krāsa)
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#a6915b');
-    g.addColorStop(0.5, '#d1ba7d');
-    g.addColorStop(1, '#a6915b');
-    ctx.fillStyle = g;
+    // Solid sand color
+    ctx.fillStyle = '#a6915b';
     ctx.fillRect(0, 0, size, size);
 
-    // grainy texture
-    ctx.globalAlpha = 0.2;
+    // grainy texture (static here, will animate pixels via noise)
+    ctx.globalAlpha = 0.3;
     ctx.fillStyle = '#5c5031';
-    for (let k = 0; k < 15; k++) {
+    for (let k = 0; k < 25; k++) {
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
 
@@ -583,34 +616,20 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // SEAMLESS gradients (izmantojam to pašu ko ūdenim konsistencei)
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#3a7fb8');   
-    g.addColorStop(0.5, '#5ba3d9'); 
-    g.addColorStop(1, '#3a7fb8');   
-    ctx.fillStyle = g;
+    // Background color
+    ctx.fillStyle = '#3a7fb8';
     ctx.fillRect(0, 0, size, size);
 
-    // Īsas svītriņas (dashes) nevis garas līnijas
+    // Vertical streaks
     ctx.fillStyle = '#ffffff';
-    for (let k = 0; k < 12; k++) {
-      ctx.globalAlpha = 0.1 + Math.random() * 0.3;
+    for (let k = 0; k < 15; k++) {
+      ctx.globalAlpha = 0.1 + Math.random() * 0.4;
       const x = Math.random() * size;
       const y = Math.random() * size;
-      const h = 4 + Math.random() * 12;
+      const h = 10 + Math.random() * 25;
       const w = 1 + Math.random() * 2;
       ctx.fillRect(x, y, w, h);
-      
-      // Nodrošinām seamless wrap-around vertikāli
-      if (y + h > size) {
-        ctx.fillRect(x, y - size, w, h);
-      }
-    }
-    
-    // some horizontal variation
-    ctx.globalAlpha = 0.1;
-    for (let k = 0; k < 10; k++) {
-      ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+      if (y + h > size) ctx.fillRect(x, y - size, w, h);
     }
 
     return Texture.from(canvas);
@@ -622,20 +641,16 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // SEAMLESS gradients toxic green
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#1a5c1a');   
-    g.addColorStop(0.5, '#32cd32'); 
-    g.addColorStop(1, '#1a5c1a');   
-    ctx.fillStyle = g;
+    // Solid toxic green
+    ctx.fillStyle = '#1a5c1a';
     ctx.fillRect(0, 0, size, size);
 
-    // Some mini bubbles
+    // Some mini bubbles (static here, noise provides movement)
     ctx.fillStyle = '#adff2f';
-    for (let k = 0; k < 10; k++) {
-      ctx.globalAlpha = 0.2 + Math.random() * 0.3;
+    for (let k = 0; k < 12; k++) {
+      ctx.globalAlpha = 0.3 + Math.random() * 0.4;
       ctx.beginPath();
-      ctx.arc(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 0, Math.PI * 2);
+      ctx.arc(Math.random() * size, Math.random() * size, 1 + Math.random() * 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -648,26 +663,70 @@ export default class LiquidRegionSystem {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#1a5c1a');   
-    g.addColorStop(0.5, '#32cd32'); 
-    g.addColorStop(1, '#1a5c1a');   
-    ctx.fillStyle = g;
+    ctx.fillStyle = '#1a5c1a';
     ctx.fillRect(0, 0, size, size);
 
+    // Vertical streaks
     ctx.fillStyle = '#adff2f';
-    for (let k = 0; k < 8; k++) {
-      ctx.globalAlpha = 0.1 + Math.random() * 0.2;
+    for (let k = 0; k < 12; k++) {
+      ctx.globalAlpha = 0.15 + Math.random() * 0.3;
       const x = Math.random() * size;
       const y = Math.random() * size;
-      const h = 4 + Math.random() * 10;
+      const h = 8 + Math.random() * 15;
       const w = 1 + Math.random() * 2;
       ctx.fillRect(x, y, w, h);
-      if (y + h > size) {
-        ctx.fillRect(x, y - size, w, h);
-      }
+      if (y + h > size) ctx.fillRect(x, y - size, w, h);
+    }
+    
+    // Pievienojam burbuļus (prasība: "var pieveinot burbuļus kuri iet uzleju kā radioactive water")
+    ctx.fillStyle = '#ffffff';
+    for (let k = 0; k < 6; k++) {
+      ctx.globalAlpha = 0.2 + Math.random() * 0.3;
+      ctx.beginPath();
+      ctx.arc(Math.random() * size, Math.random() * size, 1 + Math.random(), 0, Math.PI * 2);
+      ctx.fill();
     }
 
+    return Texture.from(canvas);
+  }
+
+  _createLavaDetailTexture(w = 128, h = 128) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ff8800'; 
+    for (let i = 0; i < 10; i++) {
+      ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+      const sw = 12 + Math.random() * 24;
+      const sh = 10 + Math.random() * 20;
+      ctx.fillRect(Math.random() * w, Math.random() * h, sw, sh);
+    }
+    return Texture.from(canvas);
+  }
+
+  _createWaterDetailTexture(w = 128, h = 128) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 12; i++) {
+      ctx.globalAlpha = 0.2 + Math.random() * 0.4;
+      ctx.beginPath();
+      ctx.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return Texture.from(canvas);
+  }
+
+  _createQuicksandDetailTexture(w = 128, h = 128) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#5c5031';
+    for (let i = 0; i < 100; i++) {
+      ctx.globalAlpha = 0.1 + Math.random() * 0.5;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+    }
     return Texture.from(canvas);
   }
 
