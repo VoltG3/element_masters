@@ -292,13 +292,13 @@ export default class LiquidRegionSystem {
       if (!id) return null;
       const def = getDef(id);
       if (!def || !def.flags || !def.flags.liquid) return null;
-      if (def.flags.water) return 'water';
-      if (def.flags.lava) return 'lava';
-      if (def.flags.quicksand) return 'quicksand';
-      if (def.flags.waterfall) return 'waterfall';
       if (def.flags.lava_waterfall) return 'lava_waterfall';
-      if (def.flags.radioactive_water) return 'radioactive_water';
       if (def.flags.radioactive_waterfall) return 'radioactive_waterfall';
+      if (def.flags.waterfall) return 'waterfall';
+      if (def.flags.radioactive_water) return 'radioactive_water';
+      if (def.flags.quicksand) return 'quicksand';
+      if (def.flags.lava) return 'lava';
+      if (def.flags.water) return 'water';
       return 'liquid';
     };
 
@@ -440,7 +440,7 @@ export default class LiquidRegionSystem {
             } else if (type === 'quicksand') {
               color = '#5d4037'; bottomColor = '#2d1d19';
             } else { 
-              color = '#2a5d8f'; bottomColor = '#0b1d2e';
+              color = '#3a7fb8'; bottomColor = '#0b1d2e';
             }
             this._gradTextures[type] = this._createGradientTexture(color, bottomColor);
           }

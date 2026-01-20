@@ -23,12 +23,13 @@ export function getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZ
   if (!id) return null;
   const def = Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
   if (!def || !def.flags || !def.flags.liquid) return null;
-  const type = def.flags.water ? 'water' : 
-               (def.flags.lava ? (def.flags.waterfall ? 'lava_waterfall' : 'lava') : 
-               (def.flags.quicksand ? 'quicksand' : 
-               (def.flags.waterfall ? 'waterfall' : 
+  const type = def.flags.lava_waterfall ? 'lava_waterfall' :
+               (def.flags.radioactive_waterfall ? 'radioactive_waterfall' :
+               (def.flags.waterfall ? 'waterfall' :
                (def.flags.radioactive_water ? 'radioactive_water' :
-               (def.flags.radioactive_waterfall ? 'radioactive_waterfall' : 'liquid')))));
+               (def.flags.quicksand ? 'quicksand' :
+               (def.flags.lava ? 'lava' :
+               (def.flags.water ? 'water' : 'liquid'))))));
   const params = {
     buoyancy: Number(def?.liquid?.buoyancy),
     dragX: Number(def?.liquid?.drag?.x),

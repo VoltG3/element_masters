@@ -125,15 +125,34 @@ export const rebuildLayers = (refs, options) => {
 
     // Apply filter if rendering on secret layer
     if (renderOnSecretLayer) {
-      // Add dark backing to block background image for tiles with alpha
+      // Add a full-opaque copy of the tile as a backing to prevent background parallax from shining through
+      // As requested: "if dirt.block, then dirt.block behind last layer"
+      let backingSprite;
+      if (frames && frames.length > 0) {
+        backingSprite = new AnimatedSprite(frames);
+        backingSprite.animationSpeed = sprite.animationSpeed;
+        backingSprite.play();
+      } else if (sprite.texture) {
+        backingSprite = new Sprite(sprite.texture);
+      }
+
+      if (backingSprite) {
+        backingSprite.x = x;
+        backingSprite.y = y;
+        backingSprite.width = tileSize;
+        backingSprite.height = tileSize;
+        // Add to bgRef which is below secretLayerRef.below
+        bgRef.addChild(backingSprite);
+      }
+
+      // Add dark backing to block background image and darken the backing sprite
       // Both open.area (always) and secret.area (when revealed) need backing
-      // Add to bgRef (same layer as tiles) to keep it BELOW objects
       const backing = new Graphics();
       backing.rect(x, y, tileSize, tileSize);
-      backing.fill({ color: 0x000000, alpha: 0.8 }); // Dark backing to block background
+      backing.fill({ color: 0x000000, alpha: 0.7 }); // Solid dark filter to block background completely
       bgRef.addChild(backing);
 
-      sprite.alpha = 0.4; // darken the tile
+      sprite.alpha = 0.4; // darken the foreground tile
       // Add to secret layer (below player always for tiles)
       if (secretLayerRef?.below) {
         secretLayerRef.below.addChild(sprite);

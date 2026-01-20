@@ -30,18 +30,18 @@ export const PalettePanel = ({
         const isWaterfall = !!(item.flags && item.flags.waterfall);
         const isLavaWaterfall = !!(item.flags && item.flags.lava_waterfall);
         const isRadioactive = !!(item.flags && item.flags.radioactive);
+        const isRadioactiveWaterfall = !!(item.flags && item.flags.radioactive_waterfall);
         const isSecret = item.type === 'secret';
         const isWeatherTrigger = item.type === 'weather_trigger';
         const isMessageTrigger = item.type === 'message_trigger';
         
-        const swatchStyle = isWater
-            ? { background: 'linear-gradient(180deg,#3a7fb8,#5ba3d9)' }
-            : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' } 
-            : (isQuicksand ? { background: 'linear-gradient(180deg,#a6915b,#7d6d42)' } 
-            : (isWaterfall ? { background: 'linear-gradient(180deg,#3a7fb8,#5ba3d9)' } 
-            : (isLavaWaterfall ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' }
-            : (isRadioactive ? { background: 'linear-gradient(180deg,#1a5c1a,#32cd32)' }
-            : { background: '#eee' })))));
+        const swatchStyle = isLavaWaterfall
+            ? { background: 'linear-gradient(180deg,#8b0000,#cc3300)' }
+            : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' }
+            : (isWater || isWaterfall ? { background: 'linear-gradient(180deg,#3a7fb8,#5ba3d9)' }
+            : (isQuicksand ? { background: 'linear-gradient(180deg,#a6915b,#7d6d42)' }
+            : (isRadioactive || isRadioactiveWaterfall ? { background: 'linear-gradient(180deg,#1a5c1a,#32cd32)' }
+            : { background: '#eee' }))));
 
         return (
             <div
@@ -94,7 +94,7 @@ export const PalettePanel = ({
                         fontSize: 10, textAlign: 'center', lineHeight: 1.1,
                         ...swatchStyle
                     }}>
-                        {isLiquid ? (isWater ? 'WATER' : (isLava ? 'LAVA' : (isQuicksand ? 'QUICK' : (isWaterfall ? 'FALL' : (isLavaWaterfall ? 'L.FALL' : (isRadioactive ? 'RAD' : 'LIQ')))))) : (item.name || '—')}
+                        {isLiquid ? (isLavaWaterfall ? 'L.FALL' : (isLava ? 'LAVA' : (isRadioactiveWaterfall ? 'RADFALL' : (isRadioactive ? 'RAD' : (isWater ? 'WATER' : (isWaterfall ? 'FALL' : (isQuicksand ? 'QUICK' : 'LIQ'))))))) : (item.name || '—')}
                     </div>
                 )}
             </div>

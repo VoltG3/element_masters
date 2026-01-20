@@ -12,8 +12,9 @@ export const createWaterFrames = (tileSize) => {
 
     // background gradient
     const g = ctx.createLinearGradient(0, 0, 0, tileSize);
-    g.addColorStop(0, '#2a5d8f');
-    g.addColorStop(1, '#174369');
+    g.addColorStop(0, '#3a7fb8');
+    g.addColorStop(0.5, '#5ba3d9');
+    g.addColorStop(1, '#3a7fb8');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, tileSize, tileSize);
 

@@ -69,7 +69,9 @@ export const useEditorPainting = (
         // Quick select for configurable objects
         const existingObjId = objectMapData[index];
         const existingSecretId = secretMapData[index];
-        if ((existingObjId || existingSecretId) && setActivePanel && setHighlightedIndex) {
+        const isEraser = selectedTile === null && activeTool === 'brush';
+
+        if (!isEraser && (existingObjId || existingSecretId) && setActivePanel && setHighlightedIndex) {
             const def = registryItems?.find(r => r.id === (existingObjId || existingSecretId));
             const isConfigurable = (existingObjId && (existingObjId.includes('portal') || 
                                  existingObjId.includes('target') || 
