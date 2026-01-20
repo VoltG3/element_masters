@@ -210,7 +210,7 @@ export default class LiquidRegionSystem {
              g.circle(bx, by, 1 + Math.random() * 2);
           }
         }
-        const splashColor = r.type === 'lava_waterfall' ? 0xff4500 : (r.type === 'radioactive_waterfall' ? 0xadff2f : 0xffffff);
+        const splashColor = r.type === 'lava_waterfall' ? 0xffcc00 : (r.type === 'radioactive_waterfall' ? 0xadff2f : 0xffffff);
         g.fill({ color: splashColor, alpha: 0.5 + Math.sin(this._time * 0.02) * 0.2 });
       }
 
@@ -434,7 +434,7 @@ export default class LiquidRegionSystem {
           if (!this._gradTextures[type]) {
             let color, bottomColor;
             if (type.includes('lava')) {
-              color = '#881100'; bottomColor = '#220000';
+              color = '#ffaa00'; bottomColor = '#884400';
             } else if (type.includes('radioactive')) {
               color = '#004400'; bottomColor = '#001100';
             } else if (type === 'quicksand') {
@@ -512,9 +512,9 @@ export default class LiquidRegionSystem {
 
     // SEAMLESS gradients lavai
     const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#ffa229');
-    g.addColorStop(0.5, '#ffb84d');
-    g.addColorStop(1, '#ffa229');
+    g.addColorStop(0, '#ffcc00');
+    g.addColorStop(0.5, '#ffff00');
+    g.addColorStop(1, '#ffcc00');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 
@@ -529,9 +529,9 @@ export default class LiquidRegionSystem {
 
     // SEAMLESS gradients lavai
     const g = ctx.createLinearGradient(0, 0, 0, size);
-    g.addColorStop(0, '#6b1a07');   
-    g.addColorStop(0.5, '#c43f0f'); 
-    g.addColorStop(1, '#6b1a07');   
+    g.addColorStop(0, '#ffcc00');   
+    g.addColorStop(0.5, '#ffff00'); 
+    g.addColorStop(1, '#ffcc00');   
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 

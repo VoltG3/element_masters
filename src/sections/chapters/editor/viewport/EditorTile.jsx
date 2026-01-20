@@ -109,7 +109,7 @@ export const EditorTile = React.memo(({
                     {isLiquidTile ? (
                         <div style={{
                             width: '32px', height: '32px',
-                            background: isLavaWaterfallTile ? 'rgba(139, 0, 0, 0.7)' : (isLavaTile ? 'rgba(255, 69, 0, 0.7)' : (isWaterTile || isWaterfallTile ? 'rgba(58, 127, 184, 0.7)' : (isQuicksandTile ? 'rgba(218, 165, 32, 0.7)' : (isRadioactiveWaterTile || isRadioactiveWaterfallTile ? 'rgba(50, 205, 50, 0.7)' : 'rgba(0, 255, 255, 0.3)')))),
+                            background: isLavaWaterfallTile ? 'rgba(255, 204, 0, 0.7)' : (isLavaTile ? 'rgba(255, 204, 0, 0.7)' : (isWaterTile || isWaterfallTile ? 'rgba(58, 127, 184, 0.7)' : (isQuicksandTile ? 'rgba(218, 165, 32, 0.7)' : (isRadioactiveWaterTile || isRadioactiveWaterfallTile ? 'rgba(50, 205, 50, 0.7)' : 'rgba(0, 255, 255, 0.3)')))),
                             display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px'
                         }}>
                             {isLavaWaterfallTile ? 'L.FALL' : (isLavaTile ? 'LAVA' : (isRadioactiveWaterfallTile ? 'RADFALL' : (isRadioactiveWaterTile ? 'RAD' : (isWaterTile ? 'WATER' : (isWaterfallTile ? 'FALL' : (isQuicksandTile ? 'QUICK' : 'LIQ'))))))}

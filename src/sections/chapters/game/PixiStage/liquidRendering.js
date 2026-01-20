@@ -49,10 +49,10 @@ export const createLavaFrames = (tileSize) => {
     canvas.height = tileSize;
     const ctx = canvas.getContext('2d');
 
-    // base gradient (dark red to orange)
+    // base gradient (yellow to golden)
     const g = ctx.createLinearGradient(0, 0, 0, tileSize);
-    g.addColorStop(0, '#6b1a07');
-    g.addColorStop(1, '#c43f0f');
+    g.addColorStop(0, '#ffaa00');
+    g.addColorStop(1, '#ffcc00');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, tileSize, tileSize);
 
@@ -63,15 +63,15 @@ export const createLavaFrames = (tileSize) => {
       const y = Math.floor((tileSize / 3) * b + (tileSize / 3) * 0.5 + Math.sin((t * 2 + b * 0.6) * Math.PI * 2) * (tileSize * 0.1));
       const h = Math.max(1, Math.floor(tileSize * 0.07));
       const grad = ctx.createLinearGradient(0, y, 0, y + h);
-      grad.addColorStop(0, '#ffed8a');
-      grad.addColorStop(1, '#ff7b00');
+      grad.addColorStop(0, '#ffff00');
+      grad.addColorStop(1, '#ffaa00');
       ctx.fillStyle = grad;
       ctx.fillRect(0, y, tileSize, h);
     }
 
     // bubbles/dots
     ctx.globalAlpha = 0.25;
-    ctx.fillStyle = '#ffd36e';
+    ctx.fillStyle = '#ffffff';
     const count = Math.max(2, Math.floor(tileSize * 0.12));
     for (let k = 0; k < count; k++) {
       const rx = Math.floor((k * 37 + i * 13) % tileSize);
@@ -186,15 +186,15 @@ export const createLavaWaterfallFrames = (tileSize) => {
 
     // base transparent lava colors
     const g = ctx.createLinearGradient(0, 0, 0, tileSize);
-    g.addColorStop(0, 'rgba(107, 26, 7, 0.6)');
-    g.addColorStop(0.5, 'rgba(196, 63, 15, 0.6)');
-    g.addColorStop(1, 'rgba(107, 26, 7, 0.6)');
+    g.addColorStop(0, 'rgba(255, 170, 0, 0.6)');
+    g.addColorStop(0.5, 'rgba(255, 204, 0, 0.6)');
+    g.addColorStop(1, 'rgba(255, 170, 0, 0.6)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, tileSize, tileSize);
 
     // animated lava streaks
     const t = i / F;
-    ctx.fillStyle = 'rgba(255, 123, 0, 0.5)';
+    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
     const count = 5;
     for (let k = 0; k < count; k++) {
       const x = Math.floor((tileSize / count) * k + (tileSize / (count*2)) + Math.sin(t * Math.PI * 2 + k) * 2);

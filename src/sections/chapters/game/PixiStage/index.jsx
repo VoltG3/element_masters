@@ -335,7 +335,7 @@ const PixiStage = ({
       overlayLayer.addChild(oxyBar);
       oxygenBarRef.current = oxyBar;
 
-      const lavaColors = { ok: 0xffa229, warn: 0xff7b00, danger: 0xff3b1a };
+      const lavaColors = { ok: 0xffcc00, warn: 0xffaa00, danger: 0xff8800 };
       const lvBar = new HealthBar({ width: (playerState?.width) || tileSize, height: 4, offsetX: 0, offsetY: 0, colors: lavaColors });
       lvBar.visible = false;
       overlayLayer.addChild(lvBar);
@@ -529,8 +529,8 @@ const PixiStage = ({
             let overlayColor = 0x1d4875; // water (blue)
             let maxTargetAlpha = 0.15;
 
-            if (liquidType === 'lava') {
-              overlayColor = 0x8b2e0f; // lava (dark orange-red)
+            if (liquidType && liquidType.includes('lava')) {
+              overlayColor = 0xa68c00; // lava (golden-yellow)
               maxTargetAlpha = 0.25;
             } else if (liquidType === 'quicksand') {
               overlayColor = 0xa6915b; // quicksand (sand brown)

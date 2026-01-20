@@ -23,8 +23,8 @@ export default class WeatherLavaRain {
     g.clear();
     // Lava drops are slightly thicker and more glowing
     g.rect(0, 0, 2, 10);
-    // Glowing orange/red color
-    const color = Math.random() > 0.3 ? 0xff4500 : 0xff8c00;
+    // Glowing yellow/orange color
+    const color = Math.random() > 0.3 ? 0xffaa00 : 0xffcc00;
     g.fill({ color, alpha: 0.95 });
 
     const viewport = this.api.getViewport ? this.api.getViewport() : null;

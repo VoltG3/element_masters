@@ -36,8 +36,8 @@ export const PalettePanel = ({
         const isMessageTrigger = item.type === 'message_trigger';
         
         const swatchStyle = isLavaWaterfall
-            ? { background: 'linear-gradient(180deg,#8b0000,#cc3300)' }
-            : (isLava ? { background: 'linear-gradient(180deg,#6b1a07,#c43f0f)' }
+            ? { background: 'linear-gradient(180deg,#ffcc00,#ffff00)' }
+            : (isLava ? { background: 'linear-gradient(180deg,#ffcc00,#ffff00)' }
             : (isWater || isWaterfall ? { background: 'linear-gradient(180deg,#3a7fb8,#5ba3d9)' }
             : (isQuicksand ? { background: 'linear-gradient(180deg,#a6915b,#7d6d42)' }
             : (isRadioactive || isRadioactiveWaterfall ? { background: 'linear-gradient(180deg,#1a5c1a,#32cd32)' }

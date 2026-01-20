@@ -135,7 +135,7 @@ const GameHeader = ({
                     <BarRow>
                         <BarLabel>LAVA</BarLabel>
                         <BarWrapper>
-                            <BarFill $percent={lavaPercent} $color="#ffa229" />
+                            <BarFill $percent={lavaPercent} $color="#ffcc00" />
                         </BarWrapper>
                     </BarRow>
 
