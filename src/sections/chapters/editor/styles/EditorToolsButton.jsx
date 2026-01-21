@@ -142,6 +142,45 @@ export const BgColorInput = styled.input`
     cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
 `;
 
+export const BgTransparentButton = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 1px solid ${props => props.$active ? '#e3de0a' : '#fff'};
+    padding: 4px;
+    background-color: #333;
+    border-radius: 4px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: scale(1.05);
+        background-color: #444;
+    }
+
+    &::after {
+        content: "";
+        width: 100%;
+        height: 100%;
+        background-image: 
+            linear-gradient(45deg, #ccc 25%, transparent 25%), 
+            linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+            linear-gradient(45deg, transparent 75%, #ccc 75%), 
+            linear-gradient(-45deg, transparent 75%, #ccc 75%);
+        background-size: 8px 8px;
+        background-position: 0 0, 0 4px, 4px 4px, 4px 0;
+        background-color: #fff;
+        opacity: 0.8;
+        border-radius: 2px;
+    }
+`;
+
 export const PlayButtonContainer = styled.div`
     width: 40px;
     height: 40px;

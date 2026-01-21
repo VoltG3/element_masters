@@ -407,16 +407,19 @@ export function findSpawnPosition(map, triggerId, tileSize) {
     let spawnIdx = -1;
     
     // 1. Search for matching triggerId
-    for (let i = 0; i < objData.length; i++) {
-        if (!objData[i]) continue;
-        if (metadata[i] && metadata[i].triggerId === triggerId) {
-            spawnIdx = i;
-            break;
+    const triggerRequested = triggerId !== undefined && triggerId !== null && triggerId !== '';
+    if (triggerRequested) {
+        for (let i = 0; i < objData.length; i++) {
+            if (!objData[i]) continue;
+            if (metadata[i] && metadata[i].triggerId === triggerId) {
+                spawnIdx = i;
+                break;
+            }
         }
     }
     
-    // 2. Fallback: Search for player start
-    if (spawnIdx === -1) {
+    // 2. Fallback: Search for player start (only if no specific trigger was requested or requested trigger not found)
+    if (spawnIdx === -1 && !triggerRequested) {
         spawnIdx = objData.findIndex(id => id && id.includes('player'));
     }
     

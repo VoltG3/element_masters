@@ -149,6 +149,23 @@ export default function GameSettings() {
     } catch {}
     return true;
   });
+  const [roomBlurEnabled, setRoomBlurEnabled] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_graphics_room_blur');
+      if (ls !== null) return ls !== '0';
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.roomBlurEnabled === 'boolean') return g.roomBlurEnabled;
+    } catch {}
+    return true;
+  });
+  const [showCoordinates, setShowCoordinates] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_ui_show_coords');
+      return ls === '1';
+    } catch {}
+    return false;
+  });
+
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [pos, setPos] = useState(() => {
@@ -207,6 +224,7 @@ export default function GameSettings() {
       if (patch.weatherRadioactiveFog !== undefined) setRadioactiveFog(patch.weatherRadioactiveFog);
       if (patch.weatherMeteorRain !== undefined) setMeteorRain(patch.weatherMeteorRain);
       if (patch.backgroundParallaxFactor !== undefined) setParallax(patch.backgroundParallaxFactor);
+      if (patch.roomBlurEnabled !== undefined) setRoomBlurEnabled(!!patch.roomBlurEnabled);
       if (patch.healthBarEnabled !== undefined) setHealthBarEnabled(!!patch.healthBarEnabled);
       if (patch.oxygenBarEnabled !== undefined) setOxygenBarEnabled(!!patch.oxygenBarEnabled);
       if (patch.lavaBarEnabled !== undefined) setLavaBarEnabled(!!patch.lavaBarEnabled);
@@ -229,6 +247,9 @@ export default function GameSettings() {
         const g = window.__GAME_RUNTIME_SETTINGS__ || {};
         if (typeof g.backgroundParallaxFactor === 'number') {
           setParallax(g.backgroundParallaxFactor);
+        }
+        if (typeof g.roomBlurEnabled === 'boolean') {
+          setRoomBlurEnabled(g.roomBlurEnabled);
         }
         if (typeof g.weatherRain === 'number') setRain(Math.max(0, Math.min(100, g.weatherRain)));
         if (typeof g.weatherSnow === 'number') setSnow(Math.max(0, Math.min(100, g.weatherSnow)));
@@ -264,6 +285,10 @@ export default function GameSettings() {
   useEffect(() => {
     try { localStorage.setItem('game_settings_tab', String(activeTab)); } catch {}
   }, [activeTab]);
+
+  useEffect(() => {
+    try { localStorage.setItem('game_ui_show_coords', showCoordinates ? '1' : '0'); } catch {}
+  }, [showCoordinates]);
 
   // Drag logic
   useEffect(() => {
@@ -506,18 +531,35 @@ export default function GameSettings() {
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-          <label style={{ fontSize: 12, width: 120 }}>Lava Embers</label>
+          <label style={{ fontSize: 12, width: 120 }}>Blur in Room</label>
           <input
             type="checkbox"
-            checked={!!lavaEmbersEnabled}
+            checked={!!roomBlurEnabled}
             onChange={(e) => {
               const v = !!e.target.checked;
-              setLavaEmbersEnabled(v);
-              try { localStorage.setItem('game_fx_lava_embers', v ? '1' : '0'); } catch {}
-              emitUpdate({ lavaEmbersEnabled: v });
+              setRoomBlurEnabled(v);
+              try { localStorage.setItem('game_graphics_room_blur', v ? '1' : '0'); } catch {}
+              emitUpdate({ roomBlurEnabled: v });
             }}
           />
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <label style={{ fontSize: 12, width: 120 }}>Show Coordinates</label>
+          <input
+            type="checkbox"
+            checked={!!showCoordinates}
+            onChange={(e) => {
+              const v = !!e.target.checked;
+              setShowCoordinates(v);
+              emitUpdate({ showCoordinates: v });
+            }}
+          />
+        </div>
+        {showCoordinates && (
+          <div style={{ marginTop: 8, padding: '4px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', color: '#4ec9b0' }}>
+            Pos: X={Math.round(window.__PLAYER_POS__?.x || 0)}, Y={Math.round(window.__PLAYER_POS__?.y || 0)}
+          </div>
+        )}
       </section>
     </>
   );

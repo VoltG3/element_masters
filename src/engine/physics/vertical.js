@@ -118,7 +118,8 @@ export function applyVerticalPhysics({
     if (vy > 0) {
       // Landing on ground
       isGrounded = true;
-      y = Math.floor((y + vy + height) / TILE_SIZE) * TILE_SIZE - height;
+      // Snapping to the pixel above the tile
+      y = Math.floor((y + vy + height - 0.01) / TILE_SIZE) * TILE_SIZE - height;
       if (Math.abs(vx || 0) > 0) {
         animation = 'run';
       } else {
@@ -126,7 +127,7 @@ export function applyVerticalPhysics({
       }
     } else if (vy < 0) {
       // Hitting ceiling
-      y = Math.ceil((y + vy) / TILE_SIZE) * TILE_SIZE;
+      y = Math.ceil((y + vy + 0.01) / TILE_SIZE) * TILE_SIZE;
     }
     vy = 0;
   } else {
@@ -137,6 +138,9 @@ export function applyVerticalPhysics({
       animation = 'fall';
     }
   }
+
+  // Sanitize coordinates to prevent floating point noise jitter
+  y = Math.round(y * 1000) / 1000;
 
   return { y, vy, isGrounded, animation, inWater, headUnderWater, atSurface };
 }

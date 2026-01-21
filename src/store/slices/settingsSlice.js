@@ -19,6 +19,7 @@ const initialState = {
     weatherClouds: 0,
     weatherFog: 0,
     weatherThunder: 0,
+    roomBlurEnabled: true,
   },
   ui: {
     healthBarEnabled: true,

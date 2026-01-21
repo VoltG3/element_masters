@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Application, Container, Graphics, Assets, BlurFilter } from 'pixi.js';
+import { Application, Container, Graphics, Assets, BlurFilter, ColorMatrixFilter } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
 import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder, LavaRain as WeatherLavaRain, RadioactiveFog as WeatherRadioactiveFog, MeteorRain as WeatherMeteorRain } from '../../../../Pixi/effects/weather';
 import { WaterSplashFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
@@ -62,6 +62,7 @@ const PixiStage = ({
   renderLayers = null, // null means all layers, otherwise an array of layer names to show
   pointerEvents = 'auto',
   onWeatherEffectHit = null,
+  roomBlurEnabled = true,
 }) => {
   const [isPixiReady, setIsPixiReady] = useState(false);
 
@@ -118,7 +119,10 @@ const PixiStage = ({
   const waterStateRef = useRef({ inWater: false, headUnder: false, vy: 0 });
   const gridRef = useRef(null);
   const showGridRef = useRef(showGrid);
+  const roomBlurEnabledRef = useRef(roomBlurEnabled);
   const blurFilterRef = useRef(new BlurFilter({ strength: 0 }));
+  const darkenFilterRef = useRef(new ColorMatrixFilter());
+  const roomBrightnessFilterRef = useRef(new ColorMatrixFilter());
 
   // Keep latest state in refs for ticker
   useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
@@ -129,6 +133,7 @@ const PixiStage = ({
   useEffect(() => { lavaEnabledRef.current = lavaBarEnabled !== false; }, [lavaBarEnabled]);
   useEffect(() => { splashesEnabledRef.current = waterSplashesEnabled !== false; }, [waterSplashesEnabled]);
   useEffect(() => { embersEnabledRef.current = lavaEmbersEnabled !== false; }, [lavaEmbersEnabled]);
+  useEffect(() => { roomBlurEnabledRef.current = roomBlurEnabled; }, [roomBlurEnabled]);
   useEffect(() => { cameraScrollRef.current = Number(cameraScrollX) || 0; }, [cameraScrollX]);
   useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
   useEffect(() => { bgImageRef.current = backgroundImage; }, [backgroundImage]);
@@ -471,8 +476,10 @@ const PixiStage = ({
             camY = Math.max(0, Math.min(camY, worldH - sh));
           }
 
-          cameraPosRef.current = { x: camX, y: camY };
-          app.stage.pivot.set(camX, camY);
+          cameraPosRef.current = { x: Math.round(camX), y: Math.round(camY) };
+          app.stage.pivot.set(Math.round(camX), Math.round(camY));
+          
+          window.__PLAYER_POS__ = { x: s.x, y: s.y };
 
           if (parallaxRef.current) {
             parallaxRef.current.position.set(camX, camY);
@@ -740,10 +747,20 @@ const PixiStage = ({
 
   useEffect(() => {
     const isInsideRoom = activeRoomIds && activeRoomIds.length > 0;
-    const targetBlur = isInsideRoom ? 4 : 0;
+    const targetBlur = (isInsideRoom && roomBlurEnabled) ? 4 : 0;
+    const targetBrightness = 1.0; // Remove darkening as requested
+    const roomBrightness = isInsideRoom ? 1.25 : 1.0; // Slightly brighter interior
     
     if (blurFilterRef.current) {
       blurFilterRef.current.strength = targetBlur;
+    }
+
+    if (darkenFilterRef.current) {
+      darkenFilterRef.current.brightness(targetBrightness, false);
+    }
+
+    if (roomBrightnessFilterRef.current) {
+      roomBrightnessFilterRef.current.brightness(roomBrightness, false);
     }
 
     const layersToBlur = [
@@ -760,20 +777,42 @@ const PixiStage = ({
 
     layersToBlur.forEach(layer => {
       if (layer) {
+        if (!layer.filters) layer.filters = [];
+        
+        // Blur filter
         if (targetBlur > 0) {
-          if (!layer.filters) layer.filters = [];
           if (!layer.filters.includes(blurFilterRef.current)) {
             layer.filters = [...layer.filters, blurFilterRef.current];
           }
         } else {
-          if (layer.filters) {
-            layer.filters = layer.filters.filter(f => f !== blurFilterRef.current);
-            if (layer.filters.length === 0) layer.filters = null;
-          }
+          layer.filters = layer.filters.filter(f => f !== blurFilterRef.current);
         }
+
+        if (layer.filters.length === 0) layer.filters = null;
       }
     });
-  }, [activeRoomIds]);
+
+    // Apply brightness to room layers
+    const roomLayers = [
+      roomBgRef.current,
+      roomObjBehindRef.current,
+      roomObjFrontRef.current
+    ];
+
+    roomLayers.forEach(layer => {
+      if (layer) {
+        if (!layer.filters) layer.filters = [];
+        if (isInsideRoom) {
+          if (!layer.filters.includes(roomBrightnessFilterRef.current)) {
+            layer.filters = [...layer.filters, roomBrightnessFilterRef.current];
+          }
+        } else {
+          layer.filters = layer.filters.filter(f => f !== roomBrightnessFilterRef.current);
+        }
+        if (layer.filters.length === 0) layer.filters = null;
+      }
+    });
+  }, [activeRoomIds, roomBlurEnabled]);
 
   // Rebuild layers when map data changes
   useEffect(() => {
@@ -997,6 +1036,7 @@ PixiStage.propTypes = {
   lavaBarEnabled: PropTypes.bool,
   waterSplashesEnabled: PropTypes.bool,
   lavaEmbersEnabled: PropTypes.bool,
+  roomBlurEnabled: PropTypes.bool,
   renderLayers: PropTypes.arrayOf(PropTypes.string),
   pointerEvents: PropTypes.string,
   onWeatherEffectHit: PropTypes.func,

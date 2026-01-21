@@ -476,7 +476,7 @@ export function updateFrame(ctx, timestamp) {
     }
   }
 
-  if ((Number(gameState.current.health) || 0) <= 0) {
+  if ((Number(gameState.current.health) || 0) <= 0 || y > mapHeight * TILE_SIZE + 300) {
     try { onGameOver && onGameOver(); } catch {}
   }
 

@@ -12,6 +12,7 @@ import {
     BgColorContainer,
     BgColorInputWrapper,
     BgColorInput,
+    BgTransparentButton,
     PlayButtonContainer,
     PlayButtonInner,
     InfoContainer,
@@ -226,13 +227,18 @@ export const EditorTools = (props) => {
                                 <BgColorInputWrapper>
                                     <BgColorInput
                                         type="color"
-                                        value={selectedBackgroundColor}
+                                        value={selectedBackgroundColor && selectedBackgroundColor !== 'transparent' ? selectedBackgroundColor : '#000000'}
                                         onChange={(e) => !isPlayMode && setSelectedBackgroundColor(e.target.value)}
                                         title={isPlayMode ? "Disabled in Play Mode" : "Background Color"}
                                         disabled={isPlayMode}
                                     />
                                     {isPlayMode && <StrikeThrough />}
                                 </BgColorInputWrapper>
+                                <BgTransparentButton 
+                                    $active={selectedBackgroundColor === 'transparent'}
+                                    onClick={() => !isPlayMode && setSelectedBackgroundColor('transparent')}
+                                    title={isPlayMode ? "Disabled in Play Mode" : "Transparent Background"}
+                                />
                             </BgColorContainer>
                         </ToolsRow>
 

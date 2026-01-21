@@ -52,8 +52,8 @@ export const rebuildLayers = (refs, options) => {
 
       if (roomAreaIndex !== undefined) {
         const idx = parseInt(roomAreaIndex);
-        const ox = (idx % mapWidth) * tileSize;
-        const oy = Math.floor(idx / mapWidth) * tileSize;
+        const ox = Math.round((idx % mapWidth) * tileSize);
+        const oy = Math.round(Math.floor(idx / mapWidth) * tileSize);
         
         const roomSecrets = roomMap.secretMapData || (roomMap.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data) || [];
         
@@ -120,6 +120,7 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
                       
                       if (!roomTiles[localIdx] && !roomObjs[localIdx]) {
                           roomWindowIndices.add(worldIdx);
+                          activeRoomIndices.add(worldIdx); // Also hide main map tiles here to see background through windows
                       } else {
                           activeRoomIndices.add(worldIdx);
                       }
@@ -137,17 +138,26 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
         0x1a1a1a;
     
     const roomBg = new Graphics();
+    const floorTileIds = new Set(tileMapData.filter(id => id));
+    const floorObjIds = new Set(objectMapData.filter(id => id && !id.includes('player')));
+
     for (let i = 0; i < mapWidth * mapHeight; i++) {
         const id = tileMapData[i];
         const objId = objectMapData[i];
         
         // Window logic: if there is no tile AND no object, it's a window (transparent)
-        const hasContent = id || objId;
+        // Be very strict about what counts as content
+        const hasContent = (id && id !== "0") || (objId && objId !== "0" && !objId.includes('player'));
 
         if (hasContent) {
-            const x = offsetX + (i % mapWidth) * tileSize;
-            const y = offsetY + Math.floor(i / mapWidth) * tileSize;
-            roomBg.rect(x, y, tileSize, tileSize);
+            const tx = i % mapWidth;
+            const ty = Math.floor(i / mapWidth);
+            const x = offsetX + tx * tileSize;
+            const y = offsetY + ty * tileSize;
+            
+            // Use a slightly larger rect (0.5px) to prevent gaps/bleeding between tiles
+            // but keep the overall room boundary sharp
+            roomBg.rect(x - 0.25, y - 0.25, tileSize + 0.5, tileSize + 0.5);
         }
     }
     roomBg.fill({ color: bgColorHex, alpha: 1 });
@@ -163,8 +173,8 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
         continue;
     }
 
-    // Hide content if it's under an active room, but NOT if it's a window
-    if (activeRoomIndices.has(i) && !roomWindowIndices.has(i)) {
+    // Hide content if it's under an active room
+    if (activeRoomIndices.has(i)) {
         continue;
     }
 
@@ -267,7 +277,7 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
         continue;
     }
 
-    if (activeRoomIndices.has(i) && !roomWindowIndices.has(i)) {
+    if (activeRoomIndices.has(i)) {
         continue;
     }
 

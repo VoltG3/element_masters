@@ -55,6 +55,8 @@ export function moveHorizontal({
     x = proposedX;
   }
 
+  x = Math.round(x * 1000) / 1000;
+
   return { x, vx, direction };
 }
 

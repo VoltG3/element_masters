@@ -45,8 +45,8 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
           const rw = (meta.width || 1) * TILE_SIZE;
           const rh = (meta.height || 1) * TILE_SIZE;
 
-          // Added 0.1px tolerance to borders to prevent slipping through edges
-          if (wx >= rx - 0.1 && wx < rx + rw + 0.1 && wy >= ry - 0.1 && wy < ry + rh + 0.1) {
+          // Boundary check with pixel precision
+          if (wx >= rx && wx < rx + rw && wy >= ry && wy < ry + rh) {
             insideAnyRoom = true;
             
             const localWx = wx - rx;
@@ -199,10 +199,10 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
 // AABB collision check for player rectangle at (newX, newY)
 export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, width, height, secretData, objectData, objectMetadata, entities, ignoreEntityId, maps, activeRoomIds) {
   const points = [
-    { x: newX, y: newY }, // Top Left
-    { x: newX + width - 0.01, y: newY }, // Top Right
-    { x: newX, y: newY + height - 0.01 }, // Bottom Left
-    { x: newX + width - 0.01, y: newY + height - 0.01 } // Bottom Right
+    { x: newX + 0.02, y: newY + 0.02 }, // Top Left (slightly inset)
+    { x: newX + width - 0.02, y: newY + 0.02 }, // Top Right
+    { x: newX + 0.02, y: newY + height - 0.02 }, // Bottom Left
+    { x: newX + width - 0.02, y: newY + height - 0.02 } // Bottom Right
   ];
 
   for (let p of points) {

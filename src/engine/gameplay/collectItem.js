@@ -12,11 +12,12 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
 
   // --- ROOM OVERLAY LOGIC ---
   if (maps && activeRoomIds && activeRoomIds.length > 0 && mainMetadata) {
+    if (!gameState.current.collectedItems) {
+      gameState.current.collectedItems = new Set();
+    }
+
     for (const [idxStr, meta] of Object.entries(mainMetadata)) {
       const idx = parseInt(idxStr);
-      // We check secrets layer for room_area - but we might not have it in ctx easily.
-      // Wait, room_area is also in secretData.
-      // Let's assume room metadata is enough if linkedMapId is present.
       if (meta.linkedMapId && activeRoomIds.includes(meta.linkedMapId)) {
         const roomMap = maps[meta.linkedMapId];
         if (!roomMap) continue;
@@ -35,6 +36,9 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
           const rgY = Math.floor(localY / TILE_SIZE);
           const rIndex = rgY * rWidth + rgX;
           
+          const itemKey = `${meta.linkedMapId}:${rIndex}`;
+          if (gameState.current.collectedItems.has(itemKey)) return;
+
           const rObjectData = roomMap.objectMapData || roomMap.layers?.find(l => l.name === 'entities')?.data;
           if (rObjectData && rObjectData[rIndex]) {
             // Call collectItem recursively or just handle it here
@@ -59,6 +63,7 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
                }
 
                if (pickedUp) {
+                 gameState.current.collectedItems.add(itemKey);
                  try {
                    playShotSfx(rItemDef?.sfx, Math.max(0, Math.min(1, rItemDef?.sfxVolume ?? 1)));
                  } catch {}
@@ -77,10 +82,17 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
   }
   // --- END ROOM OVERLAY LOGIC ---
 
+  if (!gameState.current.collectedItems) {
+    gameState.current.collectedItems = new Set();
+  }
+
   const gridX = Math.floor(centerX / TILE_SIZE);
   const gridY = Math.floor(centerY / TILE_SIZE);
   const index = gridY * mapWidth + gridX;
   if (index < 0 || index >= objectLayerData.length) return;
+
+  const itemKey = `main:${index}`;
+  if (gameState.current.collectedItems.has(itemKey)) return;
 
   const itemId = objectLayerData[index];
   if (!itemId) return;

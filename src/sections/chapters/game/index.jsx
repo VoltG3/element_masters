@@ -554,6 +554,7 @@ export default function Game() {
                 lavaBarEnabled: (runtimeSettings.lavaBarEnabled ?? true),
                 waterSplashesEnabled: (runtimeSettings.waterSplashesEnabled ?? true),
                 lavaEmbersEnabled: (runtimeSettings.lavaEmbersEnabled ?? true),
+                roomBlurEnabled: (runtimeSettings.roomBlurEnabled ?? true),
                 // legacy mirror for compatibility (e.g., older UI)
                 weatherFogLegacy: fog,
             };
@@ -831,6 +832,7 @@ export default function Game() {
                             lavaBarEnabled={runtimeSettings.lavaBarEnabled ?? true}
                             waterSplashesEnabled={runtimeSettings.waterSplashesEnabled ?? true}
                             lavaEmbersEnabled={runtimeSettings.lavaEmbersEnabled ?? true}
+                            roomBlurEnabled={runtimeSettings.roomBlurEnabled ?? true}
                             isEditor={false}
                             mapType={activeMapData?.type || 'overworld'}
                             activeRoomIds={activeRoomIds}
