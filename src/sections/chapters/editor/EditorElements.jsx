@@ -58,6 +58,7 @@ export const EditorElements = ({
     setActivePanel,
     togglePanel,
     maps,
+    activeMapId,
     createMap
 }) => {
     const [lastPanel, setLastPanel] = React.useState(null);
@@ -183,6 +184,7 @@ export const EditorElements = ({
                                     setHighlightedIndex={setHighlightedIndex}
                                     setObjectMetadata={setObjectMetadata}
                                     maps={maps}
+                                    activeMapId={activeMapId}
                                     createMap={createMap}
                                 />
                             )}

@@ -7,9 +7,14 @@ import React, { useEffect, useRef } from 'react';
 // - metaPath: string | null — stored in map meta (e.g., "/sound/background/foo.ogg")
 // - enabled: boolean — global sound toggle
 // - volume: number (0..1)
-export default function BackgroundMusicPlayer({ metaPath, enabled = false, volume = 0.6 }) {
+// - isInsideRoom: boolean — apply muffled effect
+export default function BackgroundMusicPlayer({ metaPath, enabled = false, volume = 0.6, isInsideRoom = false }) {
   const audioRef = useRef(null);
   const currentSrcRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const sourceNodeRef = useRef(null);
+  const filterNodeRef = useRef(null);
+  const gainNodeRef = useRef(null);
 
   // Resolve ogg assets from src/assets/sound/background
   let musicContext = null;
@@ -43,7 +48,41 @@ export default function BackgroundMusicPlayer({ metaPath, enabled = false, volum
         audioRef.current = null;
         currentSrcRef.current = null;
       }
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {});
+        audioCtxRef.current = null;
+        sourceNodeRef.current = null;
+        filterNodeRef.current = null;
+        gainNodeRef.current = null;
+      }
     } catch {}
+  };
+
+  const setupWebAudio = (audio) => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
+      const ctx = new AudioContext();
+      const source = ctx.createMediaElementSource(audio);
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      filter.type = 'lowpass';
+      filter.frequency.value = isInsideRoom ? 800 : 22000;
+      gain.gain.value = isInsideRoom ? 0.5 : 1.0;
+
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      audioCtxRef.current = ctx;
+      sourceNodeRef.current = source;
+      filterNodeRef.current = filter;
+      gainNodeRef.current = gain;
+    } catch (e) {
+      console.warn('Web Audio setup failed:', e);
+    }
   };
 
   // Build/rebuild audio element when metaPath changes
@@ -65,6 +104,9 @@ export default function BackgroundMusicPlayer({ metaPath, enabled = false, volum
     audioRef.current = audio;
     currentSrcRef.current = url;
 
+    // Web Audio setup for filters
+    setupWebAudio(audio);
+
     // Try to pre-play if enabled (may be blocked by autoplay policy)
     if (enabled) {
       audio.play().catch(() => {
@@ -76,11 +118,27 @@ export default function BackgroundMusicPlayer({ metaPath, enabled = false, volum
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metaPath]);
 
-  // React to enabled/volume changes
+  // React to enabled/volume/room changes
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    
+    // Direct audio volume (without Web Audio or as fallback)
     audio.volume = Math.max(0, Math.min(1, Number(volume) || 0));
+    
+    // Web Audio updates
+    if (audioCtxRef.current) {
+      if (filterNodeRef.current) {
+        filterNodeRef.current.frequency.setTargetAtTime(isInsideRoom ? 800 : 22000, audioCtxRef.current.currentTime, 0.1);
+      }
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.setTargetAtTime(isInsideRoom ? 0.4 : 1.0, audioCtxRef.current.currentTime, 0.1);
+      }
+      if (audioCtxRef.current.state === 'suspended' && enabled) {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+    }
+
     if (enabled) {
       // Attempt to play; may require user gesture
       audio.play().catch(() => {
@@ -89,7 +147,7 @@ export default function BackgroundMusicPlayer({ metaPath, enabled = false, volum
     } else {
       try { audio.pause(); } catch {}
     }
-  }, [enabled, volume]);
+  }, [enabled, volume, isInsideRoom]);
 
   // Listen for a gesture-driven event to force playback immediately in handler
   useEffect(() => {

@@ -37,7 +37,8 @@ export const floodFill = (startIndex, targetId, currentData, mapWidth, mapHeight
 export const paintTile = ({
     index, brushSize, activeLayer, selectedTile,
     mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-    setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata
+    setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata,
+    isRoomAreaVisible, activeTool
 }) => {
     const isPropsLayer = activeLayer === 'props';
     const targetLayer = isPropsLayer ? 'object' : activeLayer;
@@ -59,6 +60,15 @@ export const paintTile = ({
             if (targetX < mapWidth && targetY < mapHeight) {
                 const targetIndex = targetY * mapWidth + targetX;
                 
+                // Protection for Room Areas
+                if (targetLayer === 'secret' && secretMapData[targetIndex] === 'room_area') {
+                    const isRoomAreaTool = activeTool === 'area' || selectedTile?.id === 'room_area';
+                    const isEraser = selectedTile === null;
+                    if (!isRoomAreaVisible && !isRoomAreaTool && !isEraser) {
+                        continue; // Skip overwriting room_area if not visible and not using room tool
+                    }
+                }
+
                 if (isPropsLayer) {
                     // In props layer, we erase metadata and the object itself
                     newData[targetIndex] = null;

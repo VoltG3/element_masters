@@ -6,8 +6,9 @@ import { useGameEngine } from '../../../utilities/useGameEngine';
 import GameHeader from './GameHeader';
 import GameTerminal from './GameTerminal';
 import GameSettings from './GameSettings';
+import { findSpawnPosition } from '../../../engine/gameplay/interactables';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver } from '../../../store/slices/gameSlice';
+import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver, toggleRoom, clearRooms } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
 import { setSoundEnabled } from '../../../store/slices/settingsSlice';
 import errorHandler from '../../../services/errorHandler';
@@ -265,7 +266,7 @@ export default function Game() {
     const player = useSelector(state => state.player); // Ensure this isn't undefined
 
     // Redux state
-    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight, isGameOver } = useSelector(state => state.game);
+    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight, isGameOver, activeRoomIds } = useSelector(state => state.game);
     const { isMapModalOpen, cameraScrollX, shouldCenterMap } = useSelector(state => state.ui);
     const { sound } = useSelector(state => state.settings);
     const soundEnabled = sound.enabled;
@@ -301,20 +302,48 @@ export default function Game() {
 
     const handleStateUpdate = useCallback((action, payload) => {
         if (action === 'collectItem') {
-            const indexToRemove = payload;
-            dispatch(removeObjectAtIndex(indexToRemove));
+            const { index, mapId } = typeof payload === 'object' ? payload : { index: payload, mapId: null };
+            dispatch(removeObjectAtIndex({ index, mapId }));
         } else if (action === 'interactable') {
-            const index = payload;
-            // Switch interactable to "used" variant by changing ID
-            // e.g., berry_bush_01 -> berry_bush_01_used
-            const currentId = objectMapData[index];
+            const { index, mapId } = typeof payload === 'object' ? payload : { index: payload, mapId: null };
+            
+            const targetObjectData = (!mapId || mapId === 'main') ? objectMapData : (activeMapData?.maps?.[mapId]?.objectMapData || []);
+            const currentId = targetObjectData[index];
+            
             if (currentId) {
-                dispatch(updateObjectAtIndex({ index, newId: currentId + '_used' }));
+                dispatch(updateObjectAtIndex({ index, newId: currentId + '_used', mapId }));
             }
+        } else if (action === 'setObjectFrame') {
+            const { index, frame, mapId } = payload;
+            dispatch(updateObjectMetadata({ index, metadata: { currentFrame: frame }, mapId }));
         } else if (action === 'switchMap') {
             const { targetMapId, triggerId } = payload;
             const projectMaps = activeMapData?.maps || activeMapData?.projectMaps || {};
             const targetMap = projectMaps[targetMapId];
+            
+            if (targetMap && targetMap.type === 'room') {
+                if (!activeRoomIds.includes(targetMapId)) {
+                    dispatch(toggleRoom(targetMapId));
+                }
+                return;
+            } else if (targetMapId === 'main' && activeRoomIds.length > 0) {
+                dispatch(clearRooms());
+                
+                // Open the door at the exit target position to prevent getting stuck
+                const spawn = findSpawnPosition(activeMapData, triggerId, 32);
+                if (spawn) {
+                    const spawnIdx = (Math.floor(spawn.y / 32) * mapWidth) + Math.floor(spawn.x / 32);
+                    const spawnObjId = objectMapData[spawnIdx];
+                    const spawnDef = registryItems.find(r => r.id === spawnObjId);
+                    if (spawnDef && spawnDef.subtype === 'door') {
+                        dispatch(updateObjectMetadata({ 
+                            index: spawnIdx, 
+                            metadata: { currentFrame: spawnDef.interaction?.frames?.opening || 1 } 
+                        }));
+                    }
+                }
+                return;
+            }
             
             if (targetMap) {
                 console.log(`Switching to map: ${targetMapId}, looking for trigger: ${triggerId}`);
@@ -469,7 +498,10 @@ export default function Game() {
         handleGameOver,
         handleStateUpdate,
         handleRevealSecret,
-        objectMetadata
+        objectMetadata,
+        activeRoomIds,
+        mapWidth,
+        mapHeight
     );
 
     // Iegūstam spēlētāja vizuālo izskatu (Texture)
@@ -800,6 +832,9 @@ export default function Game() {
                             waterSplashesEnabled={runtimeSettings.waterSplashesEnabled ?? true}
                             lavaEmbersEnabled={runtimeSettings.lavaEmbersEnabled ?? true}
                             isEditor={false}
+                            mapType={activeMapData?.type || 'overworld'}
+                            activeRoomIds={activeRoomIds}
+                            maps={activeMapData?.maps || activeMapData?.projectMaps}
                         />
 
                     </GameCanvas>
@@ -809,7 +844,12 @@ export default function Game() {
             </Viewport>
 
             {/* Background music runtime player */}
-            <BackgroundMusicPlayer metaPath={activeMapData?.meta?.backgroundMusic} enabled={soundEnabled} volume={0.6} />
+            <BackgroundMusicPlayer 
+                metaPath={activeMapData?.meta?.backgroundMusic} 
+                enabled={soundEnabled} 
+                volume={0.6} 
+                isInsideRoom={activeRoomIds.length > 0}
+            />
 
             {/* Overlays at root level so they sit above the canvas and slide from the footer area */}
             <GameSettings />

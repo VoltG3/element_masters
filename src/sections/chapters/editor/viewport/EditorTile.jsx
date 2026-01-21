@@ -19,7 +19,8 @@ export const EditorTile = React.memo(({
     handleMoveStart,
     filter,
     mapType,
-    isRoomAreaVisible
+    isRoomAreaVisible,
+    showRoomMapContent
 }) => {
     const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
     const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
@@ -56,11 +57,15 @@ export const EditorTile = React.memo(({
 
     const isResizable = React.useMemo(() => {
         if (!objObj && !secretObj) return false;
+        
+        // Room areas (windows) on room maps are NOT resizable
+        if (secretObj && secretObj.subtype === 'room' && mapType === 'room') return false;
+
         // Specifically requested to disable for these types, except Room Areas which MUST be resizable
         if (secretObj && secretObj.type === 'secret' && secretObj.subtype !== 'room') return false;
         if (objObj && (objObj.type === 'crack_block' || objObj.type === 'wolf_secret')) return false;
         return true;
-    }, [objObj, secretObj]);
+    }, [objObj, secretObj, mapType]);
 
     const hasObjectOrSecret = objObj || secretObj || (parentRegionIndex !== null);
 
@@ -132,7 +137,7 @@ export const EditorTile = React.memo(({
             )}
 
             {/* Secret Layer */}
-            {secretObj && (
+            {secretObj && (secretObj.subtype !== 'room' || isRoomAreaVisible || showRoomMapContent || activeTool === 'area' || mapType === 'room') && (
                 <div style={{
                     position: 'absolute', 
                     top: '0', left: '0',
@@ -146,7 +151,7 @@ export const EditorTile = React.memo(({
                     boxSizing: 'border-box',
                     pointerEvents: 'none'
                 }}>
-                    {secretObj.editorIcon || 'SECRET'}
+                    {mapType !== 'room' && (secretObj.editorIcon || 'SECRET')}
                 </div>
             )}
 
@@ -207,7 +212,7 @@ export const EditorTile = React.memo(({
             )}
 
             {/* Room Area Visibility Overlay */}
-            {isRoomAreaVisible && secretObj && secretObj.subtype === 'room' && (
+            {(isRoomAreaVisible || showRoomMapContent || activeTool === 'area') && secretObj && secretObj.subtype === 'room' && mapType !== 'room' && (
                 <div style={{
                     position: 'absolute',
                     top: 0, left: 0,

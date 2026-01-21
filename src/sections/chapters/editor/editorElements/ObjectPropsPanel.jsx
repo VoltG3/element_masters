@@ -10,8 +10,10 @@ export const ObjectPropsPanel = ({
     setHighlightedIndex, 
     setObjectMetadata,
     maps,
+    activeMapId,
     createMap
 }) => {
+    const mapType = maps[activeMapId]?.type || 'overworld';
     const mapList = Object.values(maps || {});
     const listRef = React.useRef(null);
 
@@ -48,7 +50,7 @@ export const ObjectPropsPanel = ({
                     const isMessage = objDef && objDef.type === 'message_trigger';
                     const isPortalOrTarget = objId && (objId.includes('portal') || objId.includes('target') || objId === 'portal_target');
                     const isDoor = objDef && objDef.subtype === 'door';
-                    const isRoomArea = secretDef && secretDef.subtype === 'room';
+                    const isRoomArea = secretDef && secretDef.subtype === 'room' && mapType !== 'room';
 
                     if (!isPortalOrTarget && !isWeather && !isMessage && !isRoomArea && !isDoor) return null;
 

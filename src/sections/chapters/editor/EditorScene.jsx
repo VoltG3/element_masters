@@ -54,7 +54,9 @@ export const EditorScene = ({
     updateMapData,
     isWorldViewOpen,
     setIsWorldViewOpen,
-    onAddRoomArea
+    onAddRoomArea,
+    showRoomMapContent,
+    activeRoomIds
 }) => {
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -63,7 +65,12 @@ export const EditorScene = ({
 
     return (
         <div style={{ display: 'contents' }}>
-            <BackgroundMusicPlayer metaPath={selectedBackgroundMusic} enabled={true} volume={0.4} />
+            <BackgroundMusicPlayer 
+                metaPath={selectedBackgroundMusic} 
+                enabled={true} 
+                volume={0.4} 
+                isInsideRoom={activeRoomIds?.length > 0}
+            />
             {/* Right side buttons */}
             <RightSidebarContainer>
                 <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Maps & Minimap">🗺️</SceneEditorButton>
@@ -119,6 +126,7 @@ export const EditorScene = ({
                         deleteMap={deleteMap}
                         updateMapData={updateMapData}
                         onAddRoomArea={onAddRoomArea}
+                        showRoomMapContent={showRoomMapContent}
                         // Current map live data
                         currentMapData={{
                             id: activeMapId,

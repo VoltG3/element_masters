@@ -43,7 +43,9 @@ export const Viewport = ({
     weatherRadioactiveFog,
     weatherMeteorRain,
     mapType,
-    isRoomAreaVisible
+    isRoomAreaVisible,
+    showRoomMapContent,
+    maps
 }) => {
     const isEraserActive = activeTool === 'brush' && selectedTile === null;
     const isBrushActive = activeTool === 'brush';
@@ -66,6 +68,25 @@ export const Viewport = ({
         }
         return res;
     }, [objectMetadata, mapWidth]);
+
+    const roomAreas = React.useMemo(() => {
+        const res = [];
+        if (!secretMapData || !objectMetadata || !showRoomMapContent) return res;
+        for (const [idxStr, meta] of Object.entries(objectMetadata)) {
+            const idx = parseInt(idxStr);
+            if (secretMapData[idx] === 'room_area' && meta.linkedMapId && maps[meta.linkedMapId]) {
+                res.push({
+                    id: meta.linkedMapId,
+                    x: idx % mapWidth,
+                    y: Math.floor(idx / mapWidth),
+                    width: meta.width || 1,
+                    height: meta.height || 1,
+                    mapData: maps[meta.linkedMapId]
+                });
+            }
+        }
+        return res;
+    }, [secretMapData, objectMetadata, showRoomMapContent, maps, mapWidth]);
 
     const getLayerColor = (layer, alpha = 0.5) => {
         if (layer === 'tile') return `rgba(24, 144, 255, ${alpha})`;
@@ -122,6 +143,41 @@ export const Viewport = ({
                     objectMapData={objectMapData} 
                     objectMetadata={objectMetadata} 
                 />
+
+                {/* Room Map Content Overlay */}
+                {showRoomMapContent && roomAreas.map(room => (
+                    <div
+                        key={room.id}
+                        style={{
+                            position: 'absolute',
+                            left: room.x * 32,
+                            top: room.y * 32,
+                            width: room.width * 32,
+                            height: room.height * 32,
+                            zIndex: 6,
+                            pointerEvents: 'none',
+                            overflow: 'hidden',
+                            boxShadow: '0 0 15px rgba(0,0,0,0.5)',
+                            border: '2px solid #f39c12'
+                        }}
+                    >
+                        <PixiStage 
+                            mapWidth={room.mapData.mapWidth}
+                            mapHeight={room.mapData.mapHeight}
+                            tileSize={32}
+                            tileMapData={room.mapData.tileMapData || []}
+                            objectMapData={room.mapData.objectMapData || []}
+                            secretMapData={room.mapData.secretMapData || []}
+                            objectMetadata={room.mapData.objectMetadata || {}}
+                            registryItems={registryItems}
+                            backgroundColor={room.mapData.selectedBackgroundColor}
+                            backgroundImage={room.mapData.selectedBackgroundImage}
+                            backgroundParallaxFactor={room.mapData.backgroundParallaxFactor}
+                            isEditor={true}
+                            mapType={room.mapData.type || 'room'}
+                        />
+                    </div>
+                ))}
 
                 <div
                     style={{
@@ -292,6 +348,7 @@ export const Viewport = ({
                                 filter={getLayerFilter}
                                 mapType={mapType}
                                 isRoomAreaVisible={isRoomAreaVisible}
+                                showRoomMapContent={showRoomMapContent}
                             />
                         );
                     })}

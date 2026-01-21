@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Application, Container, Graphics, Assets } from 'pixi.js';
+import { Application, Container, Graphics, Assets, BlurFilter } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
 import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder, LavaRain as WeatherLavaRain, RadioactiveFog as WeatherRadioactiveFog, MeteorRain as WeatherMeteorRain } from '../../../../Pixi/effects/weather';
 import { WaterSplashFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
@@ -56,6 +56,8 @@ const PixiStage = ({
   isEditor = false,
   isEditorPlayMode = false,
   mapType = 'overworld',
+  activeRoomIds = EMPTY_ARRAY,
+  maps = EMPTY_OBJECT,
   showGrid = false,
   renderLayers = null, // null means all layers, otherwise an array of layer names to show
   pointerEvents = 'auto',
@@ -76,6 +78,9 @@ const PixiStage = ({
   const bgColorRef = useRef(backgroundColor);
   const objBehindRef = useRef(null);
   const objFrontRef = useRef(null);
+  const roomBgRef = useRef(null);
+  const roomObjBehindRef = useRef(null);
+  const roomObjFrontRef = useRef(null);
   const secretLayerRef = useRef(null);
   const playerRef = useRef(null);
   const playerLayerRef = useRef(null);
@@ -113,6 +118,7 @@ const PixiStage = ({
   const waterStateRef = useRef({ inWater: false, headUnder: false, vy: 0 });
   const gridRef = useRef(null);
   const showGridRef = useRef(showGrid);
+  const blurFilterRef = useRef(new BlurFilter({ strength: 0 }));
 
   // Keep latest state in refs for ticker
   useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
@@ -187,6 +193,9 @@ const PixiStage = ({
           autoDensity: true,
         });
 
+        // Enable z-index sorting for the main stage
+        app.stage.sortableChildren = true;
+
         if (destroyed) {
           app.destroy(true, { children: true, texture: true });
           return;
@@ -202,6 +211,9 @@ const PixiStage = ({
       const bgAnim = new Container();
       const objBehind = new Container();
       const objFront = new Container();
+      const roomBg = new Container();
+      const roomObjBehind = new Container();
+      const roomObjFront = new Container();
       const secretBelowLayer = new Container();
       const secretAboveLayer = new Container();
       const playerLayer = new Container();
@@ -219,8 +231,11 @@ const PixiStage = ({
       parallaxLayer.zIndex = LAYERS.parallax;
       bg.zIndex = LAYERS.tiles;
       bgAnim.zIndex = LAYERS.tilesAnim;
+      roomBg.zIndex = LAYERS.tiles + 1;
       objBehind.zIndex = LAYERS.objBehind;
+      roomObjBehind.zIndex = LAYERS.objBehind + 1;
       objFront.zIndex = LAYERS.objFront;
+      roomObjFront.zIndex = LAYERS.objFront + 1;
       secretBelowLayer.zIndex = LAYERS.secretsBelow;
       secretAboveLayer.zIndex = LAYERS.secretsAbove;
       playerLayer.zIndex = LAYERS.player;
@@ -237,6 +252,9 @@ const PixiStage = ({
       bgAnimRef.current = bgAnim;
       objBehindRef.current = objBehind;
       objFrontRef.current = objFront;
+      roomBgRef.current = roomBg;
+      roomObjBehindRef.current = roomObjBehind;
+      roomObjFrontRef.current = roomObjFront;
       secretLayerRef.current = { below: secretBelowLayer, above: secretAboveLayer };
       weatherLayerRef.current = weatherLayer;
       playerLayerRef.current = playerLayer;
@@ -272,7 +290,27 @@ const PixiStage = ({
           });
         });
       } else {
-        app.stage.addChild(bg, bgAnim, parallaxLayer, liquidBgLayer, objBehind, secretBelowLayer, playerLayer, entitiesLayer, projLayer, objFront, secretAboveLayer, weatherLayer, fogLayer, liquidLayer, liquidFxLayer, overlayLayer);
+        // Add layers in z-order priority (back to front) for stability
+        app.stage.addChild(
+          parallaxLayer,
+          bg, bgAnim, 
+          roomBg,
+          liquidBgLayer, 
+          objBehind, 
+          roomObjBehind,
+          secretBelowLayer, 
+          playerLayer, 
+          entitiesLayer, 
+          projLayer, 
+          objFront, 
+          roomObjFront,
+          secretAboveLayer, 
+          weatherLayer, 
+          fogLayer, 
+          liquidLayer, 
+          liquidFxLayer,
+          overlayLayer
+        );
       }
 
       // Preload textures to avoid Assets cache warnings and ensure textures are ready
@@ -700,6 +738,43 @@ const PixiStage = ({
   };
   }, []);
 
+  useEffect(() => {
+    const isInsideRoom = activeRoomIds && activeRoomIds.length > 0;
+    const targetBlur = isInsideRoom ? 4 : 0;
+    
+    if (blurFilterRef.current) {
+      blurFilterRef.current.strength = targetBlur;
+    }
+
+    const layersToBlur = [
+      bgRef.current,
+      bgAnimRef.current,
+      objBehindRef.current,
+      objFrontRef.current,
+      secretLayerRef.current?.below,
+      secretLayerRef.current?.above,
+      liquidBgLayerRef.current,
+      liquidLayerRef.current,
+      parallaxRef.current
+    ];
+
+    layersToBlur.forEach(layer => {
+      if (layer) {
+        if (targetBlur > 0) {
+          if (!layer.filters) layer.filters = [];
+          if (!layer.filters.includes(blurFilterRef.current)) {
+            layer.filters = [...layer.filters, blurFilterRef.current];
+          }
+        } else {
+          if (layer.filters) {
+            layer.filters = layer.filters.filter(f => f !== blurFilterRef.current);
+            if (layer.filters.length === 0) layer.filters = null;
+          }
+        }
+      }
+    });
+  }, [activeRoomIds]);
+
   // Rebuild layers when map data changes
   useEffect(() => {
     const app = appRef.current;
@@ -729,8 +804,16 @@ const PixiStage = ({
 
         if (bgRef.current && objBehindRef.current && objFrontRef.current) {
             rebuildLayers(
-                { bgRef: bgRef.current, objBehindRef: objBehindRef.current, objFrontRef: objFrontRef.current, secretLayerRef: secretLayerRef.current },
-                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor, isEditorPlayMode, mapType }
+                { 
+                  bgRef: bgRef.current, 
+                  objBehindRef: objBehindRef.current, 
+                  objFrontRef: objFrontRef.current, 
+                  roomBgRef: roomBgRef.current,
+                  roomObjBehindRef: roomObjBehindRef.current,
+                  roomObjFrontRef: roomObjFrontRef.current,
+                  secretLayerRef: secretLayerRef.current 
+                },
+                { mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData, revealedSecrets, registryItems, objectMetadata, isEditor, isEditorPlayMode, mapType, backgroundColor, activeRoomIds, maps }
             );
 
             // Rebuild player visuals if visuals changed or player not created yet
@@ -783,7 +866,7 @@ const PixiStage = ({
     runRebuild();
 
     return () => { active = false; };
-  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets, objectMetadata, playerVisuals, isPixiReady]);
+  }, [tileMapData, objectMapData, registryItems, mapWidth, mapHeight, tileSize, secretMapData, revealedSecrets, objectMetadata, playerVisuals, isPixiReady, activeRoomIds, maps, mapType, backgroundColor]);
 
   // Weather systems lifecycle
   useEffect(() => {

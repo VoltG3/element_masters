@@ -11,13 +11,14 @@ export const useEditorPlayMode = (
     weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
     weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
     maps, activeMapId, switchMap, spawnTriggerId,
-    setTileMapData
+    setTileMapData, updateMapData
 ) => {
     const [isPlayMode, setIsPlayMode] = useState(false);
     const [isGameOver, setIsGameOver] = useState(false);
     const [restartCounter, setRestartCounter] = useState(0);
     const [editorSnapshot, setEditorSnapshot] = useState(null);
     const [revealedSecrets, setRevealedSecrets] = useState([]);
+    const [activeRoomIds, setActiveRoomIds] = useState(new Set());
     const [playModeObjectData, setPlayModeObjectData] = useState([]);
     const [playModeSecretData, setPlayModeSecretData] = useState([]);
     const [playModeWeather, setPlayModeWeather] = useState({
@@ -68,6 +69,7 @@ export const useEditorPlayMode = (
             backgroundColor: selectedBackgroundColor,
             backgroundParallaxFactor: backgroundParallaxFactor,
             objectMetadata: objectMetadata,
+            activeRoomIds: Array.from(activeRoomIds),
             date_map_last_updated: engineInitId, 
             weather: {
                 rain: isPlayMode ? playModeWeather.rain : weatherRain,
@@ -87,7 +89,7 @@ export const useEditorPlayMode = (
         ]
     }), [
         mapWidth, mapHeight, activeMapId, spawnTriggerId, selectedBackgroundImage, selectedBackgroundColor, 
-        backgroundParallaxFactor, tileMapData, currentPlayObjectData, objectMetadata,
+        backgroundParallaxFactor, tileMapData, currentPlayObjectData, objectMetadata, activeRoomIds,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
         weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         playModeWeather,
@@ -133,24 +135,65 @@ export const useEditorPlayMode = (
         if (newState && typeof newState === 'object' && newState.x !== undefined && newState.y !== undefined) {
             setPlayerPosition({ x: newState.x, y: newState.y });
         } else if (newState === 'collectItem' && payload !== undefined) {
-            setPlayModeObjectData(prev => {
-                const newData = [...prev];
-                newData[payload] = null;
-                return newData;
-            });
+            const { index, mapId } = typeof payload === 'object' ? payload : { index: payload, mapId: null };
+            if (!mapId || mapId === activeMapId) {
+                setPlayModeObjectData(prev => {
+                    const newData = [...prev];
+                    newData[index] = null;
+                    return newData;
+                });
+            } else if (updateMapData && maps[mapId]) {
+                const newData = [...(maps[mapId].objectMapData || [])];
+                newData[index] = null;
+                updateMapData(mapId, { objectMapData: newData });
+            }
+        } else if (newState === 'interactable' && payload !== undefined) {
+            const { index, mapId } = typeof payload === 'object' ? payload : { index: payload, mapId: null };
+            if (!mapId || mapId === activeMapId) {
+                setPlayModeObjectData(prev => {
+                    const currentId = prev[index];
+                    if (!currentId) return prev;
+                    const newData = [...prev];
+                    newData[index] = currentId + '_used';
+                    return newData;
+                });
+            } else if (updateMapData && maps[mapId]) {
+                const currentId = maps[mapId].objectMapData?.[index];
+                if (currentId) {
+                    const newData = [...maps[mapId].objectMapData];
+                    newData[index] = currentId + '_used';
+                    updateMapData(mapId, { objectMapData: newData });
+                }
+            }
         } else if (newState === 'setObjectFrame' && payload !== undefined) {
-            const { index, frame } = payload;
-            setObjectMetadata(prev => ({
-                ...prev,
-                [index]: { ...prev[index], currentFrame: frame }
-            }));
+            const { index, frame, mapId } = payload;
+            if (!mapId || mapId === activeMapId) {
+                setObjectMetadata(prev => ({
+                    ...prev,
+                    [index]: { ...prev[index], currentFrame: frame }
+                }));
+            } else if (updateMapData && maps[mapId]) {
+                const newMeta = { ...(maps[mapId].objectMetadata || {}) };
+                newMeta[index] = { ...(newMeta[index] || {}), currentFrame: frame };
+                updateMapData(mapId, { objectMetadata: newMeta });
+            }
         } else if (newState === 'switchMap' && payload !== undefined) {
             const { targetMapId, triggerId } = payload;
-            if (switchMap && targetMapId) {
+            
+            // Check if target is a room
+            const targetMap = maps[targetMapId];
+            if (targetMap && targetMap.type === 'room') {
+                setActiveRoomIds(prev => {
+                    const next = new Set(prev);
+                    if (next.has(targetMapId)) next.delete(targetMapId);
+                    else next.add(targetMapId);
+                    return next;
+                });
+            } else if (targetMapId === 'main' && activeRoomIds.length > 0) {
+                setActiveRoomIds(new Set());
+            } else if (switchMap && targetMapId) {
                 // We keep play mode active when switching maps via teleport
                 switchMap(targetMapId, triggerId);
-                // Note: triggerId will be picked up from the next activeMap's meta.spawnTriggerId
-                // because switchMap updates the map data in Editor.jsx which then propagates back here.
             }
         } else if (newState === 'objectDamage' && payload !== undefined) {
             const { index, damage } = payload;
@@ -298,7 +341,7 @@ export const useEditorPlayMode = (
             const { type, data } = payload;
             window.dispatchEvent(new CustomEvent('weather-effect-hit', { detail: { type, data } }));
         }
-    }, [playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
+    }, [activeMapId, maps, updateMapData, activeRoomIds, playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 
     const handleRevealSecret = useCallback((secretIndex) => {
         setRevealedSecrets(prev => [...prev, secretIndex]);
@@ -314,7 +357,8 @@ export const useEditorPlayMode = (
         handleGameOver,
         handleStateUpdate,
         handleRevealSecret,
-        objectMetadata
+        objectMetadata,
+        Array.from(activeRoomIds)
     );
 
     const handlePlay = () => {
@@ -395,6 +439,7 @@ export const useEditorPlayMode = (
         playModeWeather,
         gameMessage,
         revealedSecrets,
+        activeRoomIds: Array.from(activeRoomIds),
         gameEngineState
     };
 };

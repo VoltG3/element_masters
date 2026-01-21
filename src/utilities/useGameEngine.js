@@ -29,7 +29,7 @@ const parseBool = (v, def = false) => {
 };
 
 // Modified arguments: added objectData, secretData, revealedSecrets, onRevealSecret, objectMetadata
-export const useGameEngine = (mapData, tileData, objectData, secretData, revealedSecrets, registryItems, onGameOver, onStateUpdate, onRevealSecret, objectMetadata) => {
+export const useGameEngine = (mapData, tileData, objectData, secretData, revealedSecrets, registryItems, onGameOver, onStateUpdate, onRevealSecret, objectMetadata, activeRoomIds, mapWidth, mapHeight) => {
     const input = useInput();
 
     // Player state
@@ -89,12 +89,18 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     const onGameOverRef = useRef(onGameOver);
     const objectMetadataRef = useRef(objectMetadata);
     const revealedSecretsRef = useRef(revealedSecrets);
+    const activeRoomIdsRef = useRef(activeRoomIds);
+    const mapWidthRef = useRef(mapWidth);
+    const mapHeightRef = useRef(mapHeight);
 
     useEffect(() => { onStateUpdateRef.current = onStateUpdate; }, [onStateUpdate]);
     useEffect(() => { onRevealSecretRef.current = onRevealSecret; }, [onRevealSecret]);
     useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
     useEffect(() => { objectMetadataRef.current = objectMetadata; }, [objectMetadata]);
     useEffect(() => { revealedSecretsRef.current = revealedSecrets; }, [revealedSecrets]);
+    useEffect(() => { activeRoomIdsRef.current = activeRoomIds; }, [activeRoomIds]);
+    useEffect(() => { mapWidthRef.current = mapWidth; }, [mapWidth]);
+    useEffect(() => { mapHeightRef.current = mapHeight; }, [mapHeight]);
 
     // Sync global sound toggle from localStorage and events
     useEffect(() => {
@@ -134,7 +140,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
 
     // Helper function: play SFX (delegated to GameEngine/audio)
     const playShotSfx = (url, volume) => {
-        return playSfx({ soundEnabledRef, audioCtxRef, audioCtxUnlockedRef }, url, volume);
+        const isInsideRoom = activeRoomIdsRef.current && activeRoomIdsRef.current.length > 0;
+        return playSfx({ soundEnabledRef, audioCtxRef, audioCtxUnlockedRef, isInsideRoom }, url, volume);
     };
 
     // Adapter: correctly calls GameEngine/checkHazardDamage with options object
@@ -241,6 +248,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         const mapId = meta.activeMapId || mapData.name || 'default';
         const timestamp = meta.date_map_last_updated || meta.date_map_created_at || '';
         
+        // Use a unique ID that changes on map load or restart
         const currentMapId = `${projectName}|${mapId}|${timestamp}`;
         const isNewMapLoad = currentMapId !== lastMapIdRef.current;
 
@@ -364,7 +372,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
 
                     // If start position sinks into block, move up to safe location
                     let guard = 0;
-                    while (checkCollision(gameState.current.x, gameState.current.y, mapW, mapH) && guard < mapH) {
+                    while (checkCollision(gameState.current.x, gameState.current.y) && guard < mapH) {
                         gameState.current.y = Math.max(0, gameState.current.y - TILE_SIZE);
                         guard++;
                     }
@@ -420,22 +428,24 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     }, [mapData]); // objectData removed - item collection shouldn't trigger re-initialization
 
     // Helper function for collisions (AABB Collision) with blocks (tile layer) — delegates to GameEngine/collision
-    const checkCollision = (newX, newY, mapWidth, mapHeightParam, widthOverride, heightOverride, ignoreId) => {
+    const checkCollision = (newX, newY, width, height) => {
         return checkCollisionExternal(
             newX,
             newY,
-            mapWidth,
-            mapHeightParam,
+            mapWidthRef.current || 20,
+            mapHeightRef.current || 15,
             TILE_SIZE,
             tileData,
             registryItems,
-            widthOverride !== undefined ? widthOverride : gameState.current.width,
-            heightOverride !== undefined ? heightOverride : gameState.current.height,
+            width !== undefined ? width : gameState.current.width,
+            height !== undefined ? height : gameState.current.height,
             secretData,
             objectData,
             objectMetadataRef.current || mapData?.meta?.objectMetadata,
             entitiesRef.current,
-            ignoreId
+            null,
+            mapData?.maps,
+            activeRoomIdsRef.current || mapData?.meta?.activeRoomIds
         );
     };
 
@@ -444,8 +454,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         return isSolidAtPixelExternal(
             wx,
             wy,
-            mapWidthTiles,
-            mapHeightTiles,
+            mapWidthRef.current || 20,
+            mapHeightRef.current || 15,
             TILE_SIZE_OVERRIDE || TILE_SIZE,
             tileDataOverride || tileData,
             registryItemsOverride || registryItems,
@@ -453,13 +463,15 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             objectDataOverride || objectData,
             objectMetadataOverride || objectMetadataRef.current || mapData?.meta?.objectMetadata,
             entitiesRef.current,
-            ignoreId
+            ignoreId,
+            mapData?.maps,
+            activeRoomIdsRef.current || mapData?.meta?.activeRoomIds
         );
     };
 
     // New: liquid type check at a world pixel
     const getLiquidTypeAtPixel = (wx, wy, mapWidthTiles, mapHeightTiles) => {
-        const liq = getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems);
+        const liq = getLiquidAtPixel(wx, wy, mapWidthRef.current || 20, mapHeightRef.current || 15, TILE_SIZE, tileData, registryItems);
         return liq ? liq.type : null;
     };
 
@@ -471,8 +483,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             width: aabb.width,
             height: aabb.height,
             TILE_SIZE,
-            mapWidth: mapWidthTiles,
-            mapHeight: mapHeightTiles,
+            mapWidth: mapWidthRef.current || 20,
+            mapHeight: mapHeightRef.current || 15,
             tileData,
             registryItems
         });
@@ -503,24 +515,24 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             registryItems,
             helpers: {
                 checkCollision,
-                getSurfaceProperties: (x, y, w, h, mw, mh, ts, td, ri) => getSurfaceProperties(x, y, w, h, mw, mh, ts, td, ri),
-                isLiquidAt: (wx, wy) => getLiquidTypeAtPixel(wx, wy, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15)),
-                getLiquidSample: ({ x, y, width, height, TILE_SIZE: TS, mapWidth, mapHeight }) =>
-                    sampleLiquid({ x, y, width, height }, (mapData?.meta?.width || mapData?.width || 20), (mapData?.meta?.height || mapData?.height || 15))
+                getSurfaceProperties: (x, y, w, h) => getSurfaceProperties(x, y, w, h, mapWidthRef.current || 20, mapHeightRef.current || 15, TILE_SIZE, tileData, registryItems, secretData, objectMetadataRef.current || mapData?.meta?.objectMetadata, mapData?.maps, activeRoomIdsRef.current || mapData?.meta?.activeRoomIds),
+                isLiquidAt: (wx, wy) => getLiquidTypeAtPixel(wx, wy),
+                getLiquidSample: ({ x, y, width, height }) =>
+                    sampleLiquid({ x, y, width, height })
             },
             actions: {
-                collectItem: (x, y, mapWidth, objectLayer) =>
-                    collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState }, x, y, mapWidth, objectLayer),
-                checkInteractables: (x, y, mapWidth, objectLayer) =>
-                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData, input }, x, y, mapWidth, objectLayer),
-                checkHazardDamage: (x, y, mapWidth, objectLayer, deltaMs) =>
-                    checkHazardDamageWrapper(x, y, mapWidth, objectLayer, deltaMs),
-                checkSecrets: (x, y, width, height, mapWidth, mapHeight) =>
-                    checkSecretsWrapper(x, y, width, height, mapWidth, mapHeight),
+                collectItem: (x, y, mw, objectLayer) =>
+                    collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, maps: mapData?.maps, activeRoomIds: activeRoomIdsRef.current || mapData?.meta?.activeRoomIds, objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata }, x, y, mapWidthRef.current || 20, objectLayer),
+                checkInteractables: (x, y, mw, objectLayer) =>
+                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData, input, activeRoomIds: activeRoomIdsRef.current, objectMetadata: objectMetadataRef.current }, x, y, mapWidthRef.current || 20, objectLayer),
+                checkHazardDamage: (x, y, mw, objectLayer, deltaMs) =>
+                    checkHazardDamageWrapper(x, y, mapWidthRef.current || 20, objectLayer, deltaMs),
+                checkSecrets: (x, y, width, height, mw, mh) =>
+                    checkSecretsWrapper(x, y, width, height, mapWidthRef.current || 20, mapHeightRef.current || 15),
                 spawnProjectile: (originX, originY, direction, ownerId) =>
                     spawnProjectile(originX, originY, direction, ownerId),
                 playSfx: (url, volume) => playShotSfx(url, volume),
-                updateProjectiles: (deltaMs, mapWidth, mapHeight) =>
+                updateProjectiles: (deltaMs, mw, mh) =>
                     updateProjectiles({ 
                         projectilesRef, 
                         entitiesRef,
@@ -531,7 +543,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         objectData, 
                         objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata, 
                         onStateUpdate: onStateUpdateRef.current
-                    }, deltaMs, mapWidth, mapHeight),
+                    }, deltaMs, mapWidthRef.current || 20, mapHeightRef.current || 15),
                 setPlayer: (next) => setPlayer(next),
                 onGameOver: onGameOverRef.current
             }

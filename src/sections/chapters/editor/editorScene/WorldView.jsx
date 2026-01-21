@@ -9,7 +9,8 @@ export const WorldView = ({
     createMap,
     deleteMap,
     updateMapData,
-    onAddRoomArea
+    onAddRoomArea,
+    showRoomMapContent
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -132,20 +133,61 @@ export const WorldView = ({
 
                 const tileId = map.tileMapData[i];
                 const objId = map.objectMapData[i];
+                const secretId = map.secretMapData ? map.secretMapData[i] : null;
+                const meta = map.objectMetadata ? map.objectMetadata[i] : null;
 
-                if (tileId) {
-                    ctx.fillStyle = '#654321';
-                    ctx.fillRect(tx, ty, Math.ceil(tileW), Math.ceil(tileH));
-                }
-                if (objId) {
-                    if (objId.includes('portal') && !objId.includes('target')) {
-                        ctx.fillStyle = '#007bff';
-                    } else if (objId.includes('target') || objId === 'portal_target') {
-                        ctx.fillStyle = '#ffc107';
-                    } else {
-                        ctx.fillStyle = '#dc3545';
+                // If it's a room area and we want to show content
+                if (showRoomMapContent && secretId === 'room_area' && meta?.linkedMapId && layouts[meta.linkedMapId]) {
+                    const roomMap = layouts[meta.linkedMapId].map;
+                    const rW = meta.width || 1;
+                    const rH = meta.height || 1;
+                    const rAreaW = rW * tileW;
+                    const rAreaH = rH * tileH;
+                    const rTileW = rAreaW / roomMap.mapWidth;
+                    const rTileH = rAreaH / roomMap.mapHeight;
+
+                    // Room Background
+                    ctx.fillStyle = roomMap.selectedBackgroundColor || '#1a1a1a';
+                    ctx.fillRect(tx, ty, rAreaW, rAreaH);
+                    
+                    // Room Tiles (very simplified)
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    for (let ri = 0; ri < roomMap.mapWidth * roomMap.mapHeight; ri++) {
+                        if (roomMap.tileMapData[ri]) {
+                            ctx.fillRect(
+                                tx + (ri % roomMap.mapWidth) * rTileW,
+                                ty + Math.floor(ri / roomMap.mapWidth) * rTileH,
+                                Math.ceil(rTileW), Math.ceil(rTileH)
+                            );
+                        }
                     }
-                    ctx.fillRect(tx, ty, Math.ceil(tileW), Math.ceil(tileH));
+                    
+                    // Room Border
+                    ctx.strokeStyle = '#f39c12';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(tx, ty, rAreaW, rAreaH);
+                } else {
+                    if (tileId) {
+                        ctx.fillStyle = '#654321';
+                        ctx.fillRect(tx, ty, Math.ceil(tileW), Math.ceil(tileH));
+                    }
+                    if (objId) {
+                        if (objId.includes('portal') && !objId.includes('target')) {
+                            ctx.fillStyle = '#007bff';
+                        } else if (objId.includes('target') || objId === 'portal_target') {
+                            ctx.fillStyle = '#ffc107';
+                        } else {
+                            ctx.fillStyle = '#dc3545';
+                        }
+                        ctx.fillRect(tx, ty, Math.ceil(tileW), Math.ceil(tileH));
+                    }
+                    if (secretId === 'room_area') {
+                        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                        ctx.fillRect(tx, ty, Math.ceil(tileW * (meta?.width || 1)), Math.ceil(tileH * (meta?.height || 1)));
+                        ctx.strokeStyle = 'gold';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(tx, ty, Math.ceil(tileW * (meta?.width || 1)), Math.ceil(tileH * (meta?.height || 1)));
+                    }
                 }
             }
         });
@@ -163,10 +205,21 @@ export const WorldView = ({
             
             for (let i = 0; i < sourceMap.mapWidth * sourceMap.mapHeight; i++) {
                 const objId = sourceMap.objectMapData[i];
-                if (!objId || !objId.includes('portal') || objId.includes('target')) continue;
-
+                if (!objId) continue;
+                
                 const meta = metadata[i];
-                if (!meta || meta.triggerId === null || meta.triggerId === undefined) continue;
+                if (!meta) continue;
+
+                // Identify if this is a connection source
+                const isPortalSource = objId.includes('portal') && !objId.includes('target');
+                const objDef = registryItems.find(r => r.id === objId);
+                const isDoorSource = objDef && objDef.subtype === 'door';
+
+                if (!isPortalSource && !isDoorSource) continue;
+
+                // For portals we match by triggerId, for doors by spawnTriggerId
+                const linkId = isPortalSource ? meta.triggerId : meta.spawnTriggerId;
+                if (linkId === null || linkId === undefined) continue;
 
                 const targetMapId = meta.targetMapId || sourceMap.id;
                 const targetLayout = layouts[targetMapId];
@@ -179,10 +232,16 @@ export const WorldView = ({
                     // Find target object in target map
                     for (let j = 0; j < targetMap.mapWidth * targetMap.mapHeight; j++) {
                         const tObjId = targetMap.objectMapData[j];
-                        if (!tObjId || (!tObjId.includes('target') && tObjId !== 'portal_target')) continue;
+                        if (!tObjId) continue;
+
+                        const tObjDef = registryItems.find(r => r.id === tObjId);
+                        const isTarget = tObjId.includes('target') || tObjId === 'portal_target';
+                        const isDoorTarget = tObjDef && tObjDef.subtype === 'door';
+
+                        if (!isTarget && !isDoorTarget) continue;
 
                         const tMeta = targetMap.objectMetadata?.[j];
-                        if (tMeta && tMeta.triggerId === meta.triggerId) {
+                        if (tMeta && tMeta.triggerId === linkId) {
                             // Link found!
                             const startX = sx + (i % sourceMap.mapWidth) * tileW + tileW / 2;
                             const startY = sy + Math.floor(i / sourceMap.mapWidth) * tileH + tileH / 2;
@@ -227,11 +286,11 @@ export const WorldView = ({
                 }
             }
         });
-    }, [allMaps, activeMapId]);
+    }, [allMaps, activeMapId, showRoomMapContent]);
 
     useEffect(() => {
         draw();
-    }, [allMaps, activeMapId]);
+    }, [allMaps, activeMapId, draw, showRoomMapContent]);
 
     const handleMouseDown = (e) => {
         const rect = canvasRef.current.getBoundingClientRect();

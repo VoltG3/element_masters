@@ -6,23 +6,7 @@ import HealthBar from '../../../../Pixi/ui/HealthBar';
 
 // Build layers: tiles, objects, and secret overlays
 export const rebuildLayers = (refs, options) => {
-  const {
-    mapWidth,
-    mapHeight,
-    tileSize,
-    tileMapData,
-    objectMapData,
-    secretMapData,
-    revealedSecrets,
-    registryItems,
-    objectMetadata,
-    isEditor,
-    isEditorPlayMode,
-    mapType
-  } = options;
-
-  const { bgRef, objBehindRef, objFrontRef, secretLayerRef } = refs;
-
+  const { bgRef, objBehindRef, objFrontRef, roomBgRef, roomObjBehindRef, roomObjFrontRef, secretLayerRef } = refs;
   if (!bgRef || !objBehindRef || !objFrontRef) return;
 
   // Clear previous and destroy old children to prevent memory leaks/ticker buildup
@@ -40,67 +24,184 @@ export const rebuildLayers = (refs, options) => {
   safeDestroy(bgRef);
   safeDestroy(objBehindRef);
   safeDestroy(objFrontRef);
+  safeDestroy(roomBgRef);
+  safeDestroy(roomObjBehindRef);
+  safeDestroy(roomObjFrontRef);
   safeDestroy(secretLayerRef?.below);
   safeDestroy(secretLayerRef?.above);
 
-  // Track which tiles need secret overlay
-  // We need overlay for: 1) unrevealed above/secret zones, 2) all open/below zones
-  const secretOverlayTilesBelow = new Map(); // tile index -> filterColor
-  const secretOverlayTilesAbove = new Map(); // tile index -> filterColor
+  const secretOverlays = {
+    below: new Map(),
+    above: new Map()
+  };
 
-  // Helper: resolve registry item by id
+  // 1. Render main map
+  renderMapContent(refs, options, 0, 0, secretOverlays, bgRef, objBehindRef, objFrontRef);
+
+  // 2. Render active rooms
+  const { activeRoomIds, maps, objectMetadata, secretMapData, mapWidth, tileSize } = options;
+  if (activeRoomIds && activeRoomIds.length > 0 && maps && objectMetadata && secretMapData) {
+    activeRoomIds.forEach(roomId => {
+      const roomMap = maps[roomId];
+      if (!roomMap) return;
+
+      // Find the room_area on the current map that links to this room
+      const roomAreaIndex = Object.keys(objectMetadata).find(idx => 
+        secretMapData[idx] === 'room_area' && objectMetadata[idx].linkedMapId === roomId
+      );
+
+      if (roomAreaIndex !== undefined) {
+        const idx = parseInt(roomAreaIndex);
+        const ox = (idx % mapWidth) * tileSize;
+        const oy = Math.floor(idx / mapWidth) * tileSize;
+        
+        const roomSecrets = roomMap.secretMapData || (roomMap.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data) || [];
+        
+        const roomOptions = {
+          ...options,
+          mapWidth: roomMap.mapWidth || roomMap.width,
+          mapHeight: roomMap.mapHeight || roomMap.height,
+          tileMapData: roomMap.tileMapData || (roomMap.layers?.find(l => l.name === 'background')?.data) || [],
+          objectMapData: roomMap.objectMapData || (roomMap.layers?.find(l => l.name === 'entities')?.data) || [],
+          secretMapData: roomSecrets,
+          objectMetadata: roomMap.objectMetadata || {},
+          mapType: 'room',
+          backgroundColor: roomMap.selectedBackgroundColor,
+          activeRoomIds: [] // Avoid recursion
+        };
+
+        renderMapContent(refs, roomOptions, ox, oy, secretOverlays, roomBgRef, roomObjBehindRef, roomObjFrontRef);
+      }
+    });
+  }
+
+  // 3. Render collected secret overlays
+  renderSecretOverlays(refs, options, secretOverlays);
+};
+
+const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targetBg, targetObjBehind, targetObjFront) => {
+  const {
+    mapWidth, mapHeight, tileSize, tileMapData, objectMapData, secretMapData,
+    revealedSecrets, registryItems, objectMetadata, isEditor, isEditorPlayMode, mapType,
+    activeRoomIds, maps
+  } = options;
+
+  const { secretLayerRef } = refs;
   const getDef = (id) => getRegItem(registryItems, id);
 
-  // Background tiles (skip liquids; they are handled by LiquidRegionSystem)
-  let secretLayerCount = 0;
-  let normalLayerCount = 0;
+  // Pre-calculate indices covered by active rooms to hide main map content under them
+  const activeRoomIndices = new Set();
+  const roomWindowIndices = new Set(); // Store indices where rooms have windows
 
+  if (mapType !== 'room' && activeRoomIds && activeRoomIds.length > 0 && maps) {
+      Object.entries(objectMetadata || {}).forEach(([idxStr, meta]) => {
+          const idx = parseInt(idxStr);
+          if (secretMapData?.[idx] === 'room_area' && meta?.linkedMapId && activeRoomIds.includes(meta.linkedMapId)) {
+              const roomMap = maps[meta.linkedMapId];
+              if (!roomMap) return;
+
+              const roomSecrets = roomMap.secretMapData || (roomMap.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data) || [];
+              const rw = meta.width || 1;
+              const rh = meta.height || 1;
+              const rx = idx % mapWidth;
+              const ry = Math.floor(idx / mapWidth);
+              const rMapW = roomMap.mapWidth || roomMap.width || rw;
+
+              for (let dy = 0; dy < rh; dy++) {
+                  for (let dx = 0; dx < rw; dx++) {
+                      const worldIdx = (ry + dy) * mapWidth + (rx + dx);
+                      const localIdx = dy * rMapW + dx;
+                      
+                      // In the main map context, roomWindowIndices are spots where we DON'T hide the main map
+                      // because the room has a "hole" (window) there.
+                      // A "hole" is defined as no tile AND no object in the room map.
+                      const roomTiles = roomMap.tileMapData || (roomMap.layers?.find(l => l.name === 'background')?.data) || [];
+                      const roomObjs = roomMap.objectMapData || (roomMap.layers?.find(l => l.name === 'entities')?.data) || [];
+                      
+                      if (!roomTiles[localIdx] && !roomObjs[localIdx]) {
+                          roomWindowIndices.add(worldIdx);
+                      } else {
+                          activeRoomIndices.add(worldIdx);
+                      }
+                  }
+              }
+          }
+      });
+  }
+
+  // Add background color for rooms
+  if (mapType === 'room') {
+    const bgColorStr = options.backgroundColor || '#1a1a1a';
+    const bgColorHex = bgColorStr.startsWith('#') ? 
+        parseInt(bgColorStr.substring(1), 16) : 
+        0x1a1a1a;
+    
+    const roomBg = new Graphics();
+    for (let i = 0; i < mapWidth * mapHeight; i++) {
+        const id = tileMapData[i];
+        const objId = objectMapData[i];
+        
+        // Window logic: if there is no tile AND no object, it's a window (transparent)
+        const hasContent = id || objId;
+
+        if (hasContent) {
+            const x = offsetX + (i % mapWidth) * tileSize;
+            const y = offsetY + Math.floor(i / mapWidth) * tileSize;
+            roomBg.rect(x, y, tileSize, tileSize);
+        }
+    }
+    roomBg.fill({ color: bgColorHex, alpha: 1 });
+    targetBg.addChild(roomBg);
+  }
+
+  // Background tiles
   for (let i = 0; i < mapWidth * mapHeight; i++) {
     const id = tileMapData[i];
+    const secretId = secretMapData?.[i];
+
+    if (mapType === 'room' && secretId === 'room_area') {
+        continue;
+    }
+
+    // Hide content if it's under an active room, but NOT if it's a window
+    if (activeRoomIndices.has(i) && !roomWindowIndices.has(i)) {
+        continue;
+    }
+
     if (!id) continue;
     const def = getDef(id);
     if (!def) continue;
 
-    // Check if this tile is in a secret zone
-    const secretId = secretMapData?.[i];
     const secretDef = secretId ? getDef(secretId) : null;
     const secretSubtype = secretDef?.subtype;
     const isInOpenArea = secretSubtype === 'open' || secretSubtype === 'below';
-    const isInSecretArea = secretSubtype === 'secret' || secretSubtype === 'above';
+    const isInSecretArea = (secretSubtype === 'secret' || secretSubtype === 'above') && secretId !== 'room_area'; // Don't treat room_area as a classic secret filter if it's used as a window
     const isSecretRevealed = revealedSecrets && revealedSecrets.includes(i);
 
-    // Track which tiles need overlay rendering
-    // above/secret: overlay AFTER reveal (to darken objects after revealing secret)
-    // open/below: no overlay needed (tiles already darkened)
+    const x = offsetX + (i % mapWidth) * tileSize;
+    const y = offsetY + Math.floor(i / mapWidth) * tileSize;
+
     if (isInSecretArea && isSecretRevealed) {
       const filterColor = secretDef?.filterColorInGame || secretDef?.filterColor || 'rgba(0, 0, 0, 0.6)';
       const renderAbove = secretDef?.renderAbovePlayer;
+      const key = `${x},${y}`;
       if (renderAbove) {
-        secretOverlayTilesAbove.set(i, filterColor);
+        secretOverlays.above.set(key, filterColor);
       } else {
-        secretOverlayTilesBelow.set(i, filterColor);
+        secretOverlays.below.set(key, filterColor);
       }
     }
 
-    // Determine if this tile should be rendered with filter on secret layer
     let renderOnSecretLayer = false;
     if (isInOpenArea) {
-      // open.area: always render on secret layer with filter
       renderOnSecretLayer = true;
-      secretLayerCount++;
     } else if (isInSecretArea && isSecretRevealed) {
-      // secret.area: only render on secret layer with filter AFTER revealed
       renderOnSecretLayer = true;
-      secretLayerCount++;
-    } else {
-      normalLayerCount++;
     }
 
     let sprite;
     let frames = null;
     if (isWaterDef(def) || isLavaDef(def) || isWaterfallDef(def) || isLavaWaterfallDef(def) || isRadioactiveWaterDef(def) || isRadioactiveWaterfallDef(def) || def.type === 'entity' || def.subtype === 'platform') {
-      // liquids are handled by LiquidRegionSystem; skip per-tile sprite
-      // entities and platforms are handled by separate managers
       continue;
     } else {
       if (Array.isArray(def.textures) && def.textures.length > 1) {
@@ -117,17 +218,12 @@ export const rebuildLayers = (refs, options) => {
       }
     }
 
-    const x = (i % mapWidth) * tileSize;
-    const y = Math.floor(i / mapWidth) * tileSize;
     sprite.x = x;
     sprite.y = y;
     sprite.width = tileSize;
     sprite.height = tileSize;
 
-    // Apply filter if rendering on secret layer
     if (renderOnSecretLayer) {
-      // Add a full-opaque copy of the tile as a backing to prevent background parallax from shining through
-      // As requested: "if dirt.block, then dirt.block behind last layer"
       let backingSprite;
       if (frames && frames.length > 0) {
         backingSprite = new AnimatedSprite(frames);
@@ -142,34 +238,39 @@ export const rebuildLayers = (refs, options) => {
         backingSprite.y = y;
         backingSprite.width = tileSize;
         backingSprite.height = tileSize;
-        // Add to bgRef which is below secretLayerRef.below
-        bgRef.addChild(backingSprite);
+        targetBg.addChild(backingSprite);
       }
 
-      // Add dark backing to block background image and darken the backing sprite
-      // Both open.area (always) and secret.area (when revealed) need backing
       const backing = new Graphics();
       backing.rect(x, y, tileSize, tileSize);
-      backing.fill({ color: 0x000000, alpha: 0.7 }); // Solid dark filter to block background completely
-      bgRef.addChild(backing);
+      backing.fill({ color: 0x000000, alpha: 0.7 });
+      targetBg.addChild(backing);
 
-      sprite.alpha = 0.4; // darken the foreground tile
-      // Add to secret layer (below player always for tiles)
+      sprite.alpha = 0.4;
       if (secretLayerRef?.below) {
         secretLayerRef.below.addChild(sprite);
       } else {
-        bgRef.addChild(sprite);
+        targetBg.addChild(sprite);
       }
     } else {
-      // Normal rendering on tiles layer
-      bgRef.addChild(sprite);
+      targetBg.addChild(sprite);
     }
   }
 
-  // Objects (non-player)
+  // Objects
   for (let i = 0; i < mapWidth * mapHeight; i++) {
     const id = objectMapData[i];
     if (!id || id.includes('player')) continue;
+
+    const secretId = secretMapData?.[i];
+    if (mapType === 'room' && secretId === 'room_area') {
+        continue;
+    }
+
+    if (activeRoomIndices.has(i) && !roomWindowIndices.has(i)) {
+        continue;
+    }
+
     const def = getDef(id);
     if (!def || def.type === 'entity' || def.subtype === 'platform' || def.subtype === 'pushable' || def.isPushable) continue;
 
@@ -200,20 +301,12 @@ export const rebuildLayers = (refs, options) => {
       if (source && source.width > 1) {
         const texWidth = source.width;
         const texHeight = source.height;
-
         const frameWidth = texWidth / columns;
         const frameHeight = texHeight / Math.ceil(totalSprites / columns);
-        
         const col = frameIndex % columns;
         const row = Math.floor(frameIndex / columns);
-        
         const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
-        
-        const frameTexture = new Texture({
-            source: source,
-            frame: rect
-        });
-        visualElement = new Sprite(frameTexture);
+        visualElement = new Sprite(new Texture({ source: source, frame: rect }));
       } else {
         visualElement = buildSpriteFromDef(def);
       }
@@ -223,10 +316,9 @@ export const rebuildLayers = (refs, options) => {
 
     if (!visualElement) continue;
 
-    const x = (i % mapWidth) * tileSize;
-    const y = Math.floor(i / mapWidth) * tileSize;
+    const x = offsetX + (i % mapWidth) * tileSize;
+    const y = offsetY + Math.floor(i / mapWidth) * tileSize;
     
-    // Ja tas ir teksts (piemēram, bultiņa redaktorā), centrējam to tile ietvaros
     if (visualElement.anchor && visualElement.anchor.x === 0.5) {
       visualElement.x = tileSize / 2;
       visualElement.y = tileSize / 2;
@@ -240,13 +332,11 @@ export const rebuildLayers = (refs, options) => {
     visualElement.width = objWidth;
     visualElement.height = objHeight;
 
-    // Create a container if we need a health bar or just to keep it clean
     const container = new Container();
     container.x = x;
     container.y = y;
+    container.isRoomContent = mapType === 'room';
     
-    // Slēpjam objektus, kuriem ir isHiddenInGame: true (piemēram, bultiņas spēlē)
-    // Bet ja mēs esam redaktorā vai redaktora play modē, mēs gribam tās redzēt (laikapstākļu un ziņojumu trigerus).
     const isWeatherTrigger = def.type === 'weather_trigger';
     const isMessageTrigger = def.type === 'message_trigger';
     const isWolfSecret = def.type === 'wolf_secret';
@@ -256,21 +346,17 @@ export const rebuildLayers = (refs, options) => {
         container.visible = false;
     }
 
-    // Check if object is in unrevealed secret zone - if so, hide it
-    const secretId = secretMapData?.[i];
     const secretDef = secretId ? getDef(secretId) : null;
     const secretSubtype = secretDef?.subtype;
-    const isInSecretArea = secretSubtype === 'secret' || secretSubtype === 'above';
+    const isInSecretArea = (secretSubtype === 'secret' || secretSubtype === 'above') && secretId !== 'room_area';
     const isSecretRevealed = revealedSecrets && revealedSecrets.includes(i);
 
     if (isInSecretArea && !isSecretRevealed && !isEditor) {
-      // Object is in unrevealed secret zone - make it invisible
       container.visible = false;
     }
 
     container.addChild(visualElement);
 
-    // Add health bar for destructible objects if damaged
     if (def.isDestructible && health < maxH && health > 0) {
       try {
         const hb = new HealthBar({
@@ -284,54 +370,36 @@ export const rebuildLayers = (refs, options) => {
       } catch (e) {}
     }
 
-    const renderAbove = !!def.renderAbovePlayer;
-    if (renderAbove) {
-      objFrontRef.addChild(container);
+    if (!!def.renderAbovePlayer) {
+      targetObjFront.addChild(container);
     } else {
-      objBehindRef.addChild(container);
+      targetObjBehind.addChild(container);
     }
   }
+};
 
-  // Create dark overlays for unrevealed secret zones
-  // Below player overlay (for secrets with renderAbovePlayer: false)
-  if (secretOverlayTilesBelow.size > 0 && secretLayerRef?.below) {
+const renderSecretOverlays = (refs, options, overlays) => {
+  const { tileSize } = options;
+  const { secretLayerRef } = refs;
+
+  const drawOverlay = (map, container) => {
+    if (!container || map.size === 0) return;
     const overlay = new Graphics();
-    secretOverlayTilesBelow.forEach((filterColor, idx) => {
-      const x = (idx % mapWidth) * tileSize;
-      const y = Math.floor(idx / mapWidth) * tileSize;
-
+    map.forEach((filterColor, key) => {
+      const [x, y] = key.split(',').map(Number);
       const match = filterColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
       if (match) {
         const r = parseInt(match[1]);
         const g = parseInt(match[2]);
         const b = parseInt(match[3]);
         const a = match[4] ? parseFloat(match[4]) : 1;
-
         overlay.rect(x, y, tileSize, tileSize);
         overlay.fill({ color: (r << 16) | (g << 8) | b, alpha: a });
       }
     });
-    secretLayerRef.below.addChild(overlay);
-  }
+    container.addChild(overlay);
+  };
 
-  // Above player overlay (for secrets with renderAbovePlayer: true)
-  if (secretOverlayTilesAbove.size > 0 && secretLayerRef?.above) {
-    const overlay = new Graphics();
-    secretOverlayTilesAbove.forEach((filterColor, idx) => {
-      const x = (idx % mapWidth) * tileSize;
-      const y = Math.floor(idx / mapWidth) * tileSize;
-
-      const match = filterColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-      if (match) {
-        const r = parseInt(match[1]);
-        const g = parseInt(match[2]);
-        const b = parseInt(match[3]);
-        const a = match[4] ? parseFloat(match[4]) : 1;
-
-        overlay.rect(x, y, tileSize, tileSize);
-        overlay.fill({ color: (r << 16) | (g << 8) | b, alpha: a });
-      }
-    });
-    secretLayerRef.above.addChild(overlay);
-  }
+  drawOverlay(overlays.below, secretLayerRef?.below);
+  drawOverlay(overlays.above, secretLayerRef?.above);
 };

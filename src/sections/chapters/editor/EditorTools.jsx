@@ -56,7 +56,9 @@ export const EditorTools = (props) => {
         showBackgroundImage,
         setShowBackgroundImage,
         isRoomAreaVisible,
-        setIsRoomAreaVisible
+        setIsRoomAreaVisible,
+        showRoomMapContent,
+        setShowRoomMapContent
     } = props;
     const getEraserData = (layer) => {
         const isActive = selectedTile === null && activeLayer === layer;
@@ -207,6 +209,16 @@ export const EditorTools = (props) => {
                                 title={isRoomAreaVisible ? "Hide Room Areas Overlay" : "Show Room Areas Overlay"}
                             >
                                 <span style={{ fontSize: '14px' }}>🏠</span>
+                            </ToolsEditorButton>
+
+                            {/* Room Map Content Visibility */}
+                            <ToolsEditorButton
+                                onClick={() => setShowRoomMapContent(!showRoomMapContent)}
+                                $active={showRoomMapContent}
+                                $square
+                                title={showRoomMapContent ? "Hide Room Map Content" : "Show Room Map Content"}
+                            >
+                                <span style={{ fontSize: '14px' }}>👁️‍🗨️</span>
                             </ToolsEditorButton>
 
                             {/* Background Color Picker */}

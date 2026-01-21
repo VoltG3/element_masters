@@ -183,7 +183,7 @@ export const PalettePanel = ({
 
             {category === 'secrets' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="empty" isOpenDefault={true}>
+                    <CollapsiblePanel title="m2 windows" isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {secrets && secrets.filter(s => s.subtype === 'room').map(s => renderPaletteItem(s, 'purple', 'secret'))}
                         </div>

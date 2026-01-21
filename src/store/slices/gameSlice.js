@@ -20,6 +20,7 @@ const initialState = {
   error: null,
   isPaused: false,
   isGameOver: false,
+  activeRoomIds: [], // IDs of currently active rooms (overlays)
 };
 
 const gameSlice = createSlice({
@@ -37,6 +38,7 @@ const gameSlice = createSlice({
       state.objectTextureIndices = {}; // Reset texture indices on new map
       state.mapWidth = mapWidth;
       state.mapHeight = mapHeight;
+      state.activeRoomIds = []; // Reset active rooms on new map load
       state.isGameOver = false;
 
       // If this is a project (v2.0) with multiple maps
@@ -48,16 +50,35 @@ const gameSlice = createSlice({
       state.objectMapData = action.payload;
     },
     updateObjectMetadata: (state, action) => {
-      const { index, metadata } = action.payload;
-      state.objectMetadata[index] = {
-        ...(state.objectMetadata[index] || {}),
-        ...metadata
-      };
+      const { index, metadata, mapId } = action.payload;
+      if (!mapId || mapId === 'main') {
+        state.objectMetadata[index] = {
+          ...(state.objectMetadata[index] || {}),
+          ...metadata
+        };
+      } else if (state.projectMaps[mapId]) {
+        if (!state.projectMaps[mapId].objectMetadata) {
+          state.projectMaps[mapId].objectMetadata = {};
+        }
+        state.projectMaps[mapId].objectMetadata[index] = {
+          ...(state.projectMaps[mapId].objectMetadata[index] || {}),
+          ...metadata
+        };
+      }
     },
     removeObjectAtIndex: (state, action) => {
-      const index = action.payload;
-      if (state.objectMapData[index] !== undefined) {
-        state.objectMapData[index] = null;
+      const { index, mapId } = typeof action.payload === 'object' ? action.payload : { index: action.payload, mapId: null };
+      if (!mapId || mapId === 'main') {
+        if (state.objectMapData[index] !== undefined) {
+          state.objectMapData[index] = null;
+        }
+      } else if (state.projectMaps[mapId]) {
+        const room = state.projectMaps[mapId];
+        const objData = room.objectMapData || (room.layers?.find(l => l.name === 'entities')?.data);
+        if (objData && objData[index] !== undefined) {
+          objData[index] = null;
+          room.objectMapData = objData;
+        }
       }
     },
     removeTileAtIndex: (state, action) => {
@@ -87,9 +108,18 @@ const gameSlice = createSlice({
       }
     },
     updateObjectAtIndex: (state, action) => {
-      const { index, newId } = action.payload;
-      if (state.objectMapData[index] !== undefined) {
-        state.objectMapData[index] = newId;
+      const { index, newId, mapId } = action.payload;
+      if (!mapId || mapId === 'main') {
+        if (state.objectMapData[index] !== undefined) {
+          state.objectMapData[index] = newId;
+        }
+      } else if (state.projectMaps[mapId]) {
+        const room = state.projectMaps[mapId];
+        const objData = room.objectMapData || (room.layers?.find(l => l.name === 'entities')?.data);
+        if (objData && objData[index] !== undefined) {
+          objData[index] = newId;
+          room.objectMapData = objData;
+        }
       }
     },
     setObjectTextureIndex: (state, action) => {
@@ -104,6 +134,17 @@ const gameSlice = createSlice({
           state.revealedSecrets.push(idx);
         }
       });
+    },
+    toggleRoom: (state, action) => {
+      const roomId = action.payload;
+      if (state.activeRoomIds.includes(roomId)) {
+        state.activeRoomIds = state.activeRoomIds.filter(id => id !== roomId);
+      } else {
+        state.activeRoomIds.push(roomId);
+      }
+    },
+    clearRooms: (state) => {
+      state.activeRoomIds = [];
     },
     setLoading: (state, action) => {
       state.isLoading = action.payload;
@@ -134,6 +175,8 @@ export const {
   updateObjectAtIndex,
   setObjectTextureIndex,
   revealSecretZone,
+  toggleRoom,
+  clearRooms,
   setLoading,
   setError,
   setPaused,
