@@ -74,10 +74,16 @@ const gameSlice = createSlice({
         }
       } else if (state.projectMaps[mapId]) {
         const room = state.projectMaps[mapId];
-        const objData = room.objectMapData || (room.layers?.find(l => l.name === 'entities')?.data);
-        if (objData && objData[index] !== undefined) {
-          objData[index] = null;
-          room.objectMapData = objData;
+        if (!room.objectMapData) {
+          const layerData = room.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;
+          room.objectMapData = layerData ? [...layerData] : [];
+        } else {
+          // Make sure we are working with a fresh array if we want to trigger changes reliably
+          room.objectMapData = [...room.objectMapData];
+        }
+        
+        if (index >= 0 && index < room.objectMapData.length) {
+          room.objectMapData[index] = null;
         }
       }
     },
@@ -115,10 +121,14 @@ const gameSlice = createSlice({
         }
       } else if (state.projectMaps[mapId]) {
         const room = state.projectMaps[mapId];
-        const objData = room.objectMapData || (room.layers?.find(l => l.name === 'entities')?.data);
-        if (objData && objData[index] !== undefined) {
-          objData[index] = newId;
-          room.objectMapData = objData;
+        if (!room.objectMapData) {
+          const layerData = room.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;
+          room.objectMapData = layerData ? [...layerData] : [];
+        } else {
+          room.objectMapData = [...room.objectMapData];
+        }
+        if (index >= 0 && index < room.objectMapData.length) {
+          room.objectMapData[index] = newId;
         }
       }
     },

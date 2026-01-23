@@ -266,7 +266,7 @@ export default function Game() {
     const player = useSelector(state => state.player); // Ensure this isn't undefined
 
     // Redux state
-    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight, isGameOver, activeRoomIds } = useSelector(state => state.game);
+    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight, isGameOver, activeRoomIds, projectMaps } = useSelector(state => state.game);
     const { isMapModalOpen, cameraScrollX, shouldCenterMap } = useSelector(state => state.ui);
     const { sound } = useSelector(state => state.settings);
     const soundEnabled = sound.enabled;
@@ -836,7 +836,7 @@ export default function Game() {
                             isEditor={false}
                             mapType={activeMapData?.type || 'overworld'}
                             activeRoomIds={activeRoomIds}
-                            maps={activeMapData?.maps || activeMapData?.projectMaps}
+                            maps={projectMaps}
                         />
 
                     </GameCanvas>

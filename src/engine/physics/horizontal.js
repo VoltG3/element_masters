@@ -16,32 +16,36 @@ export function moveHorizontal({
   mapHeight,
   checkCollision,
   friction = 0.8,
-  acceleration = 0.2
+  acceleration = 0.2,
+  deltaMs = 16.67
 }) {
   let { x, vx, width, direction, y, height } = state;
   
+  const timeScale = deltaMs / 16.67;
   const targetVx = keys?.a ? -MOVE_SPEED : (keys?.d ? MOVE_SPEED : 0);
   
   if (targetVx !== 0) {
     // Accelerate
-    vx += targetVx * acceleration;
+    vx += targetVx * acceleration * timeScale;
     if (Math.abs(vx) > MOVE_SPEED) vx = Math.sign(vx) * MOVE_SPEED;
     direction = Math.sign(targetVx);
   } else {
-    // Apply friction
-    vx *= friction;
+    // Apply friction (time-scaled)
+    const effectiveFriction = Math.pow(friction, timeScale);
+    vx *= effectiveFriction;
     if (Math.abs(vx) < 0.1) vx = 0;
   }
 
-  const proposedX = x + vx;
+  const proposedX = x + vx * timeScale;
   const py = y ?? 0;
   if (checkCollision(proposedX, py, mapWidth, mapHeight, width, height)) {
-    // Precīza apstāšanās pie šķēršļa (tiles vai entītijas) bez rupja snapping pie TILE_SIZE
-    const step = 0.5;
+    // Precīza apstāšanās pie šķēršļa
+    const step = 0.05;
     const sign = Math.sign(vx);
     let safeX = x;
+    const moveDist = Math.abs(vx * timeScale);
     
-    for (let d = step; d < Math.abs(vx); d += step) {
+    for (let d = step; d <= moveDist; d += step) {
       const nextX = x + d * sign;
       if (!checkCollision(nextX, py, mapWidth, mapHeight, width, height)) {
         safeX = nextX;
@@ -55,6 +59,8 @@ export function moveHorizontal({
     x = proposedX;
   }
 
+  // Sanitize coordinates to avoid sub-pixel noise jitter
+  // We use 3 decimal places for physics calculations to keep it smooth and stable
   x = Math.round(x * 1000) / 1000;
 
   return { x, vx, direction };

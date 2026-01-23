@@ -28,8 +28,11 @@ export function applyVerticalPhysics({
   checkCollision,
   vx,
   isLiquidAt,
-  prevInWater
+  prevInWater,
+  deltaMs = 16.67
 }) {
+  const timeScale = deltaMs / 16.67;
+  
   // Liquid defaults
   let liqBuoyancy = 0.5; // reduces effective gravity by 50%
   let liqDragY = 0.88;  // vertical damping per frame when in liquid
@@ -90,7 +93,7 @@ export function applyVerticalPhysics({
       // Swim stroke (allow even when not grounded)
       const swimImpulse = Math.max(2, Math.floor(JUMP_FORCE * swimImpulseMult));
       vy = Math.min(vy, 0); // prevent extra downward boost
-      vy -= swimImpulse * 0.5; // smaller continuous impulse
+      vy -= swimImpulse * 0.5 * timeScale; // smaller continuous impulse
       animation = 'jump';
     } else if (isGrounded) {
       vy = -JUMP_FORCE;
@@ -105,41 +108,44 @@ export function applyVerticalPhysics({
     if (!prevInWater) {
       vy *= 0.4;
     }
-    vy += GRAVITY * (1 - liqBuoyancy);
-    vy *= liqDragY;
+    vy += GRAVITY * (1 - liqBuoyancy) * timeScale;
+    vy *= Math.pow(liqDragY, timeScale);
     if (vy > liqTerminal) vy = liqTerminal;
   } else {
-    vy += GRAVITY;
+    vy += GRAVITY * timeScale;
     if (vy > TERMINAL_VELOCITY) vy = TERMINAL_VELOCITY;
   }
 
   // Check vertical collision at proposed Y
-  if (checkCollision(x, y + vy, mapWidth, mapHeight, width, height)) {
+  const proposedY = y + vy * timeScale;
+  if (checkCollision(x, proposedY, mapWidth, mapHeight, width, height)) {
     if (vy > 0) {
       // Landing on ground
       isGrounded = true;
-      // Snapping to the pixel above the tile
-      y = Math.floor((y + vy + height - 0.01) / TILE_SIZE) * TILE_SIZE - height;
-      if (Math.abs(vx || 0) > 0) {
+      // Snapping to the pixel above the tile - use a small offset consistent with collision inset
+      y = Math.floor((proposedY + height - 0.1) / TILE_SIZE) * TILE_SIZE - height;
+      
+      if (Math.abs(vx || 0) > 0.1) {
         animation = 'run';
       } else {
         animation = 'idle';
       }
     } else if (vy < 0) {
       // Hitting ceiling
-      y = Math.ceil((y + vy + 0.01) / TILE_SIZE) * TILE_SIZE;
+      y = Math.ceil((proposedY + 0.1) / TILE_SIZE) * TILE_SIZE;
     }
     vy = 0;
   } else {
     // Free fall
     isGrounded = false;
-    y += vy;
+    y = proposedY;
     if (vy > 0) {
       animation = 'fall';
     }
   }
 
   // Sanitize coordinates to prevent floating point noise jitter
+  // We use 3 decimal places for physics calculations to keep it smooth and stable
   y = Math.round(y * 1000) / 1000;
 
   return { y, vy, isGrounded, animation, inWater, headUnderWater, atSurface };

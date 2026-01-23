@@ -149,6 +149,6 @@ export const updatePlayerSprite = (refs, playerState, tileSize, healthBarEnabled
 
   // Position container; when flipped, offset by width
   const effectiveWidth = playerState.width || (def?.width) || tileSize;
-  container.x = dir >= 0 ? (playerState.x || 0) : ((playerState.x || 0) + effectiveWidth);
-  container.y = playerState.y || 0;
+  container.x = Math.round(dir >= 0 ? (playerState.x || 0) : ((playerState.x || 0) + effectiveWidth));
+  container.y = Math.round(playerState.y || 0);
 };

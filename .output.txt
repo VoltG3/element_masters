@@ -1,487 +1,240 @@
-import { Graphics, Texture, TilingSprite } from 'pixi.js';
-// Full-screen fog overlay: a semi-transparent rectangle covering entire viewport.
-// Intensity 0..100 maps to alpha 0..0.65.
-export default class WeatherFog {
-  constructor(container, api, getIntensity) {
-    this.container = container;
-    this.api = api;
-    this.getIntensity = getIntensity || (() => 0);
-    this.width = api.mapWidth * api.tileSize;
-    this.height = api.mapHeight * api.tileSize;
-    this.intensity = 0;
-    this.time = 0; // ms accumulator for subtle breathing
-    // Base tint rectangle drawn once; alpha controlled via displayObject alpha (no redraws per frame)
-    this.g = new Graphics();
-    this.container.addChild(this.g);
-    // Build procedural noise texture once (small size, repeats as tiling sprites)
-    this.noiseTex = WeatherFog._createNoiseTexture(128, 128);
-    this.layer1 = new TilingSprite(this.noiseTex, this.width, this.height);
-    this.layer2 = new TilingSprite(this.noiseTex, this.width, this.height);
-    // Different scales for parallax effect
-    this.layer1.tileScale.set(1.0, 1.0);
-    this.layer2.tileScale.set(0.6, 0.8);
-    // Start with zero alpha; will be set based on intensity
-    this.layer1.alpha = 0;
-    this.layer2.alpha = 0;
-    this.container.addChild(this.layer1);
-    this.container.addChild(this.layer2);
-    // Precompute parameters
-    this._recalcParams();
-    this._draw();
-  }
-  _alphaFromIntensity(v) {
-    const t = Math.max(0, Math.min(100, Number(v) || 0)) / 100; // 0..1
-    return Math.max(0, Math.min(0.65, t * 0.65));
-  }
-  setIntensity(v) {
-    const nv = Math.max(0, Math.min(100, Number(v) || 0));
-    if (nv === this.intensity) return;
-    this.intensity = nv;
-    this._recalcParams();
-    this._applyAlphas(0); // update layer alphas based on new intensity
-    this._draw();
-  }
-  resize(width, height) {
-    const w = Math.max(1, Math.floor(width));
-    const h = Math.max(1, Math.floor(height));
-    if (w === this.width && h === this.height) return;
-    this.width = w;
-    this.height = h;
-    // Resize tiling sprites and redraw base rect
-    if (this.layer1) { this.layer1.width = w; this.layer1.height = h; }
-    if (this.layer2) { this.layer2.width = w; this.layer2.height = h; }
-    this._draw();
-  }
-  _draw() {
-    const w = this.width;
-    const h = this.height;
-    const g = this.g;
-    g.clear();
-    const baseAlpha = this._alphaFromIntensity(this.intensity);
-    if (baseAlpha <= 0) {
-      g.alpha = 0;
-      return;
-    }
-    // Draw once with alpha 1, then control real alpha via g.alpha each frame
-    g.rect(0, 0, w, h);
-    g.fill({ color: 0x9fb7c9, alpha: 1 });
-    g.alpha = baseAlpha;
-  }
-  update(dtMs) {
-    // Live intensity update from settings
-    const cur = Math.max(0, Math.min(100, this.getIntensity()));
-    if (cur !== this.intensity) this.setIntensity(cur);
-    // Advance time for breathing/pulse
-    const dt = Math.max(0, Number(dtMs) || 16.67);
-    this.time += dt;
-    // Very subtle breathing: sine between ~0.96 .. 1.04
-    const pulse = 1 + 0.04 * Math.sin(this.time * 0.0012);
-    this._applyAlphas(pulse);
-    // Scroll noise layers slowly
-    if (this.layer1) {
-      this.layer1.tilePosition.x += this.speed1.x * dt;
-      this.layer1.tilePosition.y += this.speed1.y * dt;
-    }
-    if (this.layer2) {
-      this.layer2.tilePosition.x += this.speed2.x * dt;
-      this.layer2.tilePosition.y += this.speed2.y * dt;
-    }
-  }
-  destroy() {
-    if (this.g) {
-      try { this.g.parent && this.g.parent.removeChild(this.g); } catch {}
-      try { this.g.destroy(); } catch {}
-    }
-    this.g = null;
-    try {
-      if (this.layer1) { this.layer1.parent && this.layer1.parent.removeChild(this.layer1); this.layer1.destroy(true); }
-    } catch {}
-    try {
-      if (this.layer2) { this.layer2.parent && this.layer2.parent.removeChild(this.layer2); this.layer2.destroy(true); }
-    } catch {}
-    this.layer1 = null;
-    this.layer2 = null;
-    try { this.noiseTex?.destroy(true); } catch {}
-    this.noiseTex = null;
-  }
-  _applyAlphas(pulseFactor = 1) {
-    const base = this._alphaFromIntensity(this.intensity);
-    // Noise contribution grows with intensity but remains subtle
-    const t = Math.max(0, Math.min(1, this.intensity / 100));
-    const noiseAlpha = base * (0.25 + 0.35 * t); // up to ~0.4 of base
-    if (this.g) this.g.alpha = base * pulseFactor;
-    if (this.layer1) this.layer1.alpha = noiseAlpha * 0.8;
-    if (this.layer2) this.layer2.alpha = noiseAlpha;
-  }
-  _recalcParams() {
-    // Map intensity to drift speeds (pixels per ms)
-    const t = Math.max(0, Math.min(1, this.intensity / 100));
-    const lerp = (a, b, u) => a + (b - a) * u;
-    // Two layers drifting in different directions
-    this.speed1 = { x: lerp(0.005, 0.025, t), y: lerp(0.0, 0.012, t) };
-    this.speed2 = { x: lerp(-0.006, -0.018, t), y: lerp(0.004, 0.02, t) };
-  }
-  // Static helper: generate small grayscale noise texture
-  static _createNoiseTexture(w = 128, h = 128) {
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(w, h);
-    // Use a gentle noise range to avoid harsh contrast
-    for (let i = 0; i < img.data.length; i += 4) {
-      const v = 200 + Math.floor(Math.random() * 55); // 200..254
-      img.data[i] = v;
-      img.data[i + 1] = v;
-      img.data[i + 2] = v;
-      img.data[i + 3] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
-    return Texture.from(canvas);
-  }
-}
-import { Graphics } from 'pixi.js';
-// Snow system: slow fluttering flakes with varied speeds; stop on blocks without bouncing.
-export default class WeatherSnow {
-  constructor(container, api, getIntensity) {
-    this.container = container;
-    this.api = api;
-    this.getIntensity = getIntensity || (() => 0);
-    this.width = api.mapWidth * api.tileSize;
-    this.height = api.mapHeight * api.tileSize;
-    this.flakes = [];
-    this.intensity = 0;
-    const area = this.width * this.height;
-    // Snow lasts longer; keep a tighter cap than rain for performance
-    this.maxFlakes = Math.max(120, Math.floor(area / 3800));
-  }
-  setIntensity(v) {
-    this.intensity = Math.max(0, Math.min(100, Number(v) || 0));
-  }
-  spawnOne() {
-    const g = new Graphics();
-    g.clear();
-    // Slightly larger/more visible flakes on average
-    const r = 1.2 + Math.random() * 2.0; // radius
-    g.circle(0, 0, r);
-    g.fill({ color: 0xffffff, alpha: 0.97 });
-    const x = Math.random() * this.width;
-    const y = -10 - Math.random() * 30;
-    const speed = 40 + Math.random() * 80; // slower than rain, but a bit more range
-    const drift = (Math.random() * 50 - 25); // horizontal drift
-    g.x = x;
-    g.y = y;
-    this.container.addChild(g);
-    this.flakes.push({ g, x, y, vx: drift, vy: speed, alive: true, settled: false, life: 1.0, phase: 'fall', restMs: 0 });
-  }
-  update(dtMs) {
-    // adjust intensity dynamically
-    this.setIntensity(this.getIntensity());
-    // Constant-density controller to avoid wavey bursts
-    const norm = Math.max(0, Math.min(1, this.intensity / 100));
-    const scaled = Math.pow(norm, 1.15);
-    let target = Math.floor(this.maxFlakes * scaled);
-    if (scaled > 0 && target < 10) target = 10;
-    const deficit = target - this.flakes.length;
-    if (deficit > 0) {
-      const maxPerFrame = 24; // slower than rain
-      const smooth = Math.max(1, Math.ceil(target * 0.015));
-      const toSpawn = Math.min(deficit, smooth, maxPerFrame);
-      for (let i = 0; i < toSpawn; i++) this.spawnOne();
-    }
-    // Gentle over-target culling to keep density steady when slider decreases
-    if (this.flakes.length > target) {
-      const surplus = this.flakes.length - target;
-      const toCull = Math.min(surplus, Math.max(1, Math.ceil(this.flakes.length * 0.015)));
-      for (let i = 0; i < toCull; i++) {
-        const f = this.flakes.pop();
-        if (!f) break;
-        try { f.g.parent && f.g.parent.removeChild(f.g); } catch {}
-        try { f.g.destroy(); } catch {}
-      }
-    }
-    const gAcc = 200; // gentle gravity
-    const dt = dtMs / 1000;
-    const toRemove = [];
-    for (let i = 0; i < this.flakes.length; i++) {
-      const f = this.flakes[i];
-      if (!f.alive) { toRemove.push(i); continue; }
-      if (f.phase === 'fall') {
-        f.vy = Math.min(140, f.vy + gAcc * dt);
-        // small oscillation for flutter
-        f.vx += Math.sin((f.y + i) * 0.02) * 7 * dt;
-        let nx = f.x + f.vx * dt;
-        let ny = f.y + f.vy * dt;
-        // Liquid interaction first
-        try {
-          if (typeof this.api.getLiquidSurfaceY === 'function') {
-            const sYwater = this.api.getLiquidSurfaceY('water', nx);
-            if (Number.isFinite(sYwater) && ny >= sYwater) {
-              // Land on water surface and rest for a bit
-              ny = sYwater - 0.5;
-              f.x = nx; f.y = ny; f.vx = 0; f.vy = 0;
-              f.phase = 'rest';
-              f.restMs = 800 + Math.random() * 400; // 0.8..1.2s
-              // Do not continue to solid collision checks this frame
-              // Update display and proceed to next flake
-              f.g.x = f.x; f.g.y = f.y;
-              continue;
-            }
-            const sYlava = this.api.getLiquidSurfaceY('lava', nx);
-            if (Number.isFinite(sYlava) && ny >= sYlava) {
-              // Steam puff and despawn
-              if (typeof this.api.onLavaImpact === 'function') this.api.onLavaImpact({ x: nx, y: sYlava, strength: 0.5 });
-              f.alive = false; toRemove.push(i); continue;
-            }
-          }
-        } catch {}
-        // Solid collision
-        if (this.api.isSolidAt(nx, ny)) {
-          // backtrack up to stand above the surface
-          let guard = 0;
-          while (this.api.isSolidAt(nx, ny) && guard < 10) { ny -= 1; guard++; }
-          f.settled = true;
-          f.vx = 0;
-          f.vy = 0;
-          f.phase = 'rest';
-          f.restMs = 800 + Math.random() * 400;
-        }
-        f.x = nx;
-        f.y = ny;
-      } else if (f.phase === 'rest') {
-        // Flake rests on surface for a short time (water or ground), then starts sinking/falling slowly
-        f.restMs -= dtMs;
-        if (f.restMs <= 0) {
-          f.phase = 'sinking';
-          // resume gentle fall with reduced alpha
-          f.vx = (Math.random() * 20 - 10);
-          f.vy = 20 + Math.random() * 20;
-        }
-      } else if (f.phase === 'sinking') {
-        // Continue downward slowly; fade out progressively
-        f.vy = Math.min(60, f.vy + gAcc * 0.3 * dt);
-        f.x += f.vx * dt;
-        f.y += f.vy * dt;
-        f.life -= 0.22 * dt;
-        if (f.life <= 0) { f.alive = false; toRemove.push(i); }
-      }
-      f.g.x = f.x;
-      f.g.y = f.y;
-      if (f.phase === 'rest' || f.phase === 'sinking' || f.settled) f.g.alpha = Math.max(0, Math.min(1, f.life));
-      if (f.y > this.height + 40 || f.x < -40 || f.x > this.width + 40) {
-        f.alive = false;
-        toRemove.push(i);
-      }
-    }
-    for (let j = toRemove.length - 1; j >= 0; j--) {
-      const idx = toRemove[j];
-      const f = this.flakes[idx];
-      if (f && f.g && f.g.parent) f.g.parent.removeChild(f.g);
-      if (f && f.g && f.g.destroy) try { f.g.destroy(); } catch {}
-      this.flakes.splice(idx, 1);
-    }
-  }
-  destroy() {
-    this.flakes.forEach(f => {
-      try { f.g.parent && f.g.parent.removeChild(f.g); } catch {}
-      try { f.g.destroy(); } catch {}
-    });
-    this.flakes = [];
-  }
-}
-import { Graphics, BlurFilter } from 'pixi.js';
-// Thunder/Lightning weather effect
-// API:
-//   new WeatherThunder(container, api, getIntensity)
-//   setIntensity(v), resize(w,h), update(dtMs), destroy()
-// Notes:
-// - Renders inside weather layer (below fog). Blocks/tiles remain above fog.
-// - Picks random strike targets above solid tiles using api.isSolidAt(x,y).
-export default class WeatherThunder {
-  constructor(container, api, getIntensity) {
-    this.container = container;
-    this.api = api || {};
-    this.getIntensity = getIntensity || (() => 0);
-    this.width = (api?.mapWidth || 0) * (api?.tileSize || 32);
-    this.height = (api?.mapHeight || 0) * (api?.tileSize || 32);
-    this.intensity = 0;
-    this.time = 0;
-    this.nextStrikeMs = Infinity; // scheduled delay to next strike
-    this.flashAlpha = 0; // global white flash
-    this.flashDecay = 0.0;
-    this.boltAlive = false;
-    this.boltTime = 0; // ms since bolt spawned
-    this.boltDuration = 0; // ms total
-    // Graphics
-    this.flashG = new Graphics();
-    this.boltG = new Graphics();
-    // Add slight glow to bolt
-    try {
-      this.boltG.filters = [new BlurFilter(2, 1)];
-    } catch {}
-    this.container.addChild(this.flashG);
-    this.container.addChild(this.boltG);
-    // Build once
-    this._scheduleNextStrike(true);
-  }
-  setIntensity(v) {
-    const nv = Math.max(0, Math.min(100, Number(v) || 0));
-    if (nv === this.intensity) return;
-    this.intensity = nv;
-    if (nv <= 0) {
-      // disable visuals
-      this.flashAlpha = 0;
-      this.boltAlive = false;
-      this._redrawFlash();
-      this._clearBolt();
-      this.nextStrikeMs = Infinity;
-    } else if (!Number.isFinite(this.nextStrikeMs) || this.nextStrikeMs === Infinity) {
-      this._scheduleNextStrike(true);
-    }
-  }
-  resize(w, h) {
-    const W = Math.max(1, Math.floor(w));
-    const H = Math.max(1, Math.floor(h));
-    if (W === this.width && H === this.height) return;
-    this.width = W;
-    this.height = H;
-    // redraw flash when active
-    if (this.flashAlpha > 0) this._redrawFlash();
-  }
-  update(dtMs) {
-    // live intensity updates
-    const curInt = Math.max(0, Math.min(100, this.getIntensity()));
-    if (curInt !== this.intensity) this.setIntensity(curInt);
-    const dt = Math.max(0, Number(dtMs) || 16.67);
-    if (this.intensity <= 0) return;
-    // Update scheduling
-    this.nextStrikeMs -= dt;
-    if (this.nextStrikeMs <= 0) {
-      // Perform strike: trigger screen flash and draw bolt
-      this._triggerFlash();
-      this._createBolt();
-      this._scheduleNextStrike(false); // schedule next time after immediate strike window
-    }
-    // Flash decay
-    if (this.flashAlpha > 0) {
-      // exponential-like decay via linear factor raised with dt
-      const decayPerMs = this.flashDecay || 0.004; // higher = quicker fade
-      this.flashAlpha = Math.max(0, this.flashAlpha - decayPerMs * dt);
-      this._redrawFlash();
-    }
-    // Bolt lifetime
-    if (this.boltAlive) {
-      this.boltTime += dt;
-      const t = this.boltTime / Math.max(1, this.boltDuration);
-      // Fade color/alpha over time
-      const remain = Math.max(0, 1 - t);
-      this.boltG.alpha = 0.25 + 0.75 * remain;
-      if (this.boltTime >= this.boltDuration) {
-        this._clearBolt();
-      }
-    }
-  }
-  destroy() {
-    try { this.flashG.parent && this.flashG.parent.removeChild(this.flashG); } catch {}
-    try { this.flashG.destroy(true); } catch {}
-    try { this.boltG.parent && this.boltG.parent.removeChild(this.boltG); } catch {}
-    try { this.boltG.destroy(true); } catch {}
-    this.flashG = null;
-    this.boltG = null;
-    this.container = null;
-  }
-  // Internal helpers
-  _scheduleNextStrike(initial) {
-    // Map intensity 1..100 to delay: from ~9000..6000 ms down to ~2500..1000 ms
-    if (this.intensity <= 0) { this.nextStrikeMs = Infinity; return; }
-    const t = Math.max(0, Math.min(1, this.intensity / 100));
-    const minDelay = this._lerp(1000, 2500, 1 - t); // at high intensity, between 1–2.5s
-    const maxDelay = this._lerp(2500, 9000, 1 - t); // at low intensity, up to ~9s
-    const delay = this._rand(minDelay, maxDelay);
-    this.nextStrikeMs = initial ? this._rand(400, 1400) : delay; // first strike quicker on enable
-  }
-  _triggerFlash() {
-    // Brightness based on intensity, with slight randomness
-    const t = Math.max(0, Math.min(1, this.intensity / 100));
-    const base = this._lerp(0.25, 0.9, t);
-    this.flashAlpha = Math.min(1, base * this._rand(0.8, 1));
-    // fade time scales with intensity (brighter fades a bit slower)
-    this.flashDecay = this._lerp(0.008, 0.004, t);
-    this._redrawFlash();
-  }
-  _redrawFlash() {
-    const g = this.flashG;
-    g.clear();
-    if (this.flashAlpha <= 0) return;
-    g.rect(0, 0, this.width, this.height);
-    g.fill({ color: 0xffffff, alpha: this.flashAlpha });
-  }
-  _createBolt() {
-    // Determine target using solid scan from top
-    const W = this.width, H = this.height;
-    const x = Math.floor(this._rand(8, W - 8));
-    const topY = -Math.floor(this._rand(10, 40)); // start slightly above top
-    const targetY = this._findGroundY(x, H);
-    const endY = Number.isFinite(targetY) ? Math.max(0, targetY - this._rand(8, 16)) : Math.floor(H * 0.6);
-    // Build polyline with jittered segments from top to end
-    const segments = Math.max(8, Math.floor((endY - topY) / this._rand(10, 16)));
-    const jitterX = this._lerp(6, 18, Math.max(0, Math.min(1, this.intensity / 100)));
-    const points = [];
-    let cx = x;
-    let cy = topY;
-    points.push({ x: cx, y: cy });
-    for (let i = 1; i <= segments; i++) {
-      const ny = topY + Math.floor(((endY - topY) * i) / segments);
-      const nx = x + this._rand(-jitterX, jitterX);
-      cx = nx; cy = ny;
-      points.push({ x: cx, y: cy });
-    }
-    // Draw main bolt
-    const g = this.boltG;
-    g.clear();
-    const thickness = this._lerp(2, 5, Math.max(0, Math.min(1, this.intensity / 100)));
-    const color = 0xCCEEFF;
-    g.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y);
-    g.stroke({ width: thickness, color, alpha: 1, alignment: 0.5, cap: 'round', join: 'round' });
-    // Branches: some short forks from random mid points
-    const branchCount = Math.floor(this._lerp(1, 3, Math.max(0, Math.min(1, this.intensity / 100))));
-    for (let b = 0; b < branchCount; b++) {
-      const idx = Math.floor(this._rand(2, points.length - 2));
-      const p = points[idx];
-      const len = this._rand(30, 80);
-      const ang = this._rand(-Math.PI * 0.5, Math.PI * 0.5);
-      const bx = p.x + Math.cos(ang) * len;
-      const by = p.y + Math.sin(ang) * len;
-      g.moveTo(p.x, p.y);
-      g.lineTo(bx, by);
-      g.stroke({ width: Math.max(1, thickness * 0.55), color, alpha: 0.9, alignment: 0.5 });
-    }
-    this.boltAlive = true;
-    this.boltTime = 0;
-    this.boltDuration = this._rand(120, 260); // very brief
-    this.boltG.alpha = 1;
-  }
-  _clearBolt() {
-    if (!this.boltG) return;
-    this.boltAlive = false;
-    this.boltTime = 0;
-    this.boltDuration = 0;
-    try { this.boltG.clear(); } catch {}
-  }
-  _findGroundY(worldX, maxH) {
-    // Scan from top to bottom to find first solid tile boundary
-    const isSolid = this.api?.isSolidAt;
-    if (typeof isSolid !== 'function') return null;
-    for (let y = 0; y < maxH; y += 4) {
-      if (isSolid(worldX, y)) {
-        return y;
-      }
-    }
-    return null;
-  }
-  _rand(a, b) {
-    if (b === undefined) { b = a; a = 0; }
-    return a + Math.random() * (b - a);
-  }
-  _lerp(a, b, t) { return a + (b - a) * t; }
-}
+src:
+App.js    components  Context  index.css  renderer  store
+assets    config.js   engine   index.js   sections  styles
+commands  constants   i18n     Pixi       services  utilities
+src/assets:
+background  images  json  maps  sound
+src/assets/background:
+City.png         seamless_02.jpg  seamless_05.jpg  UndergroundCave.png
+Forest.png       seamless_03.jpg  seamless_06.jpg
+seamless_01.jpg  seamless_04.jpg  seamless_07.png
+src/assets/images:
+blocks       entities  interactables  obstacles    secrets
+decorations  hazards   items          projectiles
+src/assets/images/blocks:
+block_pack_01         diorite_block.png     sand_block_0001.png
+brick_block_0001.png  dirt_block_0001.png   sand_block_0002.png
+desert_pack_01        grass_block_0001.png  water_block.png
+src/assets/images/blocks/block_pack_01:
+dirt_block_0002.png  dirt_block_0004.png  dirt_block_0006.png
+dirt_block_0003.png  dirt_block_0005.png  ice_block_0001.png
+src/assets/images/blocks/desert_pack_01:
+desert_pack_0001.png  desert_pack_0004.png  desert_pack_0007.png
+desert_pack_0002.png  desert_pack_0005.png  desert_pack_0008.png
+desert_pack_0003.png  desert_pack_0006.png  desert_pack_0009.png
+src/assets/images/decorations:
+stone_pack_01
+src/assets/images/decorations/stone_pack_01:
+stone_pack_01_001.png  stone_pack_01_005.png  stone_pack_01_009.png
+stone_pack_01_002.png  stone_pack_01_006.png  stone_pack_01_010.png
+stone_pack_01_003.png  stone_pack_01_007.png
+stone_pack_01_004.png  stone_pack_01_008.png
+src/assets/images/entities:
+player  tanks
+src/assets/images/entities/player:
+player_dead_01.png  player_dead_06.png  player_default_100.A.png
+player_dead_02.png  player_dead_07.png  player_default_100.B.png
+player_dead_03.png  player_dead_08.png  player_target_100.A.png
+player_dead_04.png  player_dead_09.png  player_target_100.B.png
+player_dead_05.png  player_dead_10.png
+src/assets/images/entities/tanks:
+tank_0000.png  tank_0001.json  tank_0001.png  tank_0002.json  tank_0002.png
+src/assets/images/hazards:
+bushes_001.png  death_block_0001.png
+src/assets/images/interactables:
+arrows               berry_bush_02_A.png  ends       stone_0001.png
+berry_bush_01_A.png  berry_bush_02_B.png  platforms  wodden_box_0001.json
+berry_bush_01_B.png  doors                portals    wooden_box_0001.png
+src/assets/images/interactables/arrows:
+arrow_down.png  arrow_left.png  arrow_right.png  arrow_up.png
+src/assets/images/interactables/doors:
+door_0001.json  door_0001.png
+src/assets/images/interactables/ends:
+end_0001.png
+src/assets/images/interactables/platforms:
+platform_0001.png
+src/assets/images/interactables/portals:
+portal_01
+src/assets/images/interactables/portals/portal_01:
+portal_A_001.png  portal_A_005.png  portal_A_009.png  portal_A_013.png
+portal_A_002.png  portal_A_006.png  portal_A_010.png  portal_A_014.png
+portal_A_003.png  portal_A_007.png  portal_A_011.png  portal_A_015.png
+portal_A_004.png  portal_A_008.png  portal_A_012.png  portal_A_016.png
+src/assets/images/items:
+fireball_basic_A.png  fireball_basic_C.png  hertz_item.A.png
+fireball_basic_B.png  fireball_basic_D.png  hertz_item.B.png
+src/assets/images/obstacles:
+src/assets/images/projectiles:
+fireball_basic_A.png  fireball_basic_C.png
+fireball_basic_B.png  fireball_basic_D.png
+src/assets/images/secrets:
+crack_block.json  crack_block.png
+src/assets/json:
+blocks       entities  interactables  obstacles    secrets
+decorations  hazards   items          projectiles  weather
+src/assets/json/blocks:
+brick_block_0001.json   diorite_block.json     lava_waterfall_block.json
+desert_block_0001.json  dirt_block_0001.json   quicksand_block.json
+desert_block_0002.json  dirt_block_0002.json   radioactive_water_block.json
+desert_block_0003.json  dirt_block_0003.json   radioactive_waterfall_block.json
+desert_block_0004.json  dirt_block_0004.json   sand_block_0001.json
+desert_block_0005.json  dirt_block_0005.json   sand_block_0002.json
+desert_block_0006.json  dirt_block_0006.json   water_block.json
+desert_block_0007.json  grass_block_0001.json  waterfall_block.json
+desert_block_0008.json  ice_block_0001.json
+desert_block_0009.json  lava_block.json
+src/assets/json/decorations:
+stone_pack_01_001.json  stone_pack_01_004.json  stone_pack_01_007.json
+stone_pack_01_002.json  stone_pack_01_005.json  stone_pack_01_008.json
+stone_pack_01_003.json  stone_pack_01_006.json  stone_pack_01_009.json
+src/assets/json/entities:
+player  tank_0000.json  tank_0001.json  tank_0002.json
+src/assets/json/entities/player:
+player_dead.json  player_default.json  player.json  player_target.json
+src/assets/json/hazards:
+bushes_001.json  death_block_0001.json
+src/assets/json/interactables:
+arrows                   doors      portal_001.json     wooden_box_0001.json
+berry_bush_01.json       ends       portal_target.json
+berry_bush_01_used.json  platforms  stone_0001.json
+src/assets/json/interactables/arrows:
+arrow_down.json  arrow_left.json  arrow_right.json  arrow_up.json
+src/assets/json/interactables/doors:
+door_0001.json
+src/assets/json/interactables/ends:
+end_0001.json
+src/assets/json/interactables/platforms:
+platform_0001.json
+src/assets/json/items:
+fireball_ammo.json  hertz_item.json
+src/assets/json/obstacles:
+src/assets/json/projectiles:
+firebal_basic.json
+src/assets/json/secrets:
+crack_block.json      room_area.json      secret_area_c.json
+message_trigger.json  secret_area_a.json  wolf_secret_left.json
+open_area.json        secret_area_b.json  wolf_secret_right.json
+src/assets/json/weather:
+weather_clouds_off.json           weather_radioactive_fog_on.json
+weather_clouds_on.json            weather_rain_off.json
+weather_clouds_value.json         weather_rain_on.json
+weather_fog_off.json              weather_rain_value.json
+weather_fog_on.json               weather_snow_off.json
+weather_fog_value.json            weather_snow_on.json
+weather_lava_rain_off.json        weather_snow_value.json
+weather_lava_rain_on.json         weather_thunder_off.json
+weather_meteor_rain_off.json      weather_thunder_on.json
+weather_meteor_rain_on.json       weather_thunder_value.json
+weather_radioactive_fog_off.json
+src/assets/maps:
+Exampel_-_LIQUIDS.json  Ports.json  Template.json
+Exampel_-_SECTORS.json  Room.json
+src/assets/sound:
+background  sfx
+src/assets/sound/background:
+170515__rolandasb__forest_ambient_01_loop.ogg
+830253__nicktayloe__afternoon-woods-in-october-midwest-us-loop.ogg
+src/assets/sound/sfx:
+zzox-fx_nite-hit-item.ogg  zzox-fx_sling-selector.ogg
+src/commands:
+gameCommands.js
+src/components:
+Button.jsx  Modal.jsx
+src/constants:
+builtInMaps.js  gameConstants.js
+src/Context:
+langContext.js
+src/engine:
+audio  gameplay  liquids  loop  physics  registry
+src/engine/audio:
+audio.js  index.js
+src/engine/gameplay:
+collectItem.js  index.js          spawnProjectile.js
+entities.js     interactables.js  updateProjectiles.js
+hazards.js      secrets.js        weatherEffects.js
+src/engine/liquids:
+liquidUtils.js
+src/engine/loop:
+updateFrame.js
+src/engine/physics:
+collision.js  horizontal.js  index.js  vertical.js
+src/engine/registry:
+index.js
+src/i18n:
+i18n.js  translations
+src/i18n/translations:
+en  ja  lv  no  ru
+src/i18n/translations/en:
+navigation_home.json
+src/i18n/translations/ja:
+navigation_home.json
+src/i18n/translations/lv:
+navigation_home.json
+src/i18n/translations/no:
+navigation_home.json
+src/i18n/translations/ru:
+navigation_home.json
+src/Pixi:
+AppManager.js  effects  layers  TextureCache.js  ui
+src/Pixi/effects:
+liquids  weather
+src/Pixi/effects/liquids:
+index.js       LavaSteamFX.js         WaterSplashFX.js
+LavaEmbers.js  LiquidRegionSystem.js
+src/Pixi/effects/weather:
+Clouds.js  index.js     MeteorRain.js      Rain.js  Thunder.js
+Fog.js     LavaRain.js  RadioactiveFog.js  Snow.js
+src/Pixi/layers:
+ParallaxBackground.js  TileChunkLayer.js
+src/Pixi/ui:
+HealthBar.js
+src/renderer:
+stage
+src/renderer/stage:
+layers
+src/renderer/stage/layers:
+LayerOrder.js
+src/sections:
+chapters            section.header.navigation.chapters.js
+section.content.js  section.header.navigation.languages.js
+section.footer.js   section.header.navigation.logo.js
+section.header.js
+src/sections/chapters:
+crystals.jsx  editor  editor.jsx.backup  game  home.jsx  repository.jsx
+src/sections/chapters/editor:
+assetLoaders.js     Editor.jsx       editorTools      styles
+editorElements      editorScene      EditorTools.jsx  viewport
+EditorElements.jsx  EditorScene.jsx  hooks            Viewport.jsx
+src/sections/chapters/editor/editorElements:
+CollapsiblePanel.jsx  OperationsPanel.jsx  StatisticsPanel.jsx
+ObjectPropsPanel.jsx  PalettePanel.jsx
+src/sections/chapters/editor/editorScene:
+BackgroundPanel.jsx  EditorMapResizer.jsx  MusicPanel.jsx    WorldView.jsx
+DraggableWindow.jsx  Minimap.jsx           WeatherPanel.jsx
+src/sections/chapters/editor/editorTools:
+BuiltInMapsModal.jsx  mapOperations.js  NewMapModal.jsx  paintingTools.js
+src/sections/chapters/editor/hooks:
+useEditorMaps.js        useEditorPainting.js  useEditorRegistry.js
+useEditorOperations.js  useEditorPlayMode.js  useEditorSelection.js
+src/sections/chapters/editor/styles:
+EditorElementsButtonStyle.js  EditorSceneButtonStyle.js  EditorToolsButton.jsx
+src/sections/chapters/editor/viewport:
+EditorTile.jsx  ObjectLinks.jsx
+src/sections/chapters/game:
+GameHeader.jsx    index.jsx         PixiStage
+GameSettings.jsx  mapOperations.js  README.txt
+GameTerminal.jsx  MapSelector.jsx   styledComponents.js
+src/sections/chapters/game/PixiStage:
+entityManager.js  index.jsx        liquidRendering.js  playerManager.js
+helpers.js        layerBuilder.js  parallaxManager.js  projectileManager.js
+src/services:
+errorHandler.js
+src/store:
+index.js  slices
+src/store/slices:
+gameSlice.js  playerSlice.js  settingsSlice.js  uiSlice.js
+src/styles:
+GlobalStyles.js  theme.js
+src/utilities:
+AnimatedItem.jsx           saveFile.js       useInput.js
+BackgroundMusicPlayer.jsx  useGameEngine.js

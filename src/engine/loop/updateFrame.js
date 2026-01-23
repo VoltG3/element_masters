@@ -114,7 +114,8 @@ export function updateFrame(ctx, timestamp) {
     mapHeight,
     checkCollision: checkCollisionExtended,
     friction: effectiveFriction,
-    acceleration: isSlippery ? (currentIceRes > 0 ? 0.15 : surface.acceleration) : surface.acceleration
+    acceleration: isSlippery ? (currentIceRes > 0 ? 0.15 : surface.acceleration) : surface.acceleration,
+    deltaMs: dt
   });
   x = mh.x; vx = mh.vx; direction = mh.direction;
 
@@ -195,7 +196,8 @@ export function updateFrame(ctx, timestamp) {
     isLiquidAt: (wx, wy) => {
       try { return typeof isLiquidAt === 'function' ? isLiquidAt(wx, wy) : null; } catch { return null; }
     },
-    prevInWater: !!gameState.current.inWater
+    prevInWater: !!gameState.current.inWater,
+    deltaMs: dt
   });
   y = vp.y; vy = vp.vy; isGrounded = vp.isGrounded; animation = vp.animation;
   const inWater = !!vp.inWater;

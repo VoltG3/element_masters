@@ -46,7 +46,9 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
           const rh = (meta.height || 1) * TILE_SIZE;
 
           // Boundary check with pixel precision
-          if (wx >= rx && wx < rx + rw && wy >= ry && wy < ry + rh) {
+          // Pievienojam nelielu pielaidi (0.2px) apakšā, lai snapping loģika vertical.js 
+          // (kas izmanto y + height - 0.1) nepalaistu garām istabas grīdu.
+          if (wx >= rx && wx < rx + rw && wy >= ry && wy < ry + rh + 0.2) {
             insideAnyRoom = true;
             
             const localWx = wx - rx;
@@ -198,11 +200,30 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
 
 // AABB collision check for player rectangle at (newX, newY)
 export function checkCollision(newX, newY, mapWidthTiles, mapHeightTiles, TILE_SIZE, tileData, registryItems, width, height, secretData, objectData, objectMetadata, entities, ignoreEntityId, maps, activeRoomIds) {
+  // Insets and epsilon values to prevent "sticking" and ensure stable grounding.
+  // inset: distance from corners for edge-mid points to avoid catching perpendicular walls.
+  // eps: small offset from the actual edge to ensure we stay within the intended tile/boundary.
+  const inset = 1.0; 
+  const eps = 0.1;
+  
   const points = [
-    { x: newX + 0.02, y: newY + 0.02 }, // Top Left (slightly inset)
-    { x: newX + width - 0.02, y: newY + 0.02 }, // Top Right
-    { x: newX + 0.02, y: newY + height - 0.02 }, // Bottom Left
-    { x: newX + width - 0.02, y: newY + height - 0.02 } // Bottom Right
+    // Vertical checks (Top/Bottom)
+    { x: newX + inset, y: newY + eps }, 
+    { x: newX + width - inset, y: newY + eps },
+    { x: newX + width / 2, y: newY + eps },
+    
+    { x: newX + inset, y: newY + height - eps },
+    { x: newX + width - inset, y: newY + height - eps },
+    { x: newX + width / 2, y: newY + height - eps },
+
+    // Horizontal checks (Left/Right)
+    { x: newX + eps, y: newY + inset },
+    { x: newX + eps, y: newY + height - inset },
+    { x: newX + eps, y: newY + height / 2 },
+
+    { x: newX + width - eps, y: newY + inset },
+    { x: newX + width - eps, y: newY + height - inset },
+    { x: newX + width - eps, y: newY + height / 2 }
   ];
 
   for (let p of points) {
@@ -240,7 +261,7 @@ export function getSurfaceProperties(x, y, width, height, mapWidthTiles, mapHeig
         const rw = (meta.width || 1) * TILE_SIZE;
         const rh = (meta.height || 1) * TILE_SIZE;
 
-        if (cx >= rx && cx < rx + rw && feetY >= ry && feetY < ry + rh) {
+        if (cx >= rx && cx < rx + rw && feetY >= ry && feetY < ry + rh + 2) {
           // Point is inside an active room!
           const localCx = cx - rx;
           const localFeetY = feetY - ry;

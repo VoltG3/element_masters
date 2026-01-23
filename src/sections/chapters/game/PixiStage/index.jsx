@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Application, Container, Graphics, Assets, BlurFilter, ColorMatrixFilter } from 'pixi.js';
+import { Application, Container, Graphics, Assets, BlurFilter, ColorMatrixFilter, Texture, Sprite } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
 import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder, LavaRain as WeatherLavaRain, RadioactiveFog as WeatherRadioactiveFog, MeteorRain as WeatherMeteorRain } from '../../../../Pixi/effects/weather';
 import { WaterSplashFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
@@ -123,6 +123,7 @@ const PixiStage = ({
   const blurFilterRef = useRef(new BlurFilter({ strength: 0 }));
   const darkenFilterRef = useRef(new ColorMatrixFilter());
   const roomBrightnessFilterRef = useRef(new ColorMatrixFilter());
+  const vignetteRef = useRef(null);
 
   // Keep latest state in refs for ticker
   useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
@@ -229,6 +230,7 @@ const PixiStage = ({
       const liquidFxLayer = new Container();
       const fogLayer = new Container();
       const projLayer = new Container();
+      const vignetteLayer = new Container();
       const overlayLayer = new Container();
 
       // Assign zIndex
@@ -251,6 +253,7 @@ const PixiStage = ({
       liquidLayer.zIndex = LAYERS.liquids;
       liquidFxLayer.zIndex = LAYERS.liquidFx;
       projLayer.zIndex = LAYERS.projectiles;
+      vignetteLayer.zIndex = LAYERS.overlay - 1;
       overlayLayer.zIndex = LAYERS.overlay;
 
       bgRef.current = bg;
@@ -268,6 +271,7 @@ const PixiStage = ({
       fogLayerRef.current = fogLayer;
       projectilesLayerRef.current = projLayer;
       entitiesLayerRef.current = entitiesLayer;
+      vignetteRef.current = vignetteLayer;
       overlayLayerRef.current = overlayLayer;
     
       const gridGraphics = new Graphics();
@@ -314,6 +318,7 @@ const PixiStage = ({
           fogLayer, 
           liquidLayer, 
           liquidFxLayer,
+          vignetteLayer,
           overlayLayer
         );
       }
@@ -476,19 +481,38 @@ const PixiStage = ({
             camY = Math.max(0, Math.min(camY, worldH - sh));
           }
 
-          cameraPosRef.current = { x: Math.round(camX), y: Math.round(camY) };
-          app.stage.pivot.set(Math.round(camX), Math.round(camY));
+          // Use a small dead-zone/smooth follow to prevent 1px jitter from sub-pixel player movement
+          const lastCam = cameraPosRef.current || { x: camX, y: camY, rawX: camX, rawY: camY };
+          const smoothing = 0.2; // Lerp factor (0 to 1, higher is faster)
+          const rawX = lastCam.rawX !== undefined ? lastCam.rawX : camX;
+          const rawY = lastCam.rawY !== undefined ? lastCam.rawY : camY;
+          
+          const nextRawX = rawX + (camX - rawX) * smoothing;
+          const nextRawY = rawY + (camY - rawY) * smoothing;
+
+          cameraPosRef.current = { 
+            x: Math.round(nextRawX), 
+            y: Math.round(nextRawY),
+            rawX: nextRawX,
+            rawY: nextRawY
+          };
+          
+          app.stage.pivot.set(Math.round(nextRawX), Math.round(nextRawY));
           
           window.__PLAYER_POS__ = { x: s.x, y: s.y };
 
           if (parallaxRef.current) {
-            parallaxRef.current.position.set(camX, camY);
+            parallaxRef.current.position.set(nextRawX, nextRawY);
+          }
+
+          if (vignetteRef.current && vignetteRef.current.visible) {
+            vignetteRef.current.position.set(nextRawX, nextRawY);
           }
 
           const f = parallaxFactorRef.current;
           if (parallaxManagerRef.current) {
             parallaxManagerRef.current.resize(worldW, worldH, sw, sh);
-            parallaxManagerRef.current.setScroll(camX, f);
+            parallaxManagerRef.current.setScroll(nextRawX, f);
           }
         }
 
@@ -748,7 +772,6 @@ const PixiStage = ({
   useEffect(() => {
     const isInsideRoom = activeRoomIds && activeRoomIds.length > 0;
     const targetBlur = (isInsideRoom && roomBlurEnabled) ? 4 : 0;
-    const targetBrightness = 1.0; // Remove darkening as requested
     const roomBrightness = isInsideRoom ? 1.25 : 1.0; // Slightly brighter interior
     
     if (blurFilterRef.current) {
@@ -756,11 +779,53 @@ const PixiStage = ({
     }
 
     if (darkenFilterRef.current) {
-      darkenFilterRef.current.brightness(targetBrightness, false);
+      darkenFilterRef.current.reset();
+      if (isInsideRoom) {
+        // Desaturate and darken background when inside
+        darkenFilterRef.current.desaturate();
+        darkenFilterRef.current.brightness(0.75, true);
+      }
     }
 
     if (roomBrightnessFilterRef.current) {
+      roomBrightnessFilterRef.current.reset();
       roomBrightnessFilterRef.current.brightness(roomBrightness, false);
+    }
+
+    if (vignetteRef.current) {
+      vignetteRef.current.visible = isInsideRoom;
+      if (isInsideRoom && !vignetteRef.current.children.length) {
+        const sw = appRef.current?.screen?.width || 800;
+        const sh = appRef.current?.screen?.height || 600;
+        
+        // Create programmatic vignette texture using canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createRadialGradient(256, 256, 100, 256, 256, 360);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const tex = Texture.from(canvas);
+        const sprite = new Sprite(tex);
+        sprite.width = sw;
+        sprite.height = sh;
+        vignetteRef.current.addChild(sprite);
+        
+        // Also update sprite size on resize
+        vignetteRef.current._vignetteSprite = sprite;
+      }
+      
+      // Sync vignette position to camera (it should be screen-space)
+      if (isInsideRoom && vignetteRef.current._vignetteSprite) {
+        vignetteRef.current.x = cameraPosRef.current.x;
+        vignetteRef.current.y = cameraPosRef.current.y;
+        vignetteRef.current._vignetteSprite.width = appRef.current?.screen?.width || 800;
+        vignetteRef.current._vignetteSprite.height = appRef.current?.screen?.height || 600;
+      }
     }
 
     const layersToBlur = [
@@ -786,6 +851,15 @@ const PixiStage = ({
           }
         } else {
           layer.filters = layer.filters.filter(f => f !== blurFilterRef.current);
+        }
+
+        // Darken/Desaturate filter (Background only)
+        if (isInsideRoom) {
+          if (!layer.filters.includes(darkenFilterRef.current)) {
+            layer.filters = [...layer.filters, darkenFilterRef.current];
+          }
+        } else {
+          layer.filters = layer.filters.filter(f => f !== darkenFilterRef.current);
         }
 
         if (layer.filters.length === 0) layer.filters = null;
