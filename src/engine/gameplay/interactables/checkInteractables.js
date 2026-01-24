@@ -51,19 +51,49 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
   let index = gridY * activeMapWidth + gridX;
 
   if (keys.e) {
-    const dir = gameState.current.direction || 1;
-    const frontX = localX + dir * (TILE_SIZE * 0.8);
-    const frontGridX = Math.floor(frontX / TILE_SIZE);
-    const frontIndex = gridY * activeMapWidth + frontGridX;
+    let targetIndex = null;
 
-    if (frontIndex >= 0 && frontIndex < (activeObjectData?.length || 0)) {
-      const frontObjId = activeObjectData[frontIndex];
-      if (frontObjId) {
-        const frontDef = registryItems.find(r => r.id === frontObjId);
-        if (frontDef && (frontDef.type === 'wolf_secret' || frontDef.subtype === 'door' || frontDef.name?.startsWith('interactable.'))) {
-          index = frontIndex;
+    if (keys.w) {
+      const upIndex = (gridY - 1) * activeMapWidth + gridX;
+      if (gridY - 1 >= 0) {
+        const upObjId = activeObjectData?.[upIndex];
+        const upDef = upObjId ? registryItems.find(r => r.id === upObjId) : null;
+        if (upDef && upDef.type === 'wolf_secret') {
+          targetIndex = upIndex;
         }
       }
+    }
+
+    if (targetIndex === null && keys.s) {
+      const downIndex = (gridY + 1) * activeMapWidth + gridX;
+      if (gridY + 1 < mapHeight) {
+        const downObjId = activeObjectData?.[downIndex];
+        const downDef = downObjId ? registryItems.find(r => r.id === downObjId) : null;
+        if (downDef && downDef.type === 'wolf_secret') {
+          targetIndex = downIndex;
+        }
+      }
+    }
+
+    if (targetIndex === null) {
+      const dir = keys.d ? 1 : (keys.a ? -1 : (gameState.current.direction || 1));
+      const frontX = localX + dir * (TILE_SIZE * 0.8);
+      const frontGridX = Math.floor(frontX / TILE_SIZE);
+      const frontIndex = gridY * activeMapWidth + frontGridX;
+
+      if (frontIndex >= 0 && frontIndex < (activeObjectData?.length || 0)) {
+        const frontObjId = activeObjectData[frontIndex];
+        if (frontObjId) {
+          const frontDef = registryItems.find(r => r.id === frontObjId);
+          if (frontDef && (frontDef.type === 'wolf_secret' || frontDef.subtype === 'door' || frontDef.name?.startsWith('interactable.'))) {
+            targetIndex = frontIndex;
+          }
+        }
+      }
+    }
+
+    if (targetIndex !== null) {
+      index = targetIndex;
     }
   }
 
@@ -105,7 +135,22 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
 
   if (handleWeatherTrigger({ objDef, currentMeta, index: actualIndex, gameState, onStateUpdate, playShotSfx })) return;
   if (handleMessageTrigger({ objDef, currentMeta, index: actualIndex, gameState, onStateUpdate, playShotSfx })) return;
-  if (triggerWolfSecret({ objDef, index: actualIndex, keys, gameState, onStateUpdate, playShotSfx })) return;
+  if (triggerWolfSecret({
+    objDef,
+    index: actualIndex,
+    keys,
+    gameState,
+    onStateUpdate,
+    playShotSfx,
+    playerCenterX: localX,
+    playerCenterY: localY,
+    objCenterX: ((actualIndex % activeMapWidth) + 0.5) * TILE_SIZE,
+    objCenterY: (Math.floor(actualIndex / activeMapWidth) + 0.5) * TILE_SIZE,
+    playerGridX: gridX,
+    playerGridY: gridY,
+    objGridX: actualIndex % activeMapWidth,
+    objGridY: Math.floor(actualIndex / activeMapWidth)
+  })) return;
 
   if (handleDoorInteraction({
     objDef,

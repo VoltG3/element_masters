@@ -39,7 +39,8 @@ export const EditorElements = ({
     secrets,
     weather,
     messages,
-    alternativeSecrets,
+    crackableWalls,
+    pushableWalls,
     obstacles,
     totalTiles,
     filledBlocks,
@@ -205,7 +206,8 @@ export const EditorElements = ({
                                     secrets={secrets}
                                     weather={weather}
                                     messages={messages}
-                                    alternativeSecrets={alternativeSecrets}
+                                    crackableWalls={crackableWalls}
+                                    pushableWalls={pushableWalls}
                                     obstacles={obstacles}
                                     handlePaletteSelect={handlePaletteSelect}
                                     selectedTile={selectedTile}

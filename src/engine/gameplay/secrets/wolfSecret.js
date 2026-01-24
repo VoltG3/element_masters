@@ -6,10 +6,52 @@ export function triggerWolfSecret({
   keys,
   gameState,
   onStateUpdate,
-  playShotSfx
+  playShotSfx,
+  playerCenterX,
+  playerCenterY,
+  objCenterX,
+  objCenterY,
+  playerGridX,
+  playerGridY,
+  objGridX,
+  objGridY
 }) {
   if (!objDef || objDef.type !== 'wolf_secret') return false;
   if (!keys?.e) return true;
+
+  const moveX = objDef.moveX || 0;
+  const moveY = objDef.moveY || 0;
+  if (moveX !== 0 || moveY !== 0) {
+    const hasGrid = Number.isFinite(playerGridX) && Number.isFinite(playerGridY) && Number.isFinite(objGridX) && Number.isFinite(objGridY);
+    if (hasGrid) {
+      if (moveX < 0 && !(playerGridX > objGridX)) return true;
+      if (moveX > 0 && !(playerGridX < objGridX)) return true;
+      if (moveY < 0) {
+        if (!keys?.w) return true;
+        if (!(playerGridY > objGridY)) return true;
+      }
+      if (moveY > 0) {
+        if (!keys?.s) return true;
+        if (!(playerGridY < objGridY)) return true;
+      }
+    } else {
+      const eps = 0.01;
+      if (moveX < 0 && playerCenterX !== undefined && objCenterX !== undefined) {
+        if (!(playerCenterX > objCenterX + eps)) return true;
+      }
+      if (moveX > 0 && playerCenterX !== undefined && objCenterX !== undefined) {
+        if (!(playerCenterX < objCenterX - eps)) return true;
+      }
+      if (moveY < 0 && playerCenterY !== undefined && objCenterY !== undefined) {
+        if (!keys?.w) return true;
+        if (!(playerCenterY > objCenterY + eps)) return true;
+      }
+      if (moveY > 0 && playerCenterY !== undefined && objCenterY !== undefined) {
+        if (!keys?.s) return true;
+        if (!(playerCenterY < objCenterY - eps)) return true;
+      }
+    }
+  }
 
   if (!gameState.current.lastETime) gameState.current.lastETime = 0;
   const now = Date.now();
@@ -17,8 +59,8 @@ export function triggerWolfSecret({
   gameState.current.lastETime = now;
 
   if (onStateUpdate) {
-    const dx = objDef.moveX || 0;
-    const dy = objDef.moveY || 0;
+    const dx = moveX;
+    const dy = moveY;
     onStateUpdate('shiftTile', { index, dx, dy });
 
     if (objDef.sfx) {

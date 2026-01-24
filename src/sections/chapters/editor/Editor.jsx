@@ -118,7 +118,15 @@ export const Editor = () => {
     const [selectedTile, setSelectedTile] = useState(null);
     const [showGrid, setShowGrid] = useState(true);
     const [showBackgroundImage, setShowBackgroundImage] = useState(true);
-    const [showMessages, setShowMessages] = useState(true);
+    const [showMessages, setShowMessages] = useState(() => {
+        try {
+            const v = localStorage.getItem('editor_show_messages');
+            if (v === null) return true;
+            return v !== '0';
+        } catch {
+            return true;
+        }
+    });
 
     // Tools & Modes State
     const [isDragging, setIsDragging] = useState(false);
@@ -166,6 +174,10 @@ export const Editor = () => {
     const [weatherMeteorRain, setWeatherMeteorRain] = useState(0);
 
     const [playerPosition, setPlayerPosition] = useState({ x: 100, y: 100 });
+
+    useEffect(() => {
+        try { localStorage.setItem('editor_show_messages', showMessages ? '1' : '0'); } catch {}
+    }, [showMessages]);
 
     // Multi-map state
     const { 
@@ -291,7 +303,7 @@ export const Editor = () => {
 
     // Use Custom Hooks
     const { 
-        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, alternativeSecrets, obstacles 
+        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, crackableWalls, pushableWalls, obstacles 
     } = useEditorRegistry(registryItems);
 
     const { 
@@ -453,7 +465,8 @@ export const Editor = () => {
                     secrets={secrets}
                     weather={weather}
                     messages={messages}
-                    alternativeSecrets={alternativeSecrets}
+                    crackableWalls={crackableWalls}
+                    pushableWalls={pushableWalls}
                     obstacles={obstacles}
                     totalTiles={totalTiles}
                     filledBlocks={filledBlocks}
