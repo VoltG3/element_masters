@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const { execSync } = require('child_process');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
@@ -9,6 +10,12 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production' || process.env.NODE_ENV === 'production';
+  let gitTag = '';
+  try {
+    gitTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
+  } catch {
+    gitTag = '';
+  }
 
   return {
     mode: isProduction ? 'production' : 'development',
@@ -93,6 +100,7 @@ module.exports = (env, argv) => {
     new webpack.DefinePlugin({
       'process.env.PUBLIC_URL': JSON.stringify(isProduction ? '/element_masters' : ''),
       'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+      'process.env.APP_GIT_TAG': JSON.stringify(gitTag),
     }),
     new HtmlWebpackPlugin({
       template: './public/index.html',
