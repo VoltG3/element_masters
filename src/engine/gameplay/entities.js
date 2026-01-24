@@ -21,7 +21,8 @@ export function updateEntities(ctx, deltaMs) {
     constants,
     objectData,
     mapData,
-    registryItems
+    registryItems,
+    onStateUpdate
   } = ctx;
 
   if (!entitiesRef.current || entitiesRef.current.length === 0) return;
@@ -77,7 +78,15 @@ export function updateEntities(ctx, deltaMs) {
       entity.liquidDamageAcc = (entity.liquidDamageAcc || 0) + deltaMs;
       while (entity.liquidDamageAcc >= 1000) {
         entity.liquidDamageAcc -= 1000;
-        entity.health = Math.max(0, entity.health - liquidSample.params.dps);
+        const dmg = liquidSample.params.dps;
+        entity.health = Math.max(0, entity.health - dmg);
+        if (onStateUpdate) {
+          onStateUpdate('entityDamage', {
+            x: entity.x + entity.width / 2,
+            y: entity.y,
+            amount: dmg
+          });
+        }
       }
     } else {
       entity.liquidDamageAcc = 0;
@@ -98,6 +107,13 @@ export function updateEntities(ctx, deltaMs) {
         
         if (totalWeatherDps > 0) {
           entity.health = Math.max(0, entity.health - totalWeatherDps);
+          if (onStateUpdate) {
+            onStateUpdate('entityDamage', {
+              x: entity.x + entity.width / 2,
+              y: entity.y,
+              amount: totalWeatherDps
+            });
+          }
         }
       }
     } else {

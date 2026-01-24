@@ -16,6 +16,7 @@ import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
 
 import { BUILT_IN_MAPS } from '../../../constants/builtInMaps';
+import { TILE_SIZE } from '../../../constants/gameConstants';
 
 // Styled Components
 const GameContainer = styled.div`
@@ -375,7 +376,20 @@ export default function Game() {
                     if (shouldRemoveCrackBlock(def, newHealth)) {
                         dispatch(removeTileAtIndex(index));
                     }
+
+                    const x = (index % mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+                    const y = Math.floor(index / mapWidth) * TILE_SIZE;
+                    window.dispatchEvent(new CustomEvent('game-floating-text', {
+                        detail: { x, y, text: `-${damage}`, color: '#ff3b3b', amount: damage }
+                    }));
                 }
+            }
+        } else if (action === 'entityDamage' && payload) {
+            const { x, y, amount } = payload;
+            if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(amount)) {
+                window.dispatchEvent(new CustomEvent('game-floating-text', {
+                    detail: { x, y, text: `-${Math.round(amount)}`, color: '#ff3b3b', amount }
+                }));
             }
         } else if (action === 'shiftTile' && payload) {
             const { index, dx, dy } = payload;
@@ -395,6 +409,13 @@ export default function Game() {
             // Šeit mēs nevaram viegli atjaunināt Redux katrā kadrā,
             // bet varam atskaņot trāpījuma skaņu
             console.log("Player hit by entity!");
+        } else if (action === 'floatingText' && payload) {
+            const { x, y, text, color, amount } = payload;
+            if (Number.isFinite(x) && Number.isFinite(y) && text) {
+                window.dispatchEvent(new CustomEvent('game-floating-text', {
+                    detail: { x, y, text, color, amount }
+                }));
+            }
         } else if (action === 'levelWin') {
             console.log("Level Win! Returning to map selection.");
             setTimeout(() => {

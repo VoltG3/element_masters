@@ -477,7 +477,8 @@ export function updateFrame(ctx, timestamp) {
       spawnProjectile,
       playSfx,
       constants,
-      registryItems: ctx.registryItems
+      registryItems: ctx.registryItems,
+      onStateUpdate: actions.onStateUpdate
     }, Math.min(dt, 100)); // Ierobežojam deltaMs uz 100ms, lai izvairītos no milzīgiem lēcieniem
     
     // Sinhronizējam lokālos mainīgos pēc entītiju (platformu) ietekmes
@@ -568,6 +569,50 @@ export function updateFrame(ctx, timestamp) {
     liquidOverlay: liquidParams?.overlay || null,
     onIce: isSlippery
   };
+
+  // Floating text deltas for player resources
+  if (actions.onStateUpdate) {
+    const floatState = gameState.current.floatingText || { prev: {}, acc: {} };
+    const resources = [
+      { key: 'health', color: '#ff3b3b' },
+      { key: 'oxygen', color: '#2ecdf1' },
+      { key: 'lavaResist', color: '#ffcc00' },
+      { key: 'iceResist', color: '#a5f3fc' },
+      { key: 'strength', color: '#8b5a2b' },
+      { key: 'radioactivity', color: '#32cd32' }
+    ];
+    const baseX = x + width / 2;
+    const baseY = y - 6;
+
+    resources.forEach((res, idx) => {
+      const cur = Number(gameState.current[res.key]) || 0;
+      if (!Number.isFinite(floatState.prev[res.key])) {
+        floatState.prev[res.key] = cur;
+        floatState.acc[res.key] = 0;
+        return;
+      }
+      const diff = cur - floatState.prev[res.key];
+      if (diff !== 0) {
+        floatState.acc[res.key] = (floatState.acc[res.key] || 0) + diff;
+        if (Math.abs(floatState.acc[res.key]) >= 1) {
+          const amt = Math.round(floatState.acc[res.key]);
+          floatState.acc[res.key] -= amt;
+          const sign = amt > 0 ? '+' : '';
+          actions.onStateUpdate('floatingText', {
+            x: baseX + (idx - 2.5) * 6,
+            y: baseY,
+            text: `${sign}${amt}`,
+            color: res.color,
+            amount: amt
+          });
+        }
+      }
+      floatState.prev[res.key] = cur;
+    });
+
+    gameState.current.floatingText = floatState;
+  }
+
   setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [], entities: entitiesRef.current || [] });
 
   return { continue: true };

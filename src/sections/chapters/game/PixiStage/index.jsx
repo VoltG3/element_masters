@@ -13,6 +13,7 @@ import { createPlayerContainer, updatePlayerSprite } from './playerManager';
 import { syncProjectiles, cleanupProjectiles } from './projectileManager';
 import { syncEntities, cleanupEntities } from './entityManager';
 import { rebuildLayers } from './layerBuilder';
+import { createFloatingTextLayer, createFloatingTextManager } from './floatingTextManager';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
 Assets.setPreferences?.({
@@ -124,6 +125,8 @@ const PixiStage = ({
   const darkenFilterRef = useRef(new ColorMatrixFilter());
   const roomBrightnessFilterRef = useRef(new ColorMatrixFilter());
   const vignetteRef = useRef(null);
+  const floatingLayerRef = useRef(null);
+  const floatingManagerRef = useRef(null);
 
   // Keep latest state in refs for ticker
   useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
@@ -232,6 +235,7 @@ const PixiStage = ({
       const projLayer = new Container();
       const vignetteLayer = new Container();
       const overlayLayer = new Container();
+      const floatingLayer = createFloatingTextLayer();
 
       // Assign zIndex
       const parallaxLayer = new Container();
@@ -255,6 +259,7 @@ const PixiStage = ({
       projLayer.zIndex = LAYERS.projectiles;
       vignetteLayer.zIndex = LAYERS.overlay - 1;
       overlayLayer.zIndex = LAYERS.overlay;
+      floatingLayer.zIndex = LAYERS.overlay + 1;
 
       bgRef.current = bg;
       bgAnimRef.current = bgAnim;
@@ -273,6 +278,8 @@ const PixiStage = ({
       entitiesLayerRef.current = entitiesLayer;
       vignetteRef.current = vignetteLayer;
       overlayLayerRef.current = overlayLayer;
+      floatingLayerRef.current = floatingLayer;
+      floatingManagerRef.current = createFloatingTextManager(floatingLayer);
     
       const gridGraphics = new Graphics();
       gridRef.current = gridGraphics;
@@ -319,7 +326,8 @@ const PixiStage = ({
           liquidLayer, 
           liquidFxLayer,
           vignetteLayer,
-          overlayLayer
+          overlayLayer,
+          floatingLayer
         );
       }
 
@@ -730,6 +738,9 @@ const PixiStage = ({
         // Entities
         const sNow = playerStateRef.current || {};
         syncEntities(entitiesLayerRef.current, entitySpritesRef.current, sNow.entities, registryItems, tileSize);
+
+        // Floating texts
+        floatingManagerRef.current?.update(dt);
       });
     } catch (error) {
       console.error('PixiStage init failed:', error);
@@ -761,6 +772,15 @@ const PixiStage = ({
     cleanupEntities(entitySpritesRef.current);
     clearTextureCache();
   };
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e?.detail || {};
+      floatingManagerRef.current?.add(detail);
+    };
+    window.addEventListener('game-floating-text', handler);
+    return () => window.removeEventListener('game-floating-text', handler);
   }, []);
 
   useEffect(() => {

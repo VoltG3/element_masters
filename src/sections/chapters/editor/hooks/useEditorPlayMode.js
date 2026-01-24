@@ -222,6 +222,19 @@ export const useEditorPlayMode = (
                     [index]: { ...current, health: newHealth }
                 };
             });
+
+            const x = (index % mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+            const y = Math.floor(index / mapWidth) * TILE_SIZE;
+            window.dispatchEvent(new CustomEvent('game-floating-text', {
+                detail: { x, y, text: `-${damage}`, color: '#ff3b3b', amount: damage }
+            }));
+        } else if (newState === 'entityDamage' && payload) {
+            const { x, y, amount } = payload;
+            if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(amount)) {
+                window.dispatchEvent(new CustomEvent('game-floating-text', {
+                    detail: { x, y, text: `-${Math.round(amount)}`, color: '#ff3b3b', amount }
+                }));
+            }
         } else if (newState === 'shiftTile' && payload !== undefined) {
             const { index, dx, dy } = payload;
             
@@ -297,6 +310,13 @@ export const useEditorPlayMode = (
         } else if (newState === 'weatherEffectHit' && payload) {
             const { type, data } = payload;
             window.dispatchEvent(new CustomEvent('weather-effect-hit', { detail: { type, data } }));
+        } else if (newState === 'floatingText' && payload) {
+            const { x, y, text, color, amount } = payload;
+            if (Number.isFinite(x) && Number.isFinite(y) && text) {
+                window.dispatchEvent(new CustomEvent('game-floating-text', {
+                    detail: { x, y, text, color, amount }
+                }));
+            }
         }
     }, [activeMapId, maps, updateMapData, activeRoomIds, playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 

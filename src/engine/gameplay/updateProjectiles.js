@@ -131,6 +131,13 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       const hitEntX = checkEntityHit(nextX, cy, hw, hh, p);
       if (hitEntX) {
         hitEntX.health -= p.dmg || 10;
+        if (onStateUpdate) {
+          onStateUpdate('entityDamage', {
+            x: hitEntX.x + hitEntX.width / 2,
+            y: hitEntX.y,
+            amount: p.dmg || 10
+          });
+        }
         removed = true;
         break;
       }
@@ -174,6 +181,13 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       const hitEntY = checkEntityHit(cx, nextY, hw, hh, p);
       if (hitEntY) {
         hitEntY.health -= p.dmg || 10;
+        if (onStateUpdate) {
+          onStateUpdate('entityDamage', {
+            x: hitEntY.x + hitEntY.width / 2,
+            y: hitEntY.y,
+            amount: p.dmg || 10
+          });
+        }
         removed = true;
         break;
       }

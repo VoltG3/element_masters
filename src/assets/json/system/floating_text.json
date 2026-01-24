@@ -1,0 +1,19 @@
+{
+  "default": {
+    "fontSize": 14,
+    "ttlMs": 900,
+    "color": "#ff3b3b",
+    "riseSpeed": 0.04,
+    "jitterX": 6,
+    "jitterY": 2
+  },
+  "crit": {
+    "threshold": 25,
+    "fontSize": 18,
+    "color": "#ffd54a",
+    "ttlMs": 1100,
+    "riseSpeed": 0.05,
+    "prefix": "",
+    "suffix": "!"
+  }
+}
