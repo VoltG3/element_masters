@@ -63,6 +63,26 @@ register({
   }
 });
 
+// Built-in: debug overlay toggle
+register({
+  name: 'debug',
+  description: "Toggle debug overlay: debug [on|off|toggle]",
+  handler({ args }) {
+    const mode = (args && args[0]) ? String(args[0]).toLowerCase() : 'toggle';
+    const current = !!(window.__GAME_RUNTIME_SETTINGS__ && window.__GAME_RUNTIME_SETTINGS__.debugOverlayEnabled);
+    const next = (mode === 'on') ? true : (mode === 'off' ? false : !current);
+    try {
+      window.__GAME_RUNTIME_SETTINGS__ = {
+        ...(window.__GAME_RUNTIME_SETTINGS__ || {}),
+        debugOverlayEnabled: next
+      };
+      try { localStorage.setItem('game_debug_overlay', next ? '1' : '0'); } catch {}
+      window.dispatchEvent(new CustomEvent('game-settings-update', { detail: { debugOverlayEnabled: next } }));
+    } catch {}
+    return `Debug overlay ${next ? 'enabled' : 'disabled'}.`;
+  }
+});
+
 export default {
   register,
   listCommands,

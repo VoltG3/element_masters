@@ -16,7 +16,7 @@ export const HeaderBar = styled.div`
     height: 60px;
     box-sizing: border-box;
     color: #fff;
-    z-index: 1000;
+    z-index: 1105;
     position: relative;
 
     &::after {

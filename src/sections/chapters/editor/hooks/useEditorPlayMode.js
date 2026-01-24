@@ -29,6 +29,11 @@ export const useEditorPlayMode = (
     const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
     const messageTimerRef = useRef(null);
     const lastSyncedMapIdRef = useRef(null);
+    const isPlayModeRef = useRef(isPlayMode);
+
+    useEffect(() => {
+        isPlayModeRef.current = isPlayMode;
+    }, [isPlayMode]);
 
     // Stability for engine initialization - only changes when map changes or play mode is toggled
     const engineInitId = useMemo(() => {
@@ -237,6 +242,7 @@ export const useEditorPlayMode = (
             }
         } else if (newState === 'shiftTile' && payload !== undefined) {
             const { index, dx, dy } = payload;
+            const mapIdAtStart = activeMapId;
             
             applyWolfSecretShift({
                 index,
@@ -280,7 +286,8 @@ export const useEditorPlayMode = (
                         newObjs[idx] = null;
                         return newObjs;
                     });
-                }
+                },
+                shouldCancel: () => !isPlayModeRef.current || activeMapId !== mapIdAtStart
             });
         } else if (newState === 'updateWeather' && payload) {
             const { type, value } = payload;

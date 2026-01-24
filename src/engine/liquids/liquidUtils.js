@@ -2,6 +2,13 @@
 // Liquids are defined as blocks with flags.liquid === true and optional flags.water/flags.lava
 // Optional physics params live under def.liquid: { buoyancy, drag:{x,y}, surface, swimmable, damagePerSecond }
 
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
 /**
  * Sample registry tile definition at world pixel and return liquid info if present.
  * @param {number} wx world x in pixels
@@ -21,7 +28,7 @@ export function getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZ
   const idx = gy * mapWidthTiles + gx;
   const id = tileData[idx];
   if (!id) return null;
-  const def = Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+  const def = getDefById(registryItems, id);
   if (!def || !def.flags || !def.flags.liquid) return null;
   const type = def.flags.lava_waterfall ? 'lava_waterfall' :
                (def.flags.radioactive_waterfall ? 'radioactive_waterfall' :

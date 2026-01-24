@@ -3,7 +3,6 @@ src/sections/chapters/game/
 ├── GameHeader.jsx         # Spēles header ar veselību un info
 ├── GameSettings.jsx       # Spēles iestatījumu panelis
 ├── GameTerminal.jsx       # Komandu terminālis
-├── mapOperations.js       # Kartes ielādes un apstrādes funkcijas (~107 rindas)
 ├── MapSelector.jsx        # Kartes izvēles modal komponents (~43 rindas)
 ├── styledComponents.js    # Styled components definīcijas (~138 rindas)
 └── PixiStage/

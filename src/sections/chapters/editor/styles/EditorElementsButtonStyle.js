@@ -10,7 +10,7 @@ export const SidebarContainer = styled.div`
     flex-direction: column;
     align-items: center;
     padding-top: 10px;
-    z-index: 1001;
+    z-index: 1100;
     border-right: 1px solid #000;
     flex-shrink: 0;
     overflow-y: auto;
@@ -64,7 +64,7 @@ export const PanelContainer = styled.div`
     border-right: 1px solid #ddd;
     display: flex;
     flex-direction: column;
-    z-index: 990;
+    z-index: 1090;
     box-shadow: 4px 0 10px rgba(0,0,0,0.2);
     
     /* Animation settings */

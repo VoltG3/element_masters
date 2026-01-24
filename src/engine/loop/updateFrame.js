@@ -80,7 +80,10 @@ export function updateFrame(ctx, timestamp) {
 
   // 0.5) Resources update (before physics to affect them)
   // Ice resistance depletion: drains while on slippery surface; regenerates otherwise
-  const backgroundLayer = ctx.mapData.layers.find(l => l.name === 'background')?.data || [];
+  const layers = ctx.mapData.layers || [];
+  const backgroundLayer = layers.find(l => l.name === 'background')?.data || [];
+  const secretLayer = layers.find(l => l.name === 'secrets' || l.type === 'secret')?.data || [];
+  const objectMetadata = mapData.meta?.objectMetadata || {};
   const surface = helpers.getSurfaceProperties ? helpers.getSurfaceProperties(x, y, width, height, mapWidth, mapHeight, TILE_SIZE, backgroundLayer, ctx.registryItems) : { friction: 0.8, acceleration: 0.2 };
   
   const isSlippery = surface.friction >= 0.9;
@@ -343,6 +346,19 @@ export function updateFrame(ctx, timestamp) {
         radio += (radioRecover * dt) / 1000;
       }
     }
+
+    // Radioactivity resource changes from fog (deplete while fog is active)
+    if (weatherAffectsPlayer('radioactiveFog')) {
+      const rates = getRadioactivityRates();
+      if (radioFogInt > 0 && rates.increase > 0) {
+        const dec = (radioFogInt / 100) * rates.increase * (dt / 1000);
+        radio -= dec;
+      } else if (radioFogInt <= 0 && rates.decay > 0 && !fogActive) {
+        const inc = rates.decay * (dt / 1000);
+        radio += inc;
+      }
+    }
+
     radio = Math.max(0, Math.min(maxRadio, radio));
     gameState.current.radioactivity = radio;
     gameState.current.maxRadioactivity = maxRadio;
@@ -388,9 +404,8 @@ export function updateFrame(ctx, timestamp) {
     }
     if (lavaDps > 0 && weatherBlockedByCover('lavaRain')) {
       try {
-        const tileData = mapData.layers?.find(l => l.name === 'background' || l.type === 'tile')?.data || [];
-        const secretData = mapData.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data || [];
-        const objectMetadata = mapData.meta?.objectMetadata || {};
+        const tileData = backgroundLayer;
+        const secretData = secretLayer;
         const covered = isCoveredFromAbove({
           x: x + width / 2,
           y,
@@ -408,7 +423,7 @@ export function updateFrame(ctx, timestamp) {
         if (covered) lavaDps = 0;
       } catch {}
     }
-    const effectiveRadioDps = (radioDps > 0 && Number(gameState.current.radioactivity) <= 0) ? radioDps : 0;
+    const effectiveRadioDps = (radioDps > 0 && Number(radio) <= 0) ? radioDps : 0;
     const totalWeatherDps = lavaDps + effectiveRadioDps;
 
     if (totalWeatherDps > 0) {
@@ -430,19 +445,6 @@ export function updateFrame(ctx, timestamp) {
       weatherDamageAccRef.current = 0;
     }
 
-    // Radioactivity resource changes from fog
-    if (weatherAffectsPlayer('radioactiveFog')) {
-      const rates = getRadioactivityRates();
-      const maxRad = Math.max(1, Number(gameState.current.maxRadioactivity) || 100);
-      const curRad = Number(gameState.current.radioactivity) || 0;
-      if (radioFogInt > 0 && rates.increase > 0) {
-        const dec = (radioFogInt / 100) * rates.increase * (dt / 1000);
-        gameState.current.radioactivity = Math.max(0, curRad - dec);
-      } else if (radioFogInt <= 0 && rates.decay > 0) {
-        const inc = rates.decay * (dt / 1000);
-        gameState.current.radioactivity = Math.min(maxRad, curRad + inc);
-      }
-    }
   } catch {}
 
   // 2.8) Base liquid DPS (e.g., lava) — only after resource logic so we can gate by resistance
@@ -481,7 +483,7 @@ export function updateFrame(ctx, timestamp) {
   collectItem(x, y, mapWidth, objectData);
 
   // 3.5) Interactables check (berry bushes etc.)
-  try { checkInteractables(x, y, mapWidth, objectData); } catch {}
+  try { checkInteractables(x, y, mapWidth, mapHeight, objectData); } catch {}
 
   // 4) Hazard damage check (bushes etc.)
   try { checkHazardDamage(x, y, mapWidth, objectData, deltaMs); } catch {}

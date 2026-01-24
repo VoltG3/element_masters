@@ -1,8 +1,6 @@
 import styled from "styled-components"
 import { useTranslation } from "react-i18next"
 import { useState, useRef, useEffect } from "react"
-import { useSelector, useDispatch } from "react-redux"
-import { setSoundEnabled } from "../store/slices/settingsSlice"
 
 const NavButton = styled.button`
     display: flex;
@@ -94,12 +92,17 @@ const ToggleSwitch = styled.div`
 
 export default function SectionHeaderNavigationLanguages() {
     const { i18n } = useTranslation();
-    const dispatch = useDispatch();
     const dropdownRef = useRef(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    
-    const { sound } = useSelector(state => state.settings);
-    const soundEnabled = sound?.enabled ?? false;
+    const [soundEnabled, setSoundEnabled] = useState(() => {
+        try {
+            const v = localStorage.getItem('game_sound_enabled');
+            if (v === null) return false;
+            return v !== '0';
+        } catch {
+            return false;
+        }
+    });
 
     const currentLang = i18n.language || 'en'
 
@@ -109,7 +112,8 @@ export default function SectionHeaderNavigationLanguages() {
 
     const toggleSound = () => {
         const next = !soundEnabled;
-        dispatch(setSoundEnabled(next));
+        setSoundEnabled(next);
+        try { localStorage.setItem('game_sound_enabled', next ? '1' : '0'); } catch {}
         try { window.dispatchEvent(new CustomEvent('game-sound-toggle', { detail: { enabled: next } })); } catch {}
         try { window.dispatchEvent(new CustomEvent('game-sound-user-gesture')); } catch {}
     };

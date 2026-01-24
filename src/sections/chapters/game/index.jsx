@@ -11,7 +11,6 @@ import { applyWolfSecretShift, shouldRemoveCrackBlock } from '../../../engine/ga
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
 import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver, toggleRoom, clearRooms } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
-import { setSoundEnabled } from '../../../store/slices/settingsSlice';
 import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
 
@@ -265,13 +264,38 @@ const MessageOverlay = styled.div`
 export default function Game() {
     const dispatch = useDispatch();
     const viewportRef = useRef(null);
-    const player = useSelector(state => state.player); // Ensure this isn't undefined
 
     // Redux state
-    const { activeMapData, tileMapData, objectMapData, secretMapData, objectMetadata, revealedSecrets, objectTextureIndices, mapWidth, mapHeight, isGameOver, activeRoomIds, projectMaps } = useSelector(state => state.game);
-    const { isMapModalOpen, cameraScrollX, shouldCenterMap } = useSelector(state => state.ui);
-    const { sound } = useSelector(state => state.settings);
-    const soundEnabled = sound.enabled;
+    const gameState = useSelector(state => state.game) || {};
+    const uiState = useSelector(state => state.ui) || {};
+    const {
+        activeMapData = null,
+        tileMapData = [],
+        objectMapData = [],
+        secretMapData = [],
+        objectMetadata = {},
+        revealedSecrets = [],
+        objectTextureIndices = {},
+        mapWidth = 20,
+        mapHeight = 15,
+        isGameOver = false,
+        activeRoomIds = [],
+        projectMaps = {}
+    } = gameState;
+    const {
+        isMapModalOpen = true,
+        cameraScrollX = 0,
+        shouldCenterMap = false
+    } = uiState;
+    const [soundEnabled, setSoundEnabled] = useState(() => {
+        try {
+            const v = localStorage.getItem('game_sound_enabled');
+            if (v === null) return false;
+            return v !== '0';
+        } catch {
+            return false;
+        }
+    });
 
     // Runtime settings that can be changed from GameSettings on the fly
     const [runtimeSettings, setRuntimeSettings] = useState({});
@@ -279,6 +303,16 @@ export default function Game() {
     // In-game messages
     const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
     const messageTimerRef = useRef(null);
+
+    useEffect(() => {
+        const onToggle = (e) => {
+            const enabled = !!(e?.detail?.enabled);
+            setSoundEnabled(enabled);
+            try { localStorage.setItem('game_sound_enabled', enabled ? '1' : '0'); } catch {}
+        };
+        window.addEventListener('game-sound-toggle', onToggle);
+        return () => window.removeEventListener('game-sound-toggle', onToggle);
+    }, []);
 
     // Registry
     const registryItems = getRegistry() || [];
@@ -303,6 +337,17 @@ export default function Game() {
     };
 
     const playerStateRef = useRef(null);
+    const activeMapIdRef = useRef(null);
+    const isGameOverRef = useRef(false);
+
+    useEffect(() => {
+        const id = activeMapData?.meta?.activeMapId || activeMapData?.meta?.activeMap || 'main';
+        activeMapIdRef.current = id;
+    }, [activeMapData]);
+
+    useEffect(() => {
+        isGameOverRef.current = !!isGameOver;
+    }, [isGameOver]);
 
     const handleStateUpdate = useCallback((action, payload) => {
         if (action === 'collectItem') {
@@ -395,6 +440,7 @@ export default function Game() {
             }
         } else if (action === 'shiftTile' && payload) {
             const { index, dx, dy } = payload;
+            const mapIdAtStart = activeMapIdRef.current;
             applyWolfSecretShift({
                 index,
                 dx,
@@ -405,7 +451,8 @@ export default function Game() {
                 getObjectDef: objId => registryItems.find(r => r.id === objId),
                 moveTile: (from, to) => dispatch(moveTileInMap({ fromIndex: from, toIndex: to })),
                 moveObject: (from, to) => dispatch(moveObjectInMap({ fromIndex: from, toIndex: to })),
-                removeObject: idx => dispatch(removeObjectAtIndex(idx))
+                removeObject: idx => dispatch(removeObjectAtIndex(idx)),
+                shouldCancel: () => isGameOverRef.current || activeMapIdRef.current !== mapIdAtStart
             });
         } else if (action === 'playerDamage' && payload !== undefined) {
             const { damage, x, y } = payload || {};
@@ -544,6 +591,7 @@ export default function Game() {
                 waterSplashesEnabled: (runtimeSettings.waterSplashesEnabled ?? true),
                 lavaEmbersEnabled: (runtimeSettings.lavaEmbersEnabled ?? true),
                 roomBlurEnabled: (runtimeSettings.roomBlurEnabled ?? true),
+                debugOverlayEnabled: (runtimeSettings.debugOverlayEnabled ?? false),
                 // legacy mirror for compatibility (e.g., older UI)
                 weatherFogLegacy: fog,
             };
@@ -677,6 +725,9 @@ export default function Game() {
         }
     };
 
+    const debugOverlayEnabled = !!(runtimeSettings.debugOverlayEnabled);
+    const debugMapId = activeMapData?.meta?.activeMapId || activeMapData?.meta?.activeMap || 'main';
+
     return (
         <GameContainer onClick={() => {
             window.dispatchEvent(new CustomEvent('game-sound-user-gesture'));
@@ -714,6 +765,31 @@ export default function Game() {
                 liquidType={playerState.liquidType}
                 onIce={playerState.onIce}
             />
+
+            {debugOverlayEnabled && (
+                <div style={{
+                    position: 'absolute',
+                    top: 70,
+                    left: 70,
+                    background: 'rgba(0,0,0,0.6)',
+                    color: '#eaeaea',
+                    padding: '8px 10px',
+                    fontSize: 11,
+                    lineHeight: 1.4,
+                    borderRadius: 4,
+                    zIndex: 2100,
+                    pointerEvents: 'none',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+                }}>
+                    <div>Map: {debugMapId}</div>
+                    <div>Pos: {Math.round(playerState.x || 0)}, {Math.round(playerState.y || 0)}</div>
+                    <div>Room: {Array.isArray(activeRoomIds) && activeRoomIds.length ? activeRoomIds.join(', ') : 'none'}</div>
+                    <div>Weather: rain {runtimeSettings.weatherRain ?? 0} | snow {runtimeSettings.weatherSnow ?? 0} | fog {runtimeSettings.weatherFog ?? 0}</div>
+                    <div>Weather: lava {runtimeSettings.weatherLavaRain ?? 0} | radio {runtimeSettings.weatherRadioactiveFog ?? 0}</div>
+                    <div>HP {Math.round(playerState.health || 0)} / {Math.round(playerState.maxHealth || 0)}</div>
+                    <div>O2 {Math.round(playerState.oxygen || 0)} | Lava {Math.round(playerState.lavaResist || 0)} | Rad {Math.round(playerState.radioactivity || 0)}</div>
+                </div>
+            )}
 
 
             {isGameOver && (
@@ -822,6 +898,7 @@ export default function Game() {
                             waterSplashesEnabled={runtimeSettings.waterSplashesEnabled ?? true}
                             lavaEmbersEnabled={runtimeSettings.lavaEmbersEnabled ?? true}
                             roomBlurEnabled={runtimeSettings.roomBlurEnabled ?? true}
+                            debugOverlayEnabled={runtimeSettings.debugOverlayEnabled ?? false}
                             isEditor={false}
                             mapType={activeMapData?.type || 'overworld'}
                             activeRoomIds={activeRoomIds}

@@ -1,9 +1,9 @@
 // Projectile update and ricochet simulation extracted from useGameEngine.js
 
-// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, onStateUpdate }
+// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate }
 // updateProjectiles(ctx, deltaMs, mapWidth, mapHeight)
 export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
-  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, onStateUpdate } = ctx;
+  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate } = ctx;
   const dtProj = deltaMs / 1000;
   const worldW = mapWidth * TILE_SIZE;
   const worldH = mapHeight * TILE_SIZE;
@@ -18,7 +18,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     for (let k = 0; k < pts.length; k++) {
       const pt = pts[k];
       // Updated isSolidAtPixel call with all necessary layers
-      if (isSolidAtPixel(pt.x, pt.y, mapWidth, mapHeight, TILE_SIZE, null, null, null, objectData, objectMetadata)) return true;
+      if (isSolidAtPixel(pt.x, pt.y, mapWidth, mapHeight, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata)) return true;
     }
     return false;
   };

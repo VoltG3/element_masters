@@ -3,6 +3,13 @@ import { applyVerticalPhysics } from '../physics/vertical';
 import { getWeatherDps, getMapWeather, weatherAffectsEnemy, weatherBlockedByCover } from './weatherDamage';
 import { isCoveredFromAbove } from './weatherCover';
 
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
 /**
  * Atjaunina visas aktīvās entītijas (piemēram, tankus).
  * @param {Object} ctx Konteksts ar nepieciešamajiem datiem un funkcijām
@@ -33,9 +40,14 @@ export function updateEntities(ctx, deltaMs) {
   const { GRAVITY, TERMINAL_VELOCITY } = constants;
   const playerX = gameState.current.x;
   const playerY = gameState.current.y;
+  const weatherNow = getMapWeather(mapData);
+  const lavaRainInt = Number(weatherNow.lavaRain || 0);
+  const radioFogInt = Number(weatherNow.radioactiveFog || 0);
 
   // Mēs modificējam entītijas pa tiešo refā
-  entitiesRef.current = entitiesRef.current.map(entity => {
+  const entities = entitiesRef.current;
+  for (let i = entities.length - 1; i >= 0; i--) {
+    const entity = entities[i];
     // 1. Ja entītija ir mirusi, apstrādājam sprādzienu vai noņemšanu
     if (entity.health <= 0) {
       if (!entity.isExploding) {
@@ -61,7 +73,10 @@ export function updateEntities(ctx, deltaMs) {
           entity.shouldRemove = true;
         }
       }
-      return entity;
+      if (entity.shouldRemove) {
+        entities.splice(i, 1);
+      }
+      continue;
     }
 
     const def = entity.def;
@@ -96,9 +111,6 @@ export function updateEntities(ctx, deltaMs) {
     }
 
     // 1.3. Weather damage (Lava Rain, Radioactive Fog)
-    const weather = getMapWeather(mapData);
-    const lavaRainInt = Number(weather.lavaRain || 0);
-    const radioFogInt = Number(weather.radioactiveFog || 0);
     const enemyId = entity.defId || def?.id;
     const enemyName = def?.name;
     let lavaDps = weatherAffectsEnemy('lavaRain', enemyId, enemyName) ? getWeatherDps('lavaRain', lavaRainInt) : 0;
@@ -316,7 +328,7 @@ export function updateEntities(ctx, deltaMs) {
       entity.animation = 'idle';
       entity.currentSpriteIndex = def.spriteSheet?.animations?.idle?.[0] || 0;
 
-      return entity;
+      continue;
     }
 
     // Platformu loģika
@@ -352,7 +364,7 @@ export function updateEntities(ctx, deltaMs) {
         }
 
         if (id) {
-          const aDef = ctx.registryItems.find(r => r.id === id);
+          const aDef = getDefById(ctx.registryItems, id);
           if (aDef && aDef.subtype === 'arrow') {
             arrowId = id;
             foundArrowDef = aDef;
@@ -424,7 +436,7 @@ export function updateEntities(ctx, deltaMs) {
         }
       }
 
-      return entity;
+      continue;
     }
 
     const ai = def.ai || {};
@@ -640,6 +652,8 @@ export function updateEntities(ctx, deltaMs) {
         entity.currentSpriteIndex = explodeAnim[Math.min(entity.animFrame, explodeAnim.length - 1)];
     }
 
-    return entity;
-  }).filter(e => !e.shouldRemove);
+    if (entity.shouldRemove) {
+      entities.splice(i, 1);
+    }
+  }
 }

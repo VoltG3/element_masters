@@ -83,15 +83,21 @@ export function applyWolfSecretShift({
   moveMetadata,
   removeObject,
   stepDelayMs = 250,
-  setTimeoutFn = setTimeout
+  setTimeoutFn = setTimeout,
+  shouldCancel
 }) {
   let currentIdx = index;
   let remainingDx = dx;
   let remainingDy = dy;
+  const originId = getObjectId(currentIdx);
+  if (!originId) return;
 
   const moveStep = () => {
+    if (shouldCancel && shouldCancel()) return;
+    const currentId = getObjectId(currentIdx);
+    if (!currentId || currentId !== originId) return;
     if (remainingDx === 0 && remainingDy === 0) {
-      removeObject(currentIdx);
+      if (removeObject) removeObject(currentIdx);
       return;
     }
 
@@ -128,10 +134,10 @@ export function applyWolfSecretShift({
       if (remainingDx !== 0 || remainingDy !== 0) {
         setTimeoutFn(moveStep, stepDelayMs);
       } else {
-        removeObject(currentIdx);
+        if (removeObject) removeObject(currentIdx);
       }
     } else {
-      removeObject(currentIdx);
+      if (removeObject) removeObject(currentIdx);
     }
   };
 

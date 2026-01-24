@@ -5,6 +5,7 @@
  */
 
 let _registry = null;
+let _registryMap = null;
 
 /**
  * Initialize the registry by loading all JSON, image, and sound assets.
@@ -136,6 +137,12 @@ const initRegistry = () => {
             }
         });
 
+        _registryMap = new Map();
+        _registry.forEach(item => {
+            if (item && item.id) _registryMap.set(item.id, item);
+        });
+        _registry.__byId = _registryMap;
+
         console.log(`✅ Game Registry initialized. Loaded ${_registry.length} items.`);
 
     } catch (error) {
@@ -157,7 +164,9 @@ export const getRegistry = () => {
 
 // Eksportējam palīgfunkciju, lai meklētu pēc ID
 export const findItemById = (id) => {
-    return _registry ? _registry.find(item => item.id === id) : null;
+    if (!_registry) return null;
+    if (_registryMap) return _registryMap.get(id) || null;
+    return _registry.find(item => item.id === id);
 };
 
 export default _registry;

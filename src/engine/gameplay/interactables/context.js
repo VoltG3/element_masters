@@ -1,8 +1,10 @@
 export function resolveInteractableContext({
   mapData,
   mapWidth,
+  mapHeight,
   objectLayerData,
   mainObjectMetadata,
+  secretMapData,
   activeRoomIds: activeRoomIdsProp,
   centerX,
   centerY,
@@ -12,6 +14,7 @@ export function resolveInteractableContext({
   let activeObjectData = objectLayerData;
   let activeMetadata = mainObjectMetadata || mapData?.objectMetadata || mapData?.meta?.objectMetadata || {};
   let activeMapWidth = mapWidth;
+  let activeMapHeight = mapHeight;
   let offsetX = 0;
   let offsetY = 0;
   let currentMapId = mapData?.id || 'main';
@@ -23,6 +26,7 @@ export function resolveInteractableContext({
     const mainMetadata = mainObjectMetadata || mapData?.objectMetadata || mapData?.meta?.objectMetadata || {};
     for (const [idxStr, meta] of Object.entries(mainMetadata)) {
       const idx = parseInt(idxStr, 10);
+      if (secretMapData && secretMapData[idx] !== 'room_area') continue;
       if (meta.linkedMapId && activeRoomIds.includes(meta.linkedMapId)) {
         const roomMap = projectMaps[meta.linkedMapId];
         if (!roomMap) continue;
@@ -35,6 +39,7 @@ export function resolveInteractableContext({
         if (centerX >= rx && centerX < rx + rw && centerY >= ry && centerY < ry + rh) {
           activeTargetMap = roomMap;
           activeMapWidth = roomMap.mapWidth || roomMap.width || 20;
+          activeMapHeight = roomMap.mapHeight || roomMap.height || 15;
           activeObjectData = roomMap.objectMapData || roomMap.layers?.find(l => l.name === 'entities')?.data;
           activeMetadata = roomMap.objectMetadata || {};
           offsetX = rx;
@@ -51,6 +56,7 @@ export function resolveInteractableContext({
     activeObjectData,
     activeMetadata,
     activeMapWidth,
+    activeMapHeight,
     offsetX,
     offsetY,
     currentMapId,

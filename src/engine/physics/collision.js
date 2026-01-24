@@ -1,5 +1,12 @@
 // Collision helpers (migrated from GameEngine/collision.js)
 
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
 // Check whether a world pixel (wx, wy) is solid (collides with a tile or an object)
 // Params:
 // - wx, wy: world pixel coordinates
@@ -91,7 +98,7 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
         const index = gy * mapWidthTiles + gx;
         const objId = objectData && objectData[index];
         if (objId) {
-          const objDef = registryItems.find(r => r.id === objId);
+        const objDef = getDefById(registryItems, objId);
           if (objDef && objDef.subtype === 'door') {
             const meta = (objectMetadata && objectMetadata[index]) || {};
             let frame = meta.currentFrame;
@@ -131,7 +138,7 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
     // 1. Check objects layer first (like the wooden box)
     if (objectData && objectData[index]) {
       const objId = objectData[index];
-      const objDef = registryItems.find(r => r.id === objId);
+      const objDef = getDefById(registryItems, objId);
       
       const isEntity = objDef && (
         objDef.type === 'entity' || 
@@ -180,7 +187,7 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
     // 2. Check tiles layer
     const tileId = tileData[index];
     if (!tileId) return false;
-    const tileDef = registryItems.find(r => r.id === tileId);
+    const tileDef = getDefById(registryItems, tileId);
     if (!tileDef || !tileDef.collision) return false;
     if (tileDef.collision === true) return true;
     if (typeof tileDef.collision === 'object') {
@@ -295,7 +302,7 @@ export function getSurfaceProperties(x, y, width, height, mapWidthTiles, mapHeig
   const tileId = tileData ? tileData[index] : null;
   if (!tileId) return { friction: 0.8, acceleration: 0.2 };
   
-  const tileDef = registryItems.find(r => r.id === tileId);
+    const tileDef = getDefById(registryItems, tileId);
   if (!tileDef) return { friction: 0.8, acceleration: 0.2 };
   
   // If block has slipperiness, use it. Default friction is 0.8.

@@ -1,10 +1,17 @@
 // Item collection extracted from useGameEngine.js
 
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
 // Collects item under player's center if pickup-able.
 // Args (ctx): { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, maps, activeRoomIds, objectMetadata }
 // Params: currentX, currentY, mapWidth, objectLayerData
 export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) {
-  const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, maps, activeRoomIds, objectMetadata: mainMetadata } = ctx;
+  const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, maps, activeRoomIds, objectMetadata: mainMetadata, secretMapData } = ctx;
   if (!objectLayerData) return;
 
   const centerX = currentX + gameState.current.width / 2;
@@ -18,6 +25,7 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
 
     for (const [idxStr, meta] of Object.entries(mainMetadata)) {
       const idx = parseInt(idxStr);
+      if (secretMapData && secretMapData[idx] !== 'room_area') continue;
       if (meta.linkedMapId && activeRoomIds.includes(meta.linkedMapId)) {
         const roomMap = maps[meta.linkedMapId];
         if (!roomMap) continue;
@@ -43,7 +51,7 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
           if (rObjectData && rObjectData[rIndex]) {
             // Call collectItem recursively or just handle it here
             const rItemId = rObjectData[rIndex];
-            const rItemDef = registryItems.find(r => r.id === rItemId);
+            const rItemDef = getDefById(registryItems, rItemId);
             
             if (rItemDef && rItemDef.pickup && !rItemId.includes('player')) {
                if (rItemDef.name && rItemDef.name.startsWith('interactable.')) return;
@@ -97,7 +105,7 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
   const itemId = objectLayerData[index];
   if (!itemId) return;
 
-  const itemDef = registryItems.find(r => r.id === itemId);
+  const itemDef = getDefById(registryItems, itemId);
   if (!itemDef || !itemDef.pickup || itemId.includes('player')) return;
 
   // Skip interactables - they are handled by checkInteractables()

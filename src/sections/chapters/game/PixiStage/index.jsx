@@ -64,6 +64,7 @@ const PixiStage = ({
   pointerEvents = 'auto',
   onWeatherEffectHit = null,
   roomBlurEnabled = true,
+  debugOverlayEnabled = false,
 }) => {
   const [isPixiReady, setIsPixiReady] = useState(false);
 
@@ -126,6 +127,8 @@ const PixiStage = ({
   const roomBrightnessFilterRef = useRef(new ColorMatrixFilter());
   const vignetteRef = useRef(null);
   const floatingLayerRef = useRef(null);
+  const debugLayerRef = useRef(null);
+  const debugEnabledRef = useRef(!!debugOverlayEnabled);
   const floatingManagerRef = useRef(null);
 
   // Keep latest state in refs for ticker
@@ -138,6 +141,7 @@ const PixiStage = ({
   useEffect(() => { splashesEnabledRef.current = waterSplashesEnabled !== false; }, [waterSplashesEnabled]);
   useEffect(() => { embersEnabledRef.current = lavaEmbersEnabled !== false; }, [lavaEmbersEnabled]);
   useEffect(() => { roomBlurEnabledRef.current = roomBlurEnabled; }, [roomBlurEnabled]);
+  useEffect(() => { debugEnabledRef.current = !!debugOverlayEnabled; }, [debugOverlayEnabled]);
   useEffect(() => { cameraScrollRef.current = Number(cameraScrollX) || 0; }, [cameraScrollX]);
   useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
   useEffect(() => { bgImageRef.current = backgroundImage; }, [backgroundImage]);
@@ -284,6 +288,10 @@ const PixiStage = ({
       const gridGraphics = new Graphics();
       gridRef.current = gridGraphics;
       overlayLayer.addChild(gridGraphics);
+
+      const debugGraphics = new Graphics();
+      debugLayerRef.current = debugGraphics;
+      overlayLayer.addChild(debugGraphics);
       parallaxRef.current = parallaxLayer;
 
       // Add all layers to stage
@@ -902,6 +910,57 @@ const PixiStage = ({
     });
   }, [activeRoomIds, roomBlurEnabled]);
 
+  useEffect(() => {
+    const g = debugLayerRef.current;
+    if (!g) return;
+    g.clear();
+    if (!debugEnabledRef.current) {
+      g.visible = false;
+      return;
+    }
+    g.visible = true;
+
+    const getDefById = (id) => {
+      if (!id) return null;
+      const map = registryItems && registryItems.__byId;
+      if (map && typeof map.get === 'function') return map.get(id) || null;
+      return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+    };
+
+    const tileCount = mapWidth * mapHeight;
+    for (let i = 0; i < tileCount; i++) {
+      const tileId = tileMapData[i];
+      if (!tileId) continue;
+      const def = getDefById(tileId);
+      if (!def) continue;
+      const x = (i % mapWidth) * tileSize;
+      const y = Math.floor(i / mapWidth) * tileSize;
+      const isLiquid = !!def.flags?.liquid;
+      const isLava = !!def.flags?.lava || !!def.flags?.lava_waterfall;
+      const isRadio = !!def.flags?.radioactive || !!def.flags?.radioactive_waterfall;
+      const hasCollision = !!def.collision;
+
+      if (isLiquid) {
+        const color = isLava ? 0xffa500 : (isRadio ? 0x32cd32 : 0x2ecdf1);
+        g.rect(x, y, tileSize, tileSize);
+        g.fill({ color, alpha: 0.18 });
+      } else if (hasCollision) {
+        g.rect(x, y, tileSize, tileSize);
+        g.fill({ color: 0xff3b3b, alpha: 0.12 });
+      }
+    }
+
+    if (Array.isArray(secretMapData) && secretMapData.length) {
+      g.stroke({ width: 1, color: 0xb57bff, alpha: 0.6 });
+      for (let i = 0; i < secretMapData.length; i++) {
+        if (secretMapData[i] !== 'room_area') continue;
+        const x = (i % mapWidth) * tileSize;
+        const y = Math.floor(i / mapWidth) * tileSize;
+        g.rect(x, y, tileSize, tileSize);
+      }
+    }
+  }, [debugOverlayEnabled, tileMapData, secretMapData, mapWidth, mapHeight, tileSize, registryItems]);
+
   // Rebuild layers when map data changes
   useEffect(() => {
     const app = appRef.current;
@@ -1125,6 +1184,7 @@ PixiStage.propTypes = {
   waterSplashesEnabled: PropTypes.bool,
   lavaEmbersEnabled: PropTypes.bool,
   roomBlurEnabled: PropTypes.bool,
+  debugOverlayEnabled: PropTypes.bool,
   renderLayers: PropTypes.arrayOf(PropTypes.string),
   pointerEvents: PropTypes.string,
   onWeatherEffectHit: PropTypes.func,

@@ -3,6 +3,13 @@
  * Handles AboveSecret zone detection and revealing when player enters
  */
 
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
 /**
  * Flood fill to find all connected secret tiles of the same type
  * @param {number} startIndex - Starting tile index
@@ -16,7 +23,7 @@ export function floodFillSecretZone(startIndex, secretMapData, mapWidth, mapHeig
   const startSecretId = secretMapData[startIndex];
   if (!startSecretId) return [];
 
-  const startDef = registryItems.find(r => r.id === startSecretId);
+  const startDef = getDefById(registryItems, startSecretId);
   if (!startDef || startDef.type !== 'secret') return [];
 
   const visited = new Set();
@@ -70,6 +77,9 @@ export function checkSecretDetection({
   TILE_SIZE
 }) {
   if (!secretMapData || secretMapData.length === 0) return null;
+  const revealedSet = (revealedSecrets instanceof Set)
+    ? revealedSecrets
+    : new Set(revealedSecrets || []);
 
   // Player AABB in world pixels
   const playerLeft = currentX;
@@ -93,9 +103,9 @@ export function checkSecretDetection({
       if (!secretId) continue;
 
       // Already revealed?
-      if (revealedSecrets && revealedSecrets.includes(idx)) continue;
+      if (revealedSet.has(idx)) continue;
 
-      const def = registryItems.find(r => r.id === secretId);
+      const def = getDefById(registryItems, secretId);
       if (!def || def.type !== 'secret') continue;
 
       // Only secret.area (subtype: 'secret' or old name 'above') can be revealed
@@ -107,7 +117,7 @@ export function checkSecretDetection({
       const connectedIndices = floodFillSecretZone(idx, secretMapData, mapWidth, mapHeight, registryItems);
 
       // Filter out already revealed indices to prevent infinite loop
-      const newIndices = connectedIndices.filter(i => !revealedSecrets || !revealedSecrets.includes(i));
+      const newIndices = connectedIndices.filter(i => !revealedSet.has(i));
 
       console.log('[SECRETS] Revealing zone:', {
         triggerIndex: idx,

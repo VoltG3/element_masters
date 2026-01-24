@@ -4,7 +4,14 @@ import { handleTeleportInteraction } from './teleport';
 import { applyInteractableEffects } from './effects';
 import { handleWeatherTrigger, handleMessageTrigger, triggerWolfSecret } from '../secrets';
 
-export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLayerData) {
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
+export function checkInteractables(ctx, currentX, currentY, mapWidth, mapHeight, objectLayerData) {
   const {
     registryItems,
     TILE_SIZE,
@@ -14,7 +21,8 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
     gameState,
     mapData,
     activeRoomIds: activeRoomIdsProp,
-    objectMetadata: mainObjectMetadata
+    objectMetadata: mainObjectMetadata,
+    secretMapData
   } = ctx;
   if (!objectLayerData) return;
 
@@ -28,6 +36,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
     activeObjectData,
     activeMetadata,
     activeMapWidth,
+    activeMapHeight,
     offsetX,
     offsetY,
     currentMapId,
@@ -35,8 +44,10 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
   } = resolveInteractableContext({
     mapData,
     mapWidth,
+    mapHeight,
     objectLayerData,
     mainObjectMetadata,
+    secretMapData,
     activeRoomIds: activeRoomIdsProp,
     centerX,
     centerY,
@@ -54,21 +65,22 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
     let targetIndex = null;
 
     if (keys.w) {
-      const upIndex = (gridY - 1) * activeMapWidth + gridX;
-      if (gridY - 1 >= 0) {
-        const upObjId = activeObjectData?.[upIndex];
-        const upDef = upObjId ? registryItems.find(r => r.id === upObjId) : null;
-        if (upDef && upDef.type === 'wolf_secret') {
-          targetIndex = upIndex;
+        const upIndex = (gridY - 1) * activeMapWidth + gridX;
+        if (gridY - 1 >= 0) {
+          const upObjId = activeObjectData?.[upIndex];
+          const upDef = getDefById(registryItems, upObjId);
+          if (upDef && upDef.type === 'wolf_secret') {
+            targetIndex = upIndex;
+          }
         }
       }
-    }
 
     if (targetIndex === null && keys.s) {
       const downIndex = (gridY + 1) * activeMapWidth + gridX;
-      if (gridY + 1 < mapHeight) {
+      const limitHeight = activeMapHeight || mapHeight || 0;
+      if (gridY + 1 < limitHeight) {
         const downObjId = activeObjectData?.[downIndex];
-        const downDef = downObjId ? registryItems.find(r => r.id === downObjId) : null;
+        const downDef = getDefById(registryItems, downObjId);
         if (downDef && downDef.type === 'wolf_secret') {
           targetIndex = downIndex;
         }
@@ -84,7 +96,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
       if (frontIndex >= 0 && frontIndex < (activeObjectData?.length || 0)) {
         const frontObjId = activeObjectData[frontIndex];
         if (frontObjId) {
-          const frontDef = registryItems.find(r => r.id === frontObjId);
+          const frontDef = getDefById(registryItems, frontObjId);
           if (frontDef && (frontDef.type === 'wolf_secret' || frontDef.subtype === 'door' || frontDef.name?.startsWith('interactable.'))) {
             targetIndex = frontIndex;
           }
@@ -126,7 +138,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, objectLaye
   const objId = activeObjectData[actualIndex];
   if (!objId) return;
 
-  const objDef = registryItems.find(r => r.id === objId);
+  const objDef = getDefById(registryItems, objId);
   if (!objDef) return;
 
   if (!gameState.current.usedInteractables) {

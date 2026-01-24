@@ -530,9 +530,20 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             },
             actions: {
                 collectItem: (x, y, mw, objectLayer) =>
-                    collectItem({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, maps: mapData?.maps, activeRoomIds: activeRoomIdsRef.current || mapData?.meta?.activeRoomIds, objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata }, x, y, mapWidthRef.current || 20, objectDataRef.current),
-                checkInteractables: (x, y, mw, objectLayer) =>
-                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData, input, activeRoomIds: activeRoomIdsRef.current, objectMetadata: objectMetadataRef.current }, x, y, mapWidthRef.current || 20, objectDataRef.current),
+                    collectItem({
+                        registryItems,
+                        TILE_SIZE,
+                        MAX_HEALTH,
+                        playShotSfx,
+                        onStateUpdate: onStateUpdateRef.current,
+                        gameState,
+                        maps: mapData?.maps,
+                        activeRoomIds: activeRoomIdsRef.current || mapData?.meta?.activeRoomIds,
+                        objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata,
+                        secretMapData: secretDataRef.current || secretData
+                    }, x, y, mapWidthRef.current || 20, objectDataRef.current),
+                checkInteractables: (x, y, mw, mh, objectLayer) =>
+                    checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData, input, activeRoomIds: activeRoomIdsRef.current, objectMetadata: objectMetadataRef.current, secretMapData: secretDataRef.current || secretData }, x, y, mapWidthRef.current || 20, mapHeightRef.current || 15, objectDataRef.current),
                 checkHazardDamage: (x, y, mw, objectLayer, deltaMs) =>
                     checkHazardDamageWrapper(x, y, mapWidthRef.current || 20, objectDataRef.current, deltaMs),
                 checkSecrets: (x, y, width, height, mw, mh) =>
@@ -550,6 +561,9 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         findItemById, 
                         objectData: objectDataRef.current, 
                         objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata, 
+                        tileData: tileDataRef.current || tileData,
+                        secretData: secretDataRef.current || secretData,
+                        registryItems,
                         onStateUpdate: onStateUpdateRef.current
                     }, deltaMs, mapWidthRef.current || 20, mapHeightRef.current || 15),
                 setPlayer: (next) => setPlayer(next),

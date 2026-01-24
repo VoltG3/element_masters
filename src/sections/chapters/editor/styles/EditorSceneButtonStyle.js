@@ -37,5 +37,5 @@ export const RightSidebarContainer = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 1001;
+    z-index: 1100;
 `;

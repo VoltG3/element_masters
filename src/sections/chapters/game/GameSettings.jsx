@@ -130,6 +130,15 @@ export default function GameSettings() {
     } catch {}
     return true;
   });
+  const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(() => {
+    try {
+      const ls = localStorage.getItem('game_debug_overlay');
+      if (ls !== null) return ls !== '0';
+      const g = window.__GAME_RUNTIME_SETTINGS__;
+      if (g && typeof g.debugOverlayEnabled === 'boolean') return g.debugOverlayEnabled;
+    } catch {}
+    return false;
+  });
   // FX toggles
   const [waterSplashesEnabled, setWaterSplashesEnabled] = useState(() => {
     try {
@@ -230,6 +239,7 @@ export default function GameSettings() {
       if (patch.lavaBarEnabled !== undefined) setLavaBarEnabled(!!patch.lavaBarEnabled);
       if (patch.waterSplashesEnabled !== undefined) setWaterSplashesEnabled(!!patch.waterSplashesEnabled);
       if (patch.lavaEmbersEnabled !== undefined) setLavaEmbersEnabled(!!patch.lavaEmbersEnabled);
+      if (patch.debugOverlayEnabled !== undefined) setDebugOverlayEnabled(!!patch.debugOverlayEnabled);
     };
     window.addEventListener('game-settings-update', onSettingsUpdate);
     return () => window.removeEventListener('game-settings-update', onSettingsUpdate);
@@ -264,6 +274,7 @@ export default function GameSettings() {
         if (typeof g.lavaBarEnabled === 'boolean') setLavaBarEnabled(!!g.lavaBarEnabled);
         if (typeof g.waterSplashesEnabled === 'boolean') setWaterSplashesEnabled(!!g.waterSplashesEnabled);
         if (typeof g.lavaEmbersEnabled === 'boolean') setLavaEmbersEnabled(!!g.lavaEmbersEnabled);
+        if (typeof g.debugOverlayEnabled === 'boolean') setDebugOverlayEnabled(!!g.debugOverlayEnabled);
       } catch {}
       // Auto-close the in-game terminal when settings opens
       try { window.dispatchEvent(new CustomEvent('game-close-terminal')); } catch {}
@@ -706,6 +717,25 @@ export default function GameSettings() {
     </section>
   );
 
+  const renderDebug = () => (
+    <section style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 12, marginBottom: 6, color: '#d6d6d6' }}>Debug</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 12, width: 160 }}>Show Debug Overlay</label>
+        <input
+          type="checkbox"
+          checked={!!debugOverlayEnabled}
+          onChange={(e) => {
+            const v = !!e.target.checked;
+            setDebugOverlayEnabled(v);
+            try { localStorage.setItem('game_debug_overlay', v ? '1' : '0'); } catch {}
+            emitUpdate({ debugOverlayEnabled: v });
+          }}
+        />
+      </div>
+    </section>
+  );
+
   return (
     <div style={panelStyle}>
       <div style={headerStyle} onMouseDown={onHeaderMouseDown}>
@@ -720,7 +750,7 @@ export default function GameSettings() {
 
       {/* Tabs bar: one-line menu */}
       <div style={tabsBarStyle}>
-        {['Audio','Graphics','Weather'].map((t) => (
+        {['Audio','Graphics','Weather','Debug'].map((t) => (
           <button key={t} style={tabBtnStyle(t)} onClick={() => setActiveTab(t)}>{t}</button>
         ))}
       </div>
@@ -729,6 +759,7 @@ export default function GameSettings() {
         {activeTab === 'Audio' && renderAudio()}
         {activeTab === 'Graphics' && renderGraphics()}
         {activeTab === 'Weather' && renderWeather()}
+        {activeTab === 'Debug' && renderDebug()}
       </div>
 
       {/* Resize handle */}

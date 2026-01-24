@@ -1,5 +1,12 @@
 // Hazard damage calculation (migrated from GameEngine/checkHazardDamage.js)
 
+const getDefById = (registryItems, id) => {
+  if (!id) return null;
+  const map = registryItems && registryItems.__byId;
+  if (map && typeof map.get === 'function') return map.get(id) || null;
+  return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+};
+
 export function checkHazardDamage({
   currentX,
   currentY,
@@ -52,7 +59,7 @@ export function checkHazardDamage({
       if (idx < 0 || idx >= objectLayerData.length) continue;
       const objId = objectLayerData[idx];
       if (!objId) continue;
-      const def = registryItems.find(r => r.id === objId);
+      const def = getDefById(registryItems, objId);
       if (!def || def.type !== 'hazard') continue;
 
       const tileLeft = gx * TILE_SIZE;
@@ -76,14 +83,14 @@ export function checkHazardDamage({
 
       // Fallback: infer side by smallest penetration when inside tile
       if (!touchingTop && !touchingBottom && !touchingLeft && !touchingRight) {
-        const distTop = Math.abs(playerBottom - tileTop);
-        const distBottom = Math.abs(tileBottom - playerTop);
-        const distLeft = Math.abs(playerRight - tileLeft);
-        const distRight = Math.abs(tileRight - playerLeft);
-        const min = Math.min(distTop, distBottom, distLeft, distRight);
-        touchingTop = (min === distTop);
-        touchingBottom = (!touchingTop && min === distBottom);
-        touchingLeft = (!touchingTop && !touchingBottom && min === distLeft);
+        const overlapTop = playerBottom - tileTop;
+        const overlapBottom = tileBottom - playerTop;
+        const overlapLeft = playerRight - tileLeft;
+        const overlapRight = tileRight - playerLeft;
+        const min = Math.min(overlapTop, overlapBottom, overlapLeft, overlapRight);
+        touchingTop = (min === overlapTop);
+        touchingBottom = (!touchingTop && min === overlapBottom);
+        touchingLeft = (!touchingTop && !touchingBottom && min === overlapLeft);
         touchingRight = (!touchingTop && !touchingBottom && !touchingLeft);
       }
 

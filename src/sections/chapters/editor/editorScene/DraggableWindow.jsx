@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+let topZIndex = 1002;
+
 export const DraggableWindow = ({
     title,
     children,
@@ -9,6 +11,10 @@ export const DraggableWindow = ({
     onHeightChange
 }) => {
     const [position] = useState(defaultPosition);
+    const [zIndex, setZIndex] = useState(() => {
+        topZIndex += 1;
+        return topZIndex;
+    });
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [currentPosition, setCurrentPosition] = useState(defaultPosition);
@@ -62,6 +68,8 @@ export const DraggableWindow = ({
 
     const handleMouseDown = (e) => {
         if (windowRef.current) {
+            topZIndex += 1;
+            setZIndex(topZIndex);
             const rect = windowRef.current.getBoundingClientRect();
             setDragOffset({
                 x: e.clientX - rect.left,
@@ -86,7 +94,7 @@ export const DraggableWindow = ({
                 border: '1px solid #ddd',
                 borderRadius: '8px',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                zIndex: 1002,
+                zIndex: zIndex,
                 display: 'flex',
                 flexDirection: 'column',
                 maxHeight: '80vh',
