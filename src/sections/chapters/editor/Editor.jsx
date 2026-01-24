@@ -118,6 +118,7 @@ export const Editor = () => {
     const [selectedTile, setSelectedTile] = useState(null);
     const [showGrid, setShowGrid] = useState(true);
     const [showBackgroundImage, setShowBackgroundImage] = useState(true);
+    const [showMessages, setShowMessages] = useState(true);
 
     // Tools & Modes State
     const [isDragging, setIsDragging] = useState(false);
@@ -504,6 +505,8 @@ export const Editor = () => {
                         setSelectedBackgroundColor={setSelectedBackgroundColor}
                         showBackgroundImage={showBackgroundImage}
                         setShowBackgroundImage={setShowBackgroundImage}
+                        showMessages={showMessages}
+                        setShowMessages={setShowMessages}
                         isRoomAreaVisible={isRoomAreaVisible}
                         setIsRoomAreaVisible={setIsRoomAreaVisible}
                         showRoomMapContent={showRoomMapContent}
@@ -604,6 +607,7 @@ export const Editor = () => {
                             mapType={maps[activeMapId]?.type || 'overworld'}
                             isRoomAreaVisible={isRoomAreaVisible}
                             showRoomMapContent={showRoomMapContent}
+                            showMessages={showMessages}
                             maps={maps}
                         />
                     ) : (

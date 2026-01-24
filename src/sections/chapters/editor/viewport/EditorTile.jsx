@@ -20,7 +20,8 @@ export const EditorTile = React.memo(({
     filter,
     mapType,
     isRoomAreaVisible,
-    showRoomMapContent
+    showRoomMapContent,
+    showMessages
 }) => {
     const isLiquidTile = !!(tileObj && tileObj.flags && tileObj.flags.liquid);
     const isWaterTile = !!(tileObj && tileObj.flags && tileObj.flags.water);
@@ -34,6 +35,7 @@ export const EditorTile = React.memo(({
     const actualIndex = parentRegionIndex !== null ? parentRegionIndex : index;
     const triggerId = objectMetadata?.[actualIndex]?.triggerId;
     const intensity = objectMetadata?.[actualIndex]?.intensity;
+    const messageText = objectMetadata?.[actualIndex]?.message;
     
     // Dimensijas ņemam no tiešā indeksa, lai izvairītos no citu objektu (piem. Room Area) 
     // ietekmes uz 1x1 objektiem, kas atrodas to robežās.
@@ -206,6 +208,53 @@ export const EditorTile = React.memo(({
                             borderRadius: '3px', fontSize: '10px', whiteSpace: 'nowrap', zIndex: 11, border: '1px solid #fff'
                         }}>
                             {intensity}%
+                        </div>
+                    )}
+
+                    {/* Message Bubble */}
+                    {showMessages && objObj && objObj.type === 'message_trigger' && messageText && (
+                        <div style={{
+                            position: 'absolute',
+                            left: '50%',
+                            bottom: '100%',
+                            transform: 'translateX(-50%)',
+                            marginBottom: '8px',
+                            maxWidth: '140px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            color: '#222',
+                            border: '1px solid rgba(0,0,0,0.6)',
+                            borderRadius: '8px',
+                            padding: '4px 6px',
+                            fontSize: '10px',
+                            lineHeight: 1.2,
+                            textAlign: 'center',
+                            zIndex: 12,
+                            pointerEvents: 'none'
+                        }}>
+                            {messageText}
+                            <div style={{
+                                position: 'absolute',
+                                left: '50%',
+                                bottom: '-6px',
+                                transform: 'translateX(-50%)',
+                                width: 0,
+                                height: 0,
+                                borderLeft: '6px solid transparent',
+                                borderRight: '6px solid transparent',
+                                borderTop: '6px solid rgba(255, 255, 255, 0.95)'
+                            }} />
+                            <div style={{
+                                position: 'absolute',
+                                left: '50%',
+                                bottom: '-7px',
+                                transform: 'translateX(-50%)',
+                                width: 0,
+                                height: 0,
+                                borderLeft: '7px solid transparent',
+                                borderRight: '7px solid transparent',
+                                borderTop: '7px solid rgba(0,0,0,0.6)',
+                                zIndex: -1
+                            }} />
                         </div>
                     )}
                 </div>

@@ -45,6 +45,7 @@ export const Viewport = ({
     mapType,
     isRoomAreaVisible,
     showRoomMapContent,
+    showMessages,
     maps
 }) => {
     const isEraserActive = activeTool === 'brush' && selectedTile === null;
@@ -349,6 +350,7 @@ export const Viewport = ({
                                 mapType={mapType}
                                 isRoomAreaVisible={isRoomAreaVisible}
                                 showRoomMapContent={showRoomMapContent}
+                                showMessages={showMessages}
                             />
                         );
                     })}

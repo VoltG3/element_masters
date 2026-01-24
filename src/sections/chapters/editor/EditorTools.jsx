@@ -56,6 +56,8 @@ export const EditorTools = (props) => {
         setSelectedBackgroundColor,
         showBackgroundImage,
         setShowBackgroundImage,
+        showMessages,
+        setShowMessages,
         isRoomAreaVisible,
         setIsRoomAreaVisible,
         showRoomMapContent,
@@ -199,6 +201,16 @@ export const EditorTools = (props) => {
                                 <GridIcon>
                                     {showGrid ? '▦' : '▢'}
                                 </GridIcon>
+                            </ToolsEditorButton>
+
+                            {/* Messages Visibility */}
+                            <ToolsEditorButton
+                                onClick={() => setShowMessages(!showMessages)}
+                                $active={showMessages}
+                                $square
+                                title={showMessages ? "Hide Messages" : "Show Messages"}
+                            >
+                                𝔐
                             </ToolsEditorButton>
 
                             {/* Room Area Visibility */}
