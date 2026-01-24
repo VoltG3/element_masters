@@ -1,6 +1,7 @@
 {
   "id": "berry_bush_01_used",
   "name": "interactable.berry_bush_01_used",
+  "editor": { "panel": "interactables", "group": "harvestables", "order": 11 },
   "width": "1",
   "height": "1",
   "texture": "/assets/images/interactables/berry_bush_01_B.png",

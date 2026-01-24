@@ -1,6 +1,7 @@
 {
   "id": "door_0001",
   "name": "interactable.door_0001",
+  "editor": { "panel": "interactables", "group": "entrances", "order": 10 },
   "type": "interactable",
   "subtype": "door",
   "width": 1,

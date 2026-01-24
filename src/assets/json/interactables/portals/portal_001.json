@@ -1,6 +1,7 @@
 {
   "id": "portal_001",
   "name": "interactable.portal_entrance",
+  "editor": { "panel": "interactables", "group": "ports", "order": 10 },
   "type": "interactable",
   "width": 1,
   "height": 2,

@@ -1,6 +1,7 @@
 {
   "id": "wooden_box_0001",
   "name": "interactable.wooden_box",
+  "editor": { "panel": "interactables", "group": "physics", "order": 11 },
   "type": "interactable",
   "width": 1,
   "height": 1,

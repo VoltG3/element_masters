@@ -2,7 +2,12 @@ import { useMemo } from 'react';
 
 export const useEditorRegistry = (registryItems) => {
     const blocks = useMemo(() => 
-        registryItems.filter(item => item.name && item.name.startsWith('block.') && !(item.flags && item.flags.liquid)), 
+        registryItems.filter(item => {
+            if (!item.name || !item.name.startsWith('block.')) return false;
+            if (item.flags && item.flags.liquid) return false;
+            if (item.editor && item.editor.panel && item.editor.panel !== 'blocks') return false;
+            return true;
+        }), 
     [registryItems]);
 
     const liquids = useMemo(() => 
@@ -44,7 +49,10 @@ export const useEditorRegistry = (registryItems) => {
     [registryItems]);
 
     const interactables = useMemo(() => 
-        registryItems.filter(item => item.type === 'interactable' || (item.name && item.name.startsWith('interactable.'))), 
+        registryItems.filter(item => {
+            if (item.editor && item.editor.panel) return item.editor.panel === 'interactables';
+            return item.type === 'interactable' || (item.name && item.name.startsWith('interactable.'));
+        }), 
     [registryItems]);
 
     const hazards = useMemo(() => 

@@ -1,6 +1,7 @@
 {
   "id": "arrow_down",
   "name": "interactable.arrow_down",
+  "editor": { "panel": "interactables", "group": "platforms", "order": 21 },
   "type": "interactable",
   "subtype": "arrow",
   "direction": "down",

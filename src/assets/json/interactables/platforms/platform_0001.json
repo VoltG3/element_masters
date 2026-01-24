@@ -1,6 +1,7 @@
 {
   "id": "platform_0001",
   "name": "interactable.platform",
+  "editor": { "panel": "interactables", "group": "platforms", "order": 10 },
   "type": "interactable",
   "subtype": "platform",
   "width": 2,

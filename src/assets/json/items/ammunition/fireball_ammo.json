@@ -1,6 +1,7 @@
 {
   "id": "fireball_ammo",
   "name": "item.fireball",
+  "editor": { "panel": "items", "group": "ammunition", "order": 10 },
   "width": "1",
   "height": "1",
   "textures": [

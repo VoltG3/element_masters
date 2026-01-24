@@ -1,6 +1,7 @@
 {
   "id": "tank_0000",
   "name": "entities.tank_test",
+  "editor": { "panel": "entities", "group": "enemies", "order": 10 },
   "type": "entity",
   "subtype": "tank",
   "width": 1,

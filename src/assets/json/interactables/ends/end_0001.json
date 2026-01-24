@@ -1,6 +1,7 @@
 {
   "id": "end_0001",
   "name": "interactable.end",
+  "editor": { "panel": "interactables", "group": "ends", "order": 10 },
   "type": "interactable",
   "subtype": "end",
   "width": 1,

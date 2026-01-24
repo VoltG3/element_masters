@@ -4,13 +4,16 @@
   "width": "1",
   "height": "1",
   "texture": "/assets/images/blocks/dirt_block_0001.png",
-
   "renderAbovePlayer": true,
-
   "collision": {
     "top": true,
     "bottom": true,
     "left": true,
     "right": true
+  },
+  "editor": {
+    "panel": "blocks",
+    "group": "ground",
+    "order": 0
   }
 }

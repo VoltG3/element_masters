@@ -1,6 +1,7 @@
 {
   "id": "hertz_item",
   "name": "item.hertz",
+  "editor": { "panel": "items", "group": "health", "order": 10 },
   "width": "1",
   "height": "1",
   "textures": [

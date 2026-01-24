@@ -1,11 +1,12 @@
 {
-  "id": "death_block_0001",
-  "name": "hazard.death_block",
+  "id": "bushes_001",
+  "name": "hazard.bush",
   "type": "hazard",
   "width": 1,
   "height": 1,
-  "texture": "/assets/images/hazards/death_block_0001.png",
-  "collision": true,
+  "editor": { "panel": "hazards", "group": "obstacles", "order": 10 },
+  "texture": "/assets/images/hazards/bushes_001.png",
+  "collision": false,
   "renderAbovePlayer": true,
 
   "damage": 5,

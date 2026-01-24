@@ -10,5 +10,10 @@
     "bottom": true,
     "left": true,
     "right": true
+  },
+  "editor": {
+    "panel": "blocks",
+    "group": "wood",
+    "order": 0
   }
 }

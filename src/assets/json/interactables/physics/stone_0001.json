@@ -1,6 +1,7 @@
 {
   "id": "stone_0001",
   "name": "interactable.stone",
+  "editor": { "panel": "interactables", "group": "physics", "order": 10 },
   "type": "interactable",
   "subtype": "pushable",
   "width": 1,

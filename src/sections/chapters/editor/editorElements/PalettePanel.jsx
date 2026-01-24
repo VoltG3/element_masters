@@ -111,13 +111,64 @@ export const PalettePanel = ({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {category === 'blocks' && (
-                <CollapsiblePanel title="Blocks (Background)" isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {blocks.map(b => renderPaletteItem(b, 'blue', 'tile'))}
+            {category === 'blocks' && (() => {
+                const getBlockGroup = (b) => {
+                    if (b.editor?.group) return b.editor.group;
+                    const name = (b.id || b.name || '').toLowerCase();
+                    if (name.includes('brick')) return 'bricks';
+                    if (name.includes('diorite') || name.includes('stone')) return 'stone';
+                    if (name.includes('metal')) return 'metal';
+                    if (name.includes('wood')) return 'wood';
+                    return 'ground';
+                };
+
+                const groupOrder = [
+                    { key: 'ground', title: 'Ground', color: 'blue', open: true },
+                    { key: 'bricks', title: 'Bricks', color: 'blue', open: true },
+                    { key: 'stone', title: 'Stone', color: 'blue', open: true },
+                    { key: 'metal', title: 'Metal', color: 'blue', open: true },
+                    { key: 'wood', title: 'Wood', color: 'blue', open: true }
+                ];
+
+                const withGroups = blocks.map(b => ({
+                    item: b,
+                    group: getBlockGroup(b)
+                }));
+
+                const sortBlocks = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const items = withGroups.filter(b => b.group === group.key).sort(sortBlocks);
+                    if (items.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {items.map(b => renderPaletteItem(b.item, group.color, 'tile'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(b => !groupOrder.some(g => g.key === b.group)).sort(sortBlocks);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(b => renderPaletteItem(b.item, 'gray', 'tile'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
                     </div>
-                </CollapsiblePanel>
-            )}
+                );
+            })()}
 
             {category === 'liquids' && (() => {
                 const getLiquidGroup = (li) => {
@@ -190,44 +241,239 @@ export const PalettePanel = ({
                 </CollapsiblePanel>
             )}
 
-            {category === 'entities' && (
-                <CollapsiblePanel title="Entities (Objects)" isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {entities.map(e => renderPaletteItem(e, 'red', 'object'))}
-                    </div>
-                </CollapsiblePanel>
-            )}
+            {category === 'entities' && (() => {
+                const getEntityGroup = (e) => {
+                    if (e.editor?.group) return e.editor.group;
+                    const name = (e.id || e.name || '').toLowerCase();
+                    if (name.includes('player')) return 'player';
+                    return 'enemies';
+                };
 
-            {category === 'items' && (
-                <CollapsiblePanel title="Items (Objects)" isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {items.map(i => renderPaletteItem(i, 'green', 'object'))}
-                    </div>
-                </CollapsiblePanel>
-            )}
+                const groupOrder = [
+                    { key: 'player', title: 'Player', color: 'red', open: true },
+                    { key: 'enemies', title: 'Enemies', color: 'red', open: true }
+                ];
 
-            {category === 'interactables' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="Doors" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {interactables.filter(i => i.subtype === 'door').map(i => renderPaletteItem(i, 'purple', 'object'))}
+                const withGroups = entities.map(e => ({
+                    item: e,
+                    group: getEntityGroup(e)
+                }));
+
+                const sortEntities = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const groupItems = withGroups.filter(e => e.group === group.key).sort(sortEntities);
+                    if (groupItems.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {groupItems.map(e => renderPaletteItem(e.item, group.color, 'object'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(e => !groupOrder.some(g => g.key === e.group)).sort(sortEntities);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div
+                            title="Entities use editor metadata: editor.panel 'entities' and editor.group 'player' or 'enemies'."
+                            style={{ fontSize: '11px', color: '#666', cursor: 'help' }}
+                        >
+                            ℹ️ Entities grouping is data-driven (hover for details)
                         </div>
-                    </CollapsiblePanel>
-                    <CollapsiblePanel title="Other Interactables" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {interactables.filter(i => i.subtype !== 'door').map(i => renderPaletteItem(i, 'purple', 'object'))}
-                        </div>
-                    </CollapsiblePanel>
-                </div>
-            )}
-
-            {category === 'hazards' && (
-                <CollapsiblePanel title="Hazards" isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {hazards.map(h => renderPaletteItem(h, 'orange', 'object'))}
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(e => renderPaletteItem(e.item, 'gray', 'object'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
                     </div>
-                </CollapsiblePanel>
-            )}
+                );
+            })()}
+
+            {category === 'items' && (() => {
+                const getItemGroup = (i) => {
+                    if (i.editor?.group) return i.editor.group;
+                    if (i.effect?.health) return 'health';
+                    if (i.effect?.fireball) return 'ammunition';
+                    return 'other';
+                };
+
+                const groupOrder = [
+                    { key: 'health', title: 'Health', color: 'green', open: true },
+                    { key: 'ammunition', title: 'Ammunition', color: 'green', open: true }
+                ];
+
+                const withGroups = items.map(i => ({
+                    item: i,
+                    group: getItemGroup(i)
+                }));
+
+                const sortItems = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const groupItems = withGroups.filter(i => i.group === group.key).sort(sortItems);
+                    if (groupItems.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {groupItems.map(i => renderPaletteItem(i.item, group.color, 'object'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(i => !groupOrder.some(g => g.key === i.group)).sort(sortItems);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div
+                            title="Items use editor metadata: editor.panel 'items' and editor.group 'health' or 'ammunition'."
+                            style={{ fontSize: '11px', color: '#666', cursor: 'help' }}
+                        >
+                            ℹ️ Items grouping is data-driven (hover for details)
+                        </div>
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(i => renderPaletteItem(i.item, 'gray', 'object'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {category === 'interactables' && (() => {
+                const getInteractableGroup = (i) => {
+                    if (i.editor?.group) return i.editor.group;
+                    if (i.subtype === 'door') return 'entrances';
+                    if (i.subtype === 'platform' || i.subtype === 'arrow') return 'platforms';
+                    if ((i.id || '').includes('portal') || (i.name || '').includes('portal')) return 'ports';
+                    if (i.subtype === 'end') return 'ends';
+                    const name = (i.id || i.name || '').toLowerCase();
+                    if (name.includes('berry')) return 'harvestables';
+                    if (name.includes('stone') || name.includes('wooden_box')) return 'physics';
+                    if (name.includes('ice')) return 'blocks';
+                    return 'other';
+                };
+
+                const groupOrder = [
+                    { key: 'harvestables', title: 'Harvestables', color: 'purple', open: true },
+                    { key: 'physics', title: 'Physic', color: 'purple', open: true },
+                    { key: 'entrances', title: 'Entrences', color: 'purple', open: true },
+                    { key: 'platforms', title: 'Platforms', color: 'purple', open: true },
+                    { key: 'ports', title: 'Ports', color: 'purple', open: true },
+                    { key: 'blocks', title: 'Blocks', color: 'purple', open: true },
+                    { key: 'ends', title: 'Ends', color: 'purple', open: true }
+                ];
+
+                const withGroups = interactables.map(i => ({
+                    item: i,
+                    group: getInteractableGroup(i)
+                }));
+
+                const sortInteractables = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const items = withGroups.filter(i => i.group === group.key).sort(sortInteractables);
+                    if (items.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {items.map(i => renderPaletteItem(i.item, group.color, 'object'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(i => !groupOrder.some(g => g.key === i.group)).sort(sortInteractables);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(i => renderPaletteItem(i.item, 'gray', 'object'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
+                    </div>
+                );
+            })()}
+
+            {category === 'hazards' && (() => {
+                const getHazardGroup = (h) => {
+                    if (h.editor?.group) return h.editor.group;
+                    if (h.collision) return 'blocks';
+                    return 'obstacles';
+                };
+
+                const groupOrder = [
+                    { key: 'blocks', title: 'Hazards (Blocks)', color: 'orange', open: true },
+                    { key: 'obstacles', title: 'Hazards (Obstacles)', color: 'brown', open: true }
+                ];
+
+                const withGroups = hazards.map(h => ({
+                    item: h,
+                    group: getHazardGroup(h)
+                }));
+
+                const sortHazards = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const items = withGroups.filter(h => h.group === group.key).sort(sortHazards);
+                    if (items.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {items.map(h => renderPaletteItem(h.item, group.color, 'object'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(h => !groupOrder.some(g => g.key === h.group)).sort(sortHazards);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title="Hazards (Other)" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(h => renderPaletteItem(h.item, 'gray', 'object'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
+                    </div>
+                );
+            })()}
 
             {category === 'secrets' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
