@@ -1,5 +1,7 @@
 import { moveHorizontal } from '../physics/horizontal';
 import { applyVerticalPhysics } from '../physics/vertical';
+import { getWeatherDps, getMapWeather, weatherAffectsEnemy, weatherBlockedByCover } from './weatherDamage';
+import { isCoveredFromAbove } from './weatherCover';
 
 /**
  * Atjaunina visas aktīvās entītijas (piemēram, tankus).
@@ -93,27 +95,47 @@ export function updateEntities(ctx, deltaMs) {
     }
 
     // 1.3. Weather damage (Lava Rain, Radioactive Fog)
-    const weather = mapData.weather || {};
+    const weather = getMapWeather(mapData);
     const lavaRainInt = Number(weather.lavaRain || 0);
     const radioFogInt = Number(weather.radioactiveFog || 0);
+    const enemyId = entity.defId || def?.id;
+    let lavaDps = weatherAffectsEnemy('lavaRain', enemyId) ? getWeatherDps('lavaRain', lavaRainInt) : 0;
+    const radioDps = weatherAffectsEnemy('radioactiveFog', enemyId) ? getWeatherDps('radioactiveFog', radioFogInt) : 0;
+    if (lavaDps > 0 && weatherBlockedByCover('lavaRain')) {
+      try {
+        const tileData = mapData.layers?.find(l => l.name === 'background' || l.type === 'tile')?.data || [];
+        const secretData = mapData.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data || [];
+        const objectMetadata = mapData.meta?.objectMetadata || {};
+        const covered = isCoveredFromAbove({
+          x: entity.x + entity.width / 2,
+          y: entity.y,
+          mapWidth,
+          mapHeight,
+          TILE_SIZE,
+          tileData,
+          registryItems,
+          secretData,
+          objectData,
+          objectMetadata,
+          maps: mapData.maps,
+          activeRoomIds: mapData.meta?.activeRoomIds
+        });
+        if (covered) lavaDps = 0;
+      } catch {}
+    }
+    const totalWeatherDps = lavaDps + radioDps;
 
-    if (lavaRainInt > 0 || radioFogInt > 0) {
+    if (totalWeatherDps > 0) {
       entity.weatherDamageAcc = (entity.weatherDamageAcc || 0) + deltaMs;
       if (entity.weatherDamageAcc >= 1000) {
         entity.weatherDamageAcc -= 1000;
-        let totalWeatherDps = 0;
-        if (lavaRainInt > 0) totalWeatherDps += (lavaRainInt / 100) * 10;
-        if (radioFogInt > 0) totalWeatherDps += (radioFogInt / 100) * 5;
-        
-        if (totalWeatherDps > 0) {
-          entity.health = Math.max(0, entity.health - totalWeatherDps);
-          if (onStateUpdate) {
-            onStateUpdate('entityDamage', {
-              x: entity.x + entity.width / 2,
-              y: entity.y,
-              amount: totalWeatherDps
-            });
-          }
+        entity.health = Math.max(0, entity.health - totalWeatherDps);
+        if (onStateUpdate) {
+          onStateUpdate('entityDamage', {
+            x: entity.x + entity.width / 2,
+            y: entity.y,
+            amount: totalWeatherDps
+          });
         }
       }
     } else {

@@ -5,7 +5,7 @@
     "author": "VoltG3",
     "description": "Empty template",
     "date_created": "2026-01-19T16:59:13.149Z",
-    "date_last_updated": "2026-01-24T15:29:43.940Z",
+    "date_last_updated": "2026-01-24T16:41:28.853Z",
     "activeMapId": "main"
   },
   "maps": {
@@ -51,8 +51,8 @@
       "worldY": 50,
       "statistics": {
         "total_tiles": 1769,
-        "filled_tiles": 736,
-        "total_objects": 23
+        "filled_tiles": 737,
+        "total_objects": 26
       },
       "layers": [
         {
@@ -888,7 +888,7 @@
             null,
             null,
             null,
-            null,
+            "dirt_block_0001",
             null,
             null,
             "grass_block_0001",
@@ -2491,6 +2491,7 @@
             null,
             null,
             null,
+            "tank_0001",
             null,
             null,
             null,
@@ -2664,8 +2665,7 @@
             null,
             null,
             null,
-            null,
-            null,
+            "tank_0001",
             null,
             null,
             null,
@@ -3450,7 +3450,7 @@
             null,
             null,
             null,
-            null,
+            "tank_0001",
             null,
             null,
             null,

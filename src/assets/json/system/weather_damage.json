@@ -1,0 +1,27 @@
+{
+  "id": "system_weather_damage",
+  "type": "system",
+  "isHiddenInEditor": true,
+  "weather": {
+    "lavaRain": {
+      "enabled": true,
+      "maxDps": 1,
+      "minDps": 0,
+      "blockedByCover": true,
+      "affects": {
+        "player": true,
+        "enemies": ["tank_0000", "tank_0001", "tank_0002"]
+      }
+    },
+    "radioactiveFog": {
+      "enabled": true,
+      "maxDps": 1,
+      "minDps": 0,
+      "blockedByCover": false,
+      "affects": {
+        "player": true,
+        "enemies": ["tank_0000", "tank_0001", "tank_0002"]
+      }
+    }
+  }
+}

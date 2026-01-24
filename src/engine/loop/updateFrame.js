@@ -3,6 +3,8 @@ import { moveHorizontal } from '../physics/horizontal';
 import { applyVerticalPhysics } from '../physics/vertical';
 import { tickLiquidDamage } from '../liquids/liquidUtils';
 import { updateEntities } from '../gameplay/entities';
+import { getWeatherDps, getMapWeather, weatherAffectsPlayer, weatherBlockedByCover } from '../gameplay/weatherDamage';
+import { isCoveredFromAbove } from '../gameplay/weatherCover';
 
 // updateFrame(ctx, timestamp) → { continue: boolean }
 // ctx expects:
@@ -373,23 +375,43 @@ export function updateFrame(ctx, timestamp) {
     }
 
     // Weather damage (Lava Rain, Radioactive Fog)
-    const weather = mapData.weather || {};
+    const weather = getMapWeather(mapData);
     const lavaRainInt = Number(weather.lavaRain || 0);
     const radioFogInt = Number(weather.radioactiveFog || 0);
 
-    if (lavaRainInt > 0 || radioFogInt > 0) {
+    let lavaDps = weatherAffectsPlayer('lavaRain') ? getWeatherDps('lavaRain', lavaRainInt) : 0;
+    const radioDps = weatherAffectsPlayer('radioactiveFog') ? getWeatherDps('radioactiveFog', radioFogInt) : 0;
+    if (lavaDps > 0 && weatherBlockedByCover('lavaRain')) {
+      try {
+        const tileData = mapData.layers?.find(l => l.name === 'background' || l.type === 'tile')?.data || [];
+        const secretData = mapData.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data || [];
+        const objectMetadata = mapData.meta?.objectMetadata || {};
+        const covered = isCoveredFromAbove({
+          x: x + width / 2,
+          y,
+          mapWidth,
+          mapHeight,
+          TILE_SIZE,
+          tileData,
+          registryItems: ctx.registryItems,
+          secretData,
+          objectData,
+          objectMetadata,
+          maps: mapData.maps,
+          activeRoomIds: mapData.meta?.activeRoomIds
+        });
+        if (covered) lavaDps = 0;
+      } catch {}
+    }
+    const totalWeatherDps = lavaDps + radioDps;
+
+    if (totalWeatherDps > 0) {
       weatherDamageAccRef.current += dt;
       if (weatherDamageAccRef.current >= 1000) {
         weatherDamageAccRef.current -= 1000;
-        let totalWeatherDps = 0;
-        if (lavaRainInt > 0) totalWeatherDps += (lavaRainInt / 100) * 10; // Max 10 DPS
-        if (radioFogInt > 0) totalWeatherDps += (radioFogInt / 100) * 5;  // Max 5 DPS
-        
-        if (totalWeatherDps > 0) {
-          gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - totalWeatherDps);
-          const HIT_FLASH_MS = 500;
-          gameState.current.hitTimerMs = Math.max(Number(gameState.current.hitTimerMs) || 0, HIT_FLASH_MS);
-        }
+        gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - totalWeatherDps);
+        const HIT_FLASH_MS = 500;
+        gameState.current.hitTimerMs = Math.max(Number(gameState.current.hitTimerMs) || 0, HIT_FLASH_MS);
       }
     } else {
       weatherDamageAccRef.current = 0;
