@@ -10,6 +10,7 @@ export default class WeatherSnow {
     this.height = api.mapHeight * api.tileSize;
     this.flakes = [];
     this.intensity = 0;
+    this.seeded = false;
     const area = this.width * this.height;
     // Snow lasts longer; keep a tighter cap than rain for performance
     this.maxFlakes = 300; // Base for 1280x720
@@ -24,7 +25,7 @@ export default class WeatherSnow {
     this.intensity = Math.max(0, Math.min(100, Number(v) || 0));
   }
 
-  spawnOne() {
+  spawnOne(options = null) {
     const g = new Graphics();
     g.clear();
     // Slightly larger/more visible flakes on average
@@ -39,10 +40,14 @@ export default class WeatherSnow {
     if (viewport) {
       // Spawn within viewport plus margin
       x = viewport.x - 100 + Math.random() * (viewport.width + 200);
-      y = viewport.y - 10 - Math.random() * 30;
+      const minY = options && Number.isFinite(options.minY) ? options.minY : (viewport.y - 10);
+      const maxY = options && Number.isFinite(options.maxY) ? options.maxY : (viewport.y - 40);
+      y = minY + Math.random() * Math.max(1, (maxY - minY));
     } else {
       x = Math.random() * this.width;
-      y = -10 - Math.random() * 30;
+      const minY = options && Number.isFinite(options.minY) ? options.minY : -10;
+      const maxY = options && Number.isFinite(options.maxY) ? options.maxY : -40;
+      y = minY + Math.random() * Math.max(1, (maxY - minY));
     }
 
     const speed = 40 + Math.random() * 80; // slower than rain, but a bit more range
@@ -73,7 +78,23 @@ export default class WeatherSnow {
     let target = Math.floor(this.maxFlakes * scaled);
     if (scaled > 0 && target < 10) target = 10;
 
+    if (target === 0) {
+      this.seeded = false;
+    }
+
     const deficit = target - this.flakes.length;
+    if (!this.seeded && target > 0) {
+      const viewportH = viewport ? viewport.height : this.height;
+      const viewportY = viewport ? viewport.y : 0;
+      const seedCount = Math.min(target, Math.max(24, Math.floor(this.maxFlakes * 0.35)));
+      for (let i = 0; i < seedCount; i++) {
+        this.spawnOne({
+          minY: viewportY - viewportH * 0.35,
+          maxY: viewportY + viewportH * 0.9
+        });
+      }
+      this.seeded = true;
+    }
     if (deficit > 0) {
       const maxPerFrame = 24; // slower than rain
       const smooth = Math.max(1, Math.ceil(target * 0.015));
