@@ -1,6 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
+import AnimatedItem from '../../../utilities/AnimatedItem';
+import fireballA from '../../../assets/images/items/fireball_basic_A.png';
+import fireballB from '../../../assets/images/items/fireball_basic_B.png';
+import fireballC from '../../../assets/images/items/fireball_basic_C.png';
+import fireballD from '../../../assets/images/items/fireball_basic_D.png';
 
 const HeaderContainer = styled.div`
     position: absolute;
@@ -25,6 +30,18 @@ const AmmoDisplay = styled.div`
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     font-family: monospace;
     pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+const AmmoIcon = styled.span`
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    image-rendering: pixelated;
 `;
 
 const RightSection = styled.div`
@@ -106,11 +123,20 @@ const GameHeader = ({
     const icePercent = Math.max(0, Math.min(100, (iceResist / maxIceResist) * 100));
     const strengthPercent = Math.max(0, Math.min(100, (strength / maxStrength) * 100));
     const radioPercent = Math.max(0, Math.min(100, (radioactivity / maxRadioactivity) * 100));
+    const fireballFrames = [fireballA, fireballB, fireballC, fireballD, fireballC, fireballB];
 
     return (
         <HeaderContainer>
             <AmmoDisplay>
-                🔥 {ammo || 0}
+                <AmmoIcon>
+                    <AnimatedItem
+                        textures={fireballFrames}
+                        speed={300}
+                        alt="Fireball ammo"
+                        style={{ width: '22px', height: '22px', imageRendering: 'pixelated' }}
+                    />
+                </AmmoIcon>
+                {ammo || 0}
             </AmmoDisplay>
 
             <RightSection>
@@ -151,7 +177,7 @@ const GameHeader = ({
                     <BarRow>
                         <BarLabel>STRNGTH</BarLabel>
                         <BarWrapper>
-                            <BarFill $percent={strengthPercent} $color="#eab308" />
+                            <BarFill $percent={strengthPercent} $color="#8b5a2b" />
                         </BarWrapper>
                     </BarRow>
 
