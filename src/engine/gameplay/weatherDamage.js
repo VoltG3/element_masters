@@ -14,11 +14,16 @@ export const getMapWeather = (mapData) => {
   let base = {};
   if (mapData.weather) base = mapData.weather;
   else {
-    const activeId = mapData.meta?.activeMapId || mapData.meta?.activeMap;
-    if (activeId && mapData.maps && mapData.maps[activeId] && mapData.maps[activeId].weather) {
-      base = mapData.maps[activeId].weather;
+    const metaWeather = mapData.meta?.weather;
+    if (metaWeather && Object.keys(metaWeather).length > 0) {
+      base = metaWeather;
     } else {
-      base = mapData.meta?.weather || {};
+      const activeId = mapData.meta?.activeMapId || mapData.meta?.activeMap;
+      if (activeId && mapData.maps && mapData.maps[activeId] && mapData.maps[activeId].weather) {
+        base = mapData.maps[activeId].weather;
+      } else {
+        base = mapData.meta?.weather || {};
+      }
     }
   }
   let runtime = {};
@@ -55,18 +60,40 @@ export const getWeatherDps = (type, intensity) => {
   return Math.max(minDps, dps);
 };
 
+export const getRadioactivityRates = () => {
+  const cfg = getWeatherConfig('radioactiveFog') || {};
+  const inc = Number(cfg.radioactivityPerSecond);
+  const dec = Number(cfg.radioactivityRegenPerSecond);
+  return {
+    increase: Number.isFinite(inc) ? inc : 0,
+    decay: Number.isFinite(dec) ? dec : 0
+  };
+};
+
 export const weatherAffectsPlayer = (type) => {
   const cfg = getWeatherConfig(type);
   if (!cfg || cfg.enabled === false) return false;
   return !!cfg.affects?.player;
 };
 
-export const weatherAffectsEnemy = (type, enemyId) => {
+export const weatherAffectsEnemy = (type, enemyId, enemyName) => {
   const cfg = getWeatherConfig(type);
   if (!cfg || cfg.enabled === false) return false;
   const enemies = cfg.affects?.enemies;
+  if (enemies === 'true') return true;
   if (enemies === true || enemies === 'all') return true;
-  if (Array.isArray(enemies)) return !!enemyId && enemies.includes(enemyId);
+  if (enemies && typeof enemies === 'object' && enemies.mode === 'all') {
+    const excluded = Array.isArray(enemies.exclude) ? enemies.exclude : [];
+    const isExcluded = (value) => value && excluded.some(ex => value === ex || value.includes(ex));
+    if (isExcluded(enemyId)) return false;
+    if (isExcluded(enemyName)) return false;
+    return true;
+  }
+  if (Array.isArray(enemies)) {
+    if (enemyId && enemies.some(ex => enemyId === ex || enemyId.includes(ex))) return true;
+    if (enemyName && enemies.some(ex => enemyName === ex || enemyName.includes(ex))) return true;
+    return false;
+  }
   return false;
 };
 

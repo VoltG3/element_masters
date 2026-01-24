@@ -91,7 +91,20 @@ export default class WeatherLavaRain {
       p.g.x = p.x;
       p.g.y = p.y;
 
-      // Interaction with surfaces
+      // Interaction with surfaces / water
+      if (this.api.getLiquidSurfaceY) {
+        const waterY = this.api.getLiquidSurfaceY('water', p.x);
+        if (Number.isFinite(waterY) && p.y >= waterY) {
+          if (typeof this.api.onLavaImpact === 'function') {
+            this.api.onLavaImpact({ x: p.x, y: waterY, strength: 0.9 });
+          }
+          p.alive = false;
+          toRemove.push(i);
+          continue;
+        }
+      }
+
+      // Interaction with solid surfaces
       if (this.api.isSolidAt(p.x, p.y)) {
          // Lava drops just vanish on hit with a tiny "ember" effect (optional)
          if (typeof this.api.onLavaImpact === 'function' && Math.random() > 0.5) {

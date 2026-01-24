@@ -302,6 +302,8 @@ export default function Game() {
         }
     };
 
+    const playerStateRef = useRef(null);
+
     const handleStateUpdate = useCallback((action, payload) => {
         if (action === 'collectItem') {
             const { index, mapId } = typeof payload === 'object' ? payload : { index: payload, mapId: null };
@@ -406,9 +408,15 @@ export default function Game() {
                 removeObject: idx => dispatch(removeObjectAtIndex(idx))
             });
         } else if (action === 'playerDamage' && payload !== undefined) {
-            // Šeit mēs nevaram viegli atjaunināt Redux katrā kadrā,
-            // bet varam atskaņot trāpījuma skaņu
-            console.log("Player hit by entity!");
+            const { damage, x, y } = payload || {};
+            const ps = playerStateRef.current;
+            const px = Number.isFinite(x) ? x : (ps?.x || 0) + (ps?.width || TILE_SIZE) / 2;
+            const py = Number.isFinite(y) ? y : (ps?.y || 0);
+            if (Number.isFinite(px) && Number.isFinite(py) && Number.isFinite(damage)) {
+                window.dispatchEvent(new CustomEvent('game-floating-text', {
+                    detail: { x: px, y: py, text: `-${Math.round(damage)}`, color: '#ff3b3b', amount: damage }
+                }));
+            }
         } else if (action === 'floatingText' && payload) {
             const { x, y, text, color, amount } = payload;
             if (Number.isFinite(x) && Number.isFinite(y) && text) {
@@ -481,6 +489,9 @@ export default function Game() {
         mapWidth,
         mapHeight
     );
+    useEffect(() => {
+        playerStateRef.current = playerState;
+    }, [playerState]);
 
     // Iegūstam spēlētāja vizuālo izskatu (Texture)
     const playerVisuals = useMemo(() => {

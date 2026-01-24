@@ -518,7 +518,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             mapData,
             objectData: objectDataRef.current,
             input,
-            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef },
+            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef, activeRoomIdsRef },
             constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE },
             registryItems,
             helpers: {

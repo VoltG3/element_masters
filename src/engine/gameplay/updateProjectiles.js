@@ -123,7 +123,13 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         if (playerState) {
           playerState.health = Math.max(0, (Number(playerState.health) || 0) - (p.dmg || 10));
         }
-        if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
+        if (onStateUpdate && playerState) {
+          onStateUpdate('playerDamage', {
+            damage: p.dmg || 10,
+            x: playerState.x + (playerState.width || TILE_SIZE) / 2,
+            y: playerState.y
+          });
+        }
         removed = true;
         break;
       }
@@ -173,7 +179,13 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         if (playerState) {
           playerState.health = Math.max(0, (Number(playerState.health) || 0) - (p.dmg || 10));
         }
-        if (onStateUpdate) onStateUpdate('playerDamage', { damage: p.dmg || 10 });
+        if (onStateUpdate && playerState) {
+          onStateUpdate('playerDamage', {
+            damage: p.dmg || 10,
+            x: playerState.x + (playerState.width || TILE_SIZE) / 2,
+            y: playerState.y
+          });
+        }
         removed = true;
         break;
       }

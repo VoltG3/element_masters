@@ -10,7 +10,10 @@
       "blockedByCover": true,
       "affects": {
         "player": true,
-        "enemies": ["tank_0000", "tank_0001", "tank_0002"]
+        "enemies": {
+          "mode": "all",
+          "exclude": ["tank_0000"]
+        }
       }
     },
     "radioactiveFog": {
@@ -18,9 +21,14 @@
       "maxDps": 1,
       "minDps": 0,
       "blockedByCover": false,
+      "radioactivityPerSecond": 2,
+      "radioactivityRegenPerSecond": 1,
       "affects": {
         "player": true,
-        "enemies": ["tank_0000", "tank_0001", "tank_0002"]
+        "enemies": {
+          "mode": "all",
+          "exclude": ["tank_0000"]
+        }
       }
     }
   }

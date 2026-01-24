@@ -15,7 +15,7 @@ export function handleWeatherTrigger({
   let value = 0;
 
   if (action === 'set' || action === 'on') {
-    value = currentMeta?.intensity !== undefined ? currentMeta.intensity : (action === 'on' ? 1 : 50);
+    value = currentMeta?.intensity !== undefined ? currentMeta.intensity : (action === 'on' ? 100 : 50);
   } else if (action === 'off') {
     value = 0;
   }

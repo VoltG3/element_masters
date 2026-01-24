@@ -24,7 +24,8 @@ export function updateEntities(ctx, deltaMs) {
     objectData,
     mapData,
     registryItems,
-    onStateUpdate
+    onStateUpdate,
+    activeRoomIds
   } = ctx;
 
   if (!entitiesRef.current || entitiesRef.current.length === 0) return;
@@ -99,8 +100,12 @@ export function updateEntities(ctx, deltaMs) {
     const lavaRainInt = Number(weather.lavaRain || 0);
     const radioFogInt = Number(weather.radioactiveFog || 0);
     const enemyId = entity.defId || def?.id;
-    let lavaDps = weatherAffectsEnemy('lavaRain', enemyId) ? getWeatherDps('lavaRain', lavaRainInt) : 0;
-    const radioDps = weatherAffectsEnemy('radioactiveFog', enemyId) ? getWeatherDps('radioactiveFog', radioFogInt) : 0;
+    const enemyName = def?.name;
+    let lavaDps = weatherAffectsEnemy('lavaRain', enemyId, enemyName) ? getWeatherDps('lavaRain', lavaRainInt) : 0;
+    if (lavaDps > 0 && liquidSample.inLiquid && liquidSample.type && liquidSample.type.includes('water')) {
+      lavaDps = 0;
+    }
+    const radioDps = weatherAffectsEnemy('radioactiveFog', enemyId, enemyName) ? getWeatherDps('radioactiveFog', radioFogInt) : 0;
     if (lavaDps > 0 && weatherBlockedByCover('lavaRain')) {
       try {
         const tileData = mapData.layers?.find(l => l.name === 'background' || l.type === 'tile')?.data || [];
@@ -118,7 +123,7 @@ export function updateEntities(ctx, deltaMs) {
           objectData,
           objectMetadata,
           maps: mapData.maps,
-          activeRoomIds: mapData.meta?.activeRoomIds
+          activeRoomIds: activeRoomIds || mapData.meta?.activeRoomIds
         });
         if (covered) lavaDps = 0;
       } catch {}

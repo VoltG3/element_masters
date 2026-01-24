@@ -3,7 +3,7 @@ import { moveHorizontal } from '../physics/horizontal';
 import { applyVerticalPhysics } from '../physics/vertical';
 import { tickLiquidDamage } from '../liquids/liquidUtils';
 import { updateEntities } from '../gameplay/entities';
-import { getWeatherDps, getMapWeather, weatherAffectsPlayer, weatherBlockedByCover } from '../gameplay/weatherDamage';
+import { getWeatherDps, getMapWeather, getRadioactivityRates, weatherAffectsPlayer, weatherBlockedByCover } from '../gameplay/weatherDamage';
 import { isCoveredFromAbove } from '../gameplay/weatherCover';
 
 // updateFrame(ctx, timestamp) → { continue: boolean }
@@ -32,7 +32,7 @@ export function updateFrame(ctx, timestamp) {
     actions
   } = ctx;
 
-  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef } = refs;
+  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef, activeRoomIdsRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
   const { checkCollision, isLiquidAt, getLiquidSample } = helpers;
   const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, playSfx, updateProjectiles, setPlayer, onGameOver } = actions;
@@ -318,6 +318,9 @@ export function updateFrame(ctx, timestamp) {
     applyResource('strength', 'maxStrength', strengthParams);
 
     // Radioactivity: fills up in radioactive liquid; slowly returns to 20% outside
+    const weatherNow = getMapWeather(mapData);
+    const radioFogInt = Number(weatherNow.radioactiveFog || 0);
+    const fogActive = weatherAffectsPlayer('radioactiveFog') && radioFogInt > 0;
     const maxRadio = Math.max(1, Number(gameState.current.maxRadioactivity || 100));
     let radio = Number(gameState.current.radioactivity);
     if (!Number.isFinite(radio)) radio = maxRadio * 0.2;
@@ -332,7 +335,7 @@ export function updateFrame(ctx, timestamp) {
 
     if (radioEnabled && radioApplies && (liquidType === 'radioactive_water' || liquidType === 'radioactive_waterfall')) {
       radio += (radioGain * dt) / 1000; 
-    } else if (radioEnabled) {
+    } else if (radioEnabled && !fogActive) {
       const baseline = maxRadio * radioBaseline;
       if (radio > baseline) {
         radio -= (radioDecay * dt) / 1000;
@@ -375,12 +378,14 @@ export function updateFrame(ctx, timestamp) {
     }
 
     // Weather damage (Lava Rain, Radioactive Fog)
-    const weather = getMapWeather(mapData);
+    const weather = weatherNow || getMapWeather(mapData);
     const lavaRainInt = Number(weather.lavaRain || 0);
-    const radioFogInt = Number(weather.radioactiveFog || 0);
 
     let lavaDps = weatherAffectsPlayer('lavaRain') ? getWeatherDps('lavaRain', lavaRainInt) : 0;
     const radioDps = weatherAffectsPlayer('radioactiveFog') ? getWeatherDps('radioactiveFog', radioFogInt) : 0;
+    if (lavaDps > 0 && (inWater || (liquidType && liquidType.includes('water')))) {
+      lavaDps = 0;
+    }
     if (lavaDps > 0 && weatherBlockedByCover('lavaRain')) {
       try {
         const tileData = mapData.layers?.find(l => l.name === 'background' || l.type === 'tile')?.data || [];
@@ -398,12 +403,13 @@ export function updateFrame(ctx, timestamp) {
           objectData,
           objectMetadata,
           maps: mapData.maps,
-          activeRoomIds: mapData.meta?.activeRoomIds
+          activeRoomIds: activeRoomIdsRef?.current || mapData.meta?.activeRoomIds
         });
         if (covered) lavaDps = 0;
       } catch {}
     }
-    const totalWeatherDps = lavaDps + radioDps;
+    const effectiveRadioDps = (radioDps > 0 && Number(gameState.current.radioactivity) <= 0) ? radioDps : 0;
+    const totalWeatherDps = lavaDps + effectiveRadioDps;
 
     if (totalWeatherDps > 0) {
       weatherDamageAccRef.current += dt;
@@ -412,9 +418,30 @@ export function updateFrame(ctx, timestamp) {
         gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - totalWeatherDps);
         const HIT_FLASH_MS = 500;
         gameState.current.hitTimerMs = Math.max(Number(gameState.current.hitTimerMs) || 0, HIT_FLASH_MS);
+        if (actions.onStateUpdate) {
+          actions.onStateUpdate('playerDamage', {
+            damage: totalWeatherDps,
+            x: x + width / 2,
+            y
+          });
+        }
       }
     } else {
       weatherDamageAccRef.current = 0;
+    }
+
+    // Radioactivity resource changes from fog
+    if (weatherAffectsPlayer('radioactiveFog')) {
+      const rates = getRadioactivityRates();
+      const maxRad = Math.max(1, Number(gameState.current.maxRadioactivity) || 100);
+      const curRad = Number(gameState.current.radioactivity) || 0;
+      if (radioFogInt > 0 && rates.increase > 0) {
+        const dec = (radioFogInt / 100) * rates.increase * (dt / 1000);
+        gameState.current.radioactivity = Math.max(0, curRad - dec);
+      } else if (radioFogInt <= 0 && rates.decay > 0) {
+        const inc = rates.decay * (dt / 1000);
+        gameState.current.radioactivity = Math.min(maxRad, curRad + inc);
+      }
     }
   } catch {}
 
@@ -500,7 +527,8 @@ export function updateFrame(ctx, timestamp) {
       playSfx,
       constants,
       registryItems: ctx.registryItems,
-      onStateUpdate: actions.onStateUpdate
+      onStateUpdate: actions.onStateUpdate,
+      activeRoomIds: activeRoomIdsRef?.current || mapData.meta?.activeRoomIds
     }, Math.min(dt, 100)); // Ierobežojam deltaMs uz 100ms, lai izvairītos no milzīgiem lēcieniem
     
     // Sinhronizējam lokālos mainīgos pēc entītiju (platformu) ietekmes
@@ -538,7 +566,7 @@ export function updateFrame(ctx, timestamp) {
           gameState.current.health = Math.max(0, (Number(gameState.current.health) || 0) - 10);
           
           if (actions.onStateUpdate) {
-            actions.onStateUpdate('playerDamage', { damage: 10 });
+            actions.onStateUpdate('playerDamage', { damage: 10, x: player.x + player.width / 2, y: player.y });
           }
         }
       }

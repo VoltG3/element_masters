@@ -317,6 +317,13 @@ export const useEditorPlayMode = (
                     detail: { x, y, text, color, amount }
                 }));
             }
+        } else if (newState === 'playerDamage' && payload !== undefined) {
+            const { damage, x, y } = payload || {};
+            if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(damage)) {
+                window.dispatchEvent(new CustomEvent('game-floating-text', {
+                    detail: { x, y, text: `-${Math.round(damage)}`, color: '#ff3b3b', amount: damage }
+                }));
+            }
         }
     }, [activeMapId, maps, updateMapData, activeRoomIds, playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
 
