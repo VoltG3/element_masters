@@ -74,6 +74,7 @@ export function updateFrame(ctx, timestamp) {
   } = gameState.current;
 
   const dt = Math.max(0, deltaMs || 0);
+  const physicsDt = Math.min(dt, 100);
 
   // 0.5) Resources update (before physics to affect them)
   // Ice resistance depletion: drains while on slippery surface; regenerates otherwise
@@ -115,7 +116,7 @@ export function updateFrame(ctx, timestamp) {
     checkCollision: checkCollisionExtended,
     friction: effectiveFriction,
     acceleration: isSlippery ? (currentIceRes > 0 ? 0.15 : surface.acceleration) : surface.acceleration,
-    deltaMs: dt
+    deltaMs: physicsDt
   });
   x = mh.x; vx = mh.vx; direction = mh.direction;
 
@@ -176,33 +177,43 @@ export function updateFrame(ctx, timestamp) {
   }
 
   // 2) Vertical physics
-  const vp = applyVerticalPhysics({
-    keys,
-    x,
-    y,
-    vy,
-    isGrounded,
-    animation,
-    GRAVITY,
-    TERMINAL_VELOCITY,
-    JUMP_FORCE,
-    TILE_SIZE,
-    width,
-    height,
-    mapWidth,
-    mapHeight,
-    checkCollision: checkCollisionExtended,
-    vx,
-    isLiquidAt: (wx, wy) => {
-      try { return typeof isLiquidAt === 'function' ? isLiquidAt(wx, wy) : null; } catch { return null; }
-    },
-    prevInWater: !!gameState.current.inWater,
-    deltaMs: dt
-  });
-  y = vp.y; vy = vp.vy; isGrounded = vp.isGrounded; animation = vp.animation;
-  const inWater = !!vp.inWater;
-  const headUnderWater = !!vp.headUnderWater;
-  const atSurface = !!vp.atSurface;
+  let vp = null;
+  let remaining = physicsDt;
+  let steps = 0;
+  let prevInWater = !!gameState.current.inWater;
+  while (remaining > 0 && steps < 10) {
+    const stepMs = Math.min(16.67, remaining);
+    vp = applyVerticalPhysics({
+      keys,
+      x,
+      y,
+      vy,
+      isGrounded,
+      animation,
+      GRAVITY,
+      TERMINAL_VELOCITY,
+      JUMP_FORCE,
+      TILE_SIZE,
+      width,
+      height,
+      mapWidth,
+      mapHeight,
+      checkCollision: checkCollisionExtended,
+      vx,
+      isLiquidAt: (wx, wy) => {
+        try { return typeof isLiquidAt === 'function' ? isLiquidAt(wx, wy) : null; } catch { return null; }
+      },
+      prevInWater,
+      deltaMs: stepMs
+    });
+    y = vp.y; vy = vp.vy; isGrounded = vp.isGrounded; animation = vp.animation;
+    prevInWater = !!vp.inWater;
+    remaining -= stepMs;
+    steps++;
+  }
+  const inWater = !!(vp ? vp.inWater : gameState.current.inWater);
+  const headUnderWater = !!(vp ? vp.headUnderWater : gameState.current.headUnderWater);
+  const atSurface = !!(vp ? vp.atSurface : gameState.current.atSurface);
 
   // 2.5) Generic liquid sampling (water, lava, etc.)
   let liquidType = null;
