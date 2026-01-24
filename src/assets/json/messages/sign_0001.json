@@ -1,0 +1,22 @@
+{
+  "id": "message_sign_0001",
+  "name": "message.sign",
+  "displayName": "Message Sign",
+  "type": "message_trigger",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/signs/sign01.png",
+  "collision": false,
+  "isHiddenInGame": false,
+  "requiresActionKey": true,
+  "interaction": {
+    "requiresKey": true,
+    "key": "e"
+  },
+  "editor": {
+    "panel": "messages",
+    "group": "messages",
+    "order": 0
+  },
+  "description": "Visible sign. Stand close and press E to read the message."
+}

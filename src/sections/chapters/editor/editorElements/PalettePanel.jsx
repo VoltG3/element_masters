@@ -66,15 +66,26 @@ export const PalettePanel = ({
                         {item.editorIcon || (item.subtype === 'above' ? 'ABOVE' : 'BELOW')}
                     </div>
                 ) : (isWeatherTrigger || isMessageTrigger) ? (
-                    <div style={{
-                        width: '100%', height: '100%', borderRadius: 2,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: isMessageTrigger ? '#fff9c4' : '#f0f4f8', 
-                        border: isMessageTrigger ? '1px solid #fbc02d' : '1px solid #d1d9e6',
-                        color: '#333', fontSize: '18px'
-                    }}>
-                        {item.editorIcon}
-                    </div>
+                    hasImage ? (
+                        <AnimatedItem
+                            textures={item.textures}
+                            texture={item.texture}
+                            speed={item.animationSpeed}
+                            spriteSheet={item.spriteSheet}
+                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                            alt={item.name}
+                        />
+                    ) : (
+                        <div style={{
+                            width: '100%', height: '100%', borderRadius: 2,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: isMessageTrigger ? '#fff9c4' : '#f0f4f8', 
+                            border: isMessageTrigger ? '1px solid #fbc02d' : '1px solid #d1d9e6',
+                            color: '#333', fontSize: '18px'
+                        }}>
+                            {item.editorIcon}
+                        </div>
+                    )
                 ) : editorIcon ? (
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
                         {editorIcon}
@@ -364,6 +375,7 @@ export const PalettePanel = ({
                 const getInteractableGroup = (i) => {
                     if (i.editor?.group) return i.editor.group;
                     if (i.subtype === 'door') return 'entrances';
+                    if (i.subtype === 'ladder') return 'ledders';
                     if (i.subtype === 'platform' || i.subtype === 'arrow') return 'platforms';
                     if ((i.id || '').includes('portal') || (i.name || '').includes('portal')) return 'ports';
                     if (i.subtype === 'end') return 'ends';
@@ -379,6 +391,7 @@ export const PalettePanel = ({
                     { key: 'physics', title: 'Physic', color: 'purple', open: true },
                     { key: 'entrances', title: 'Entrences', color: 'purple', open: true },
                     { key: 'platforms', title: 'Platforms', color: 'purple', open: true },
+                    { key: 'ledders', title: 'Ledders', color: 'purple', open: true },
                     { key: 'ports', title: 'Ports', color: 'purple', open: true },
                     { key: 'blocks', title: 'Blocks', color: 'purple', open: true },
                     { key: 'ends', title: 'Ends', color: 'purple', open: true }

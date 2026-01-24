@@ -15,13 +15,22 @@ export const createBreakEffectManager = (layer) => {
     const speed = Math.max(0.2, Number(config.speed) || 2);
     const lifeMs = Math.max(120, Number(config.lifeMs) || 600);
     const size = Math.max(1, Number(config.size) || 2);
+    const gravity = Number.isFinite(Number(config.gravity)) ? Number(config.gravity) : 0.02;
+    const shape = config.shape === 'circle' ? 'circle' : 'square';
+    const angleRange = Array.isArray(config.angleRange) && config.angleRange.length >= 2 ? config.angleRange : null;
     const colors = Array.isArray(config.colors) && config.colors.length ? config.colors : [0xffffff];
 
     for (let i = 0; i < count; i++) {
-      const angle = (Math.random() * Math.PI * 2);
+      const angle = angleRange
+        ? (Number(angleRange[0]) + Math.random() * (Number(angleRange[1]) - Number(angleRange[0])))
+        : (Math.random() * Math.PI * 2);
       const sp = speed * (0.5 + Math.random() * 0.9);
       const g = new Graphics();
-      g.rect(-size / 2, -size / 2, size, size);
+      if (shape === 'circle') {
+        g.circle(0, 0, size * 0.6);
+      } else {
+        g.rect(-size / 2, -size / 2, size, size);
+      }
       g.fill({ color: colors[i % colors.length], alpha: 1 });
       g.x = x;
       g.y = y;
@@ -33,7 +42,8 @@ export const createBreakEffectManager = (layer) => {
         vx: Math.cos(angle) * sp,
         vy: Math.sin(angle) * sp,
         life: lifeMs,
-        maxLife: lifeMs
+        maxLife: lifeMs,
+        gravity
       });
     }
   };
@@ -51,7 +61,7 @@ export const createBreakEffectManager = (layer) => {
       }
       p.x = (p.x || 0) + p.vx * (delta / 16.67);
       p.y = (p.y || 0) + p.vy * (delta / 16.67);
-      p.vy += 0.02 * (delta / 16.67);
+      p.vy += (Number(p.gravity) || 0.02) * (delta / 16.67);
       if (p.g) {
         p.g.x = p.x;
         p.g.y = p.y;

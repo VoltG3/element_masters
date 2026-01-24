@@ -3,7 +3,13 @@
   "name": "block.dirt_0004",
   "width": "1",
   "height": "1",
-  "texture": "/assets/images/blocks/block_pack_01/dirt_block_0004.png",
+  "texture": "/assets/images/blocks/block_pack_01/block_pack_01.png",
+  "spriteSheet": {
+    "enabled": true,
+    "columns": 2,
+    "totalSprites": 6,
+    "frameIndex": 3
+  },
   "renderAbovePlayer": true,
   "collision": {
     "top": true,

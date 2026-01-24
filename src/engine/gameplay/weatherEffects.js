@@ -1,13 +1,15 @@
+import { getMeteorBreakEffectConfig } from './meteorBreakEffects';
+
 /**
  * Handles weather effect impacts like meteor strikes, lightning, etc.
  * This logic is decoupled from useGameEngine to allow for easier expansion.
  */
 export const handleWeatherEffectHit = (type, data, context) => {
     if (!type || !data || !context) return;
-    const { gameState, entitiesRef } = context;
+    const { gameState, entitiesRef, onBreakEffect } = context;
 
     if (type === 'meteor') {
-        const { x, y, size, isLarge } = data;
+        const { x, y, size, isLarge, surfaceType } = data;
         const damage = isLarge ? 40 : 20;
         const radius = size * 1.5;
 
@@ -51,6 +53,11 @@ export const handleWeatherEffectHit = (type, data, context) => {
                     }
                 }
             });
+        }
+
+        const breakConfig = getMeteorBreakEffectConfig({ size, surfaceType });
+        if (breakConfig && typeof onBreakEffect === 'function') {
+            onBreakEffect({ x, y, config: breakConfig });
         }
     }
 

@@ -184,7 +184,13 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
 
     // Weather effects impact handling (meteors, etc.)
     const handleWeatherEffectHitWrapper = (type, data) => {
-        handleWeatherEffectHit(type, data, { gameState, entitiesRef });
+        handleWeatherEffectHit(type, data, {
+            gameState,
+            entitiesRef,
+            onBreakEffect: (detail) => {
+                window.dispatchEvent(new CustomEvent('game-break-effect', { detail }));
+            }
+        });
     };
 
     // Listen for weather effect hits from the UI/Renderer

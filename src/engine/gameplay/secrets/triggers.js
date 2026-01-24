@@ -46,9 +46,15 @@ export function handleMessageTrigger({
   index,
   gameState,
   onStateUpdate,
-  playShotSfx
+  playShotSfx,
+  keys
 }) {
   if (!objDef || objDef.type !== 'message_trigger') return false;
+
+  const requiresActionKey = !!(objDef.requiresActionKey || objDef.interaction?.requiresKey);
+  if (requiresActionKey && !keys?.e) {
+    return false;
+  }
 
   const message = currentMeta?.message;
   if (!message) return true;

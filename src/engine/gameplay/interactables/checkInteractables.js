@@ -97,7 +97,12 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, mapHeight,
         const frontObjId = activeObjectData[frontIndex];
         if (frontObjId) {
           const frontDef = getDefById(registryItems, frontObjId);
-          if (frontDef && (frontDef.type === 'wolf_secret' || frontDef.subtype === 'door' || frontDef.name?.startsWith('interactable.'))) {
+          if (frontDef && (
+            frontDef.type === 'wolf_secret' ||
+            frontDef.subtype === 'door' ||
+            frontDef.name?.startsWith('interactable.') ||
+            (frontDef.type === 'message_trigger' && (frontDef.requiresActionKey || frontDef.interaction?.requiresKey))
+          )) {
             targetIndex = frontIndex;
           }
         }
@@ -146,7 +151,7 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, mapHeight,
   }
 
   if (handleWeatherTrigger({ objDef, currentMeta, index: actualIndex, gameState, onStateUpdate, playShotSfx })) return;
-  if (handleMessageTrigger({ objDef, currentMeta, index: actualIndex, gameState, onStateUpdate, playShotSfx })) return;
+  if (handleMessageTrigger({ objDef, currentMeta, index: actualIndex, gameState, onStateUpdate, playShotSfx, keys })) return;
   if (triggerWolfSecret({
     objDef,
     index: actualIndex,

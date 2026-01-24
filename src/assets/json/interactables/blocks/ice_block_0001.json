@@ -5,6 +5,12 @@
   "height": "1",
   "editor": { "panel": "interactables", "group": "blocks", "order": 10 },
   "texture": "/assets/images/blocks/block_pack_01/ice_block_0001.png",
+  "spriteSheet": {
+    "enabled": true,
+    "columns": 2,
+    "totalSprites": 6,
+    "frameIndex": 0
+  },
   "renderAbovePlayer": true,
   "collision": {
     "top": true,

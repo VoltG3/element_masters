@@ -15,6 +15,7 @@ import { syncEntities, cleanupEntities } from './entityManager';
 import { rebuildLayers } from './layerBuilder';
 import { createFloatingTextLayer, createFloatingTextManager } from './floatingTextManager';
 import { createBreakEffectLayer, createBreakEffectManager } from './breakEffectManager';
+import { getLiquidAtPixel } from '../../../../engine/liquids/liquidUtils';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
 Assets.setPreferences?.({
@@ -24,6 +25,20 @@ Assets.setPreferences?.({
 
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
+const LIQUID_SURFACE_MAP = [
+  { key: 'lava', surface: 'lava' },
+  { key: 'radioactive', surface: 'radiation' },
+  { key: 'quicksand', surface: 'quicksand' },
+  { key: 'water', surface: 'water' },
+];
+
+const toSurfaceType = (liquidType) => {
+  if (!liquidType) return null;
+  for (const entry of LIQUID_SURFACE_MAP) {
+    if (liquidType.includes(entry.key)) return entry.surface;
+  }
+  return null;
+};
 
 const PixiStage = ({
   mapWidth,
@@ -98,6 +113,8 @@ const PixiStage = ({
   const fogLayerRef = useRef(null);
   const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null, fog: null, lavaRain: null, radioactiveFog: null, meteorRain: null });
   const weatherPropsRef = useRef({ rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0, lavaRain: 0, radioactiveFog: 0, meteorRain: 0 });
+  const tileMapDataRef = useRef(tileMapData);
+  const registryItemsRef = useRef(registryItems);
   const projectilesLayerRef = useRef(null);
   const projectileSpritesRef = useRef(new Map());
   const entitiesLayerRef = useRef(null);
@@ -149,6 +166,8 @@ const PixiStage = ({
   useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
   useEffect(() => { bgImageRef.current = backgroundImage; }, [backgroundImage]);
   useEffect(() => { bgColorRef.current = backgroundColor; }, [backgroundColor]);
+  useEffect(() => { tileMapDataRef.current = tileMapData; }, [tileMapData]);
+  useEffect(() => { registryItemsRef.current = registryItems; }, [registryItems]);
 
   // Sync weather props to ref for systems to read live
   useEffect(() => {
@@ -1087,6 +1106,14 @@ const PixiStage = ({
       mapWidth,
       mapHeight,
       tileSize,
+      getLiquidTypeAt: (x, y) => {
+        const tmd = tileMapDataRef.current;
+        const regs = registryItemsRef.current;
+        if (!tmd || !regs) return null;
+        const liq = getLiquidAtPixel(x, y, mapWidth, mapHeight, tileSize, tmd, regs);
+        if (!liq) return null;
+        return toSurfaceType(liq.type);
+      },
       getLiquidSurfaceY: (type, x) => {
         try { return liquidSystemRef.current?.getSurfaceY?.(type, x); } catch { return null; }
       },

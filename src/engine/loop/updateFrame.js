@@ -1,6 +1,7 @@
 // One-frame update orchestrator (migrated from GameEngine/updateFrame.js)
 import { moveHorizontal } from '../physics/horizontal';
 import { applyVerticalPhysics } from '../physics/vertical';
+import { resolveInteractableContext } from '../gameplay/interactables/context';
 import { tickLiquidDamage } from '../liquids/liquidUtils';
 import { updateEntities } from '../gameplay/entities';
 import { getWeatherDps, getMapWeather, getRadioactivityRates, weatherAffectsPlayer, weatherBlockedByCover } from '../gameplay/weatherDamage';
@@ -29,7 +30,8 @@ export function updateFrame(ctx, timestamp) {
     refs,
     constants,
     helpers,
-    actions
+    actions,
+    registryItems
   } = ctx;
 
   const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef, activeRoomIdsRef } = refs;
@@ -181,40 +183,113 @@ export function updateFrame(ctx, timestamp) {
     }
   }
 
+  // 1.9) Ladder check (allow climbing when overlapping ladder objects)
+  const getDefById = (id) => {
+    if (!id) return null;
+    const map = registryItems && registryItems.__byId;
+    if (map && typeof map.get === 'function') return map.get(id) || null;
+    return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+  };
+
+  const findLadderAtPlayer = () => {
+    if (!objectData || !registryItems) return null;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const ctxResolved = resolveInteractableContext({
+      mapData,
+      mapWidth,
+      mapHeight,
+      objectLayerData: objectData,
+      mainObjectMetadata: objectMetadata,
+      secretMapData: secretLayer,
+      activeRoomIds: activeRoomIdsRef.current || mapData?.meta?.activeRoomIds,
+      centerX,
+      centerY,
+      TILE_SIZE
+    });
+    const { activeObjectData, activeMetadata, activeMapWidth, activeMapHeight, offsetX, offsetY } = ctxResolved;
+    if (!activeObjectData) return null;
+    const localX = centerX - offsetX;
+    const localY = centerY - offsetY;
+    const gridX = Math.floor(localX / TILE_SIZE);
+    const gridY = Math.floor(localY / TILE_SIZE);
+    if (gridX < 0 || gridY < 0 || gridX >= activeMapWidth || gridY >= activeMapHeight) return null;
+    let idx = gridY * activeMapWidth + gridX;
+    let objId = activeObjectData[idx];
+    if (!objId && activeMetadata) {
+      for (const [idxStr, meta] of Object.entries(activeMetadata)) {
+        const baseIdx = parseInt(idxStr, 10);
+        const w = meta.width || 1;
+        const h = meta.height || 1;
+        if (w <= 1 && h <= 1) continue;
+        const ox = baseIdx % activeMapWidth;
+        const oy = Math.floor(baseIdx / activeMapWidth);
+        if (gridX >= ox && gridX < ox + w && gridY >= oy && gridY < oy + h) {
+          objId = activeObjectData[baseIdx];
+          idx = baseIdx;
+          break;
+        }
+      }
+    }
+    if (!objId) return null;
+    const def = getDefById(objId);
+    if (!def) return null;
+    const isLadder = !!(def.flags?.ladder || def.subtype === 'ladder' || def.type === 'ladder');
+    if (!isLadder) return null;
+    return { def, index: idx };
+  };
+
+  const ladderInfo = findLadderAtPlayer();
+
   // 2) Vertical physics
   let vp = null;
   let remaining = physicsDt;
   let steps = 0;
   let prevInWater = !!gameState.current.inWater;
-  while (remaining > 0 && steps < 10) {
-    const stepMs = Math.min(16.67, remaining);
-    vp = applyVerticalPhysics({
-      keys,
-      x,
-      y,
-      vy,
-      isGrounded,
-      animation,
-      GRAVITY,
-      TERMINAL_VELOCITY,
-      JUMP_FORCE,
-      TILE_SIZE,
-      width,
-      height,
-      mapWidth,
-      mapHeight,
-      checkCollision: checkCollisionExtended,
-      vx,
-      isLiquidAt: (wx, wy) => {
-        try { return typeof isLiquidAt === 'function' ? isLiquidAt(wx, wy) : null; } catch { return null; }
-      },
-      prevInWater,
-      deltaMs: stepMs
-    });
-    y = vp.y; vy = vp.vy; isGrounded = vp.isGrounded; animation = vp.animation;
-    prevInWater = !!vp.inWater;
-    remaining -= stepMs;
-    steps++;
+  if (ladderInfo && !keys?.space) {
+    const ladderSpeed = Math.max(40, Number(ladderInfo.def?.ladder?.speed) || 120);
+    const climbDir = (keys.w ? -1 : 0) + (keys.s ? 1 : 0);
+    if (climbDir !== 0) {
+      const proposedY = y + (climbDir * ladderSpeed) * (physicsDt / 1000);
+      if (!checkCollisionExtended(x, proposedY, mapWidth, mapHeight, width, height)) {
+        y = proposedY;
+      }
+      animation = 'climb';
+    }
+    vy = 0;
+    isGrounded = false;
+    vp = { y, vy, isGrounded, animation, inWater: false, headUnderWater: false, atSurface: false };
+  } else {
+    while (remaining > 0 && steps < 10) {
+      const stepMs = Math.min(16.67, remaining);
+      vp = applyVerticalPhysics({
+        keys,
+        x,
+        y,
+        vy,
+        isGrounded,
+        animation,
+        GRAVITY,
+        TERMINAL_VELOCITY,
+        JUMP_FORCE,
+        TILE_SIZE,
+        width,
+        height,
+        mapWidth,
+        mapHeight,
+        checkCollision: checkCollisionExtended,
+        vx,
+        isLiquidAt: (wx, wy) => {
+          try { return typeof isLiquidAt === 'function' ? isLiquidAt(wx, wy) : null; } catch { return null; }
+        },
+        prevInWater,
+        deltaMs: stepMs
+      });
+      y = vp.y; vy = vp.vy; isGrounded = vp.isGrounded; animation = vp.animation;
+      prevInWater = !!vp.inWater;
+      remaining -= stepMs;
+      steps++;
+    }
   }
   const inWater = !!(vp ? vp.inWater : gameState.current.inWater);
   const headUnderWater = !!(vp ? vp.headUnderWater : gameState.current.headUnderWater);

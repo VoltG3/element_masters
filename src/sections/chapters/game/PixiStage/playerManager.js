@@ -1,4 +1,4 @@
-import { Sprite, AnimatedSprite, Texture, Container, Text } from 'pixi.js';
+import { Sprite, AnimatedSprite, Texture, Container, Text, Rectangle } from 'pixi.js';
 import { getTexture, msToSpeed } from './helpers';
 import HealthBar from '../../../../Pixi/ui/HealthBar';
 
@@ -13,6 +13,24 @@ export const buildSpriteFromDef = (def) => {
       spr = new AnimatedSprite(frames);
       spr.animationSpeed = msToSpeed(def.animationSpeed);
       spr.play();
+    }
+  }
+
+  // Static sprite sheet frame (grid-based)
+  if (!spr && def.spriteSheet && def.spriteSheet.enabled && def.texture && Number.isFinite(Number(def.spriteSheet.frameIndex))) {
+    const baseTexture = getTexture(def.texture);
+    const source = baseTexture?.source;
+    if (source && source.width > 1 && source.height > 1) {
+      const totalSprites = Math.max(1, Number(def.spriteSheet.totalSprites) || 1);
+      const columns = Math.max(1, Number(def.spriteSheet.columns) || 1);
+      const rows = Math.ceil(totalSprites / columns);
+      const frameWidth = Number(def.spriteSheet.frameWidth) || (source.width / columns);
+      const frameHeight = Number(def.spriteSheet.frameHeight) || (source.height / rows);
+      const frameIndex = Math.max(0, Math.min(totalSprites - 1, Number(def.spriteSheet.frameIndex)));
+      const col = frameIndex % columns;
+      const row = Math.floor(frameIndex / columns);
+      const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
+      spr = new Sprite(new Texture({ source, frame: rect }));
     }
   }
 

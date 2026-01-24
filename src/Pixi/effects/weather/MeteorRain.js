@@ -88,6 +88,27 @@ export default class WeatherMeteorRain {
       p.g.x = p.x;
       p.g.y = p.y;
 
+      const liquidType = typeof this.api.getLiquidTypeAt === 'function'
+        ? this.api.getLiquidTypeAt(p.x, p.y)
+        : null;
+
+      if (liquidType) {
+        if (liquidType === 'water' && typeof this.api.onWaterImpact === 'function') {
+          this.api.onWaterImpact({ x: p.x, strength: p.isLarge ? 1.4 : 0.8 });
+        }
+        if (liquidType === 'lava' && typeof this.api.onLavaImpact === 'function') {
+          this.api.onLavaImpact({ x: p.x, y: p.y, strength: p.isLarge ? 1.6 : 0.9 });
+        }
+
+        if (typeof this.api.onMeteorHit === 'function') {
+          this.api.onMeteorHit({ x: p.x, y: p.y, size: p.size, isLarge: p.isLarge, surfaceType: liquidType });
+        }
+
+        p.alive = false;
+        toRemove.push(i);
+        continue;
+      }
+
       // Check collision with solid world
       if (this.api.isSolidAt(p.x, p.y)) {
         // Explosion effect
@@ -97,7 +118,7 @@ export default class WeatherMeteorRain {
         
         // Notify engine about meteor hit for damage
         if (typeof this.api.onMeteorHit === 'function') {
-           this.api.onMeteorHit({ x: p.x, y: p.y, size: p.size, isLarge: p.isLarge });
+           this.api.onMeteorHit({ x: p.x, y: p.y, size: p.size, isLarge: p.isLarge, surfaceType: 'ground' });
         }
 
         p.alive = false;

@@ -1,0 +1,21 @@
+{
+  "id": "ledder_0001",
+  "name": "interactable.ladder_01",
+  "type": "interactable",
+  "subtype": "ladder",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/interactables/ledders/ledder_wooden_01.png",
+  "flags": {
+    "ladder": true
+  },
+  "ladder": {
+    "speed": 120
+  },
+  "collision": false,
+  "editor": {
+    "panel": "interactables",
+    "group": "ledders",
+    "order": 20
+  }
+}

@@ -300,6 +300,8 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
         frameIndex = meta.currentFrame;
       } else if (def.subtype === 'door' && mapType === 'room') {
         frameIndex = def.interaction?.frames?.inside || 2;
+      } else if (Number.isFinite(Number(def.spriteSheet?.frameIndex))) {
+        frameIndex = Number(def.spriteSheet.frameIndex);
       } else {
         frameIndex = Math.floor((1 - healthPercent / 100) * (totalSprites - 1));
       }

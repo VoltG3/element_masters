@@ -31,7 +31,8 @@ const AnimatedItem = ({ textures, texture, speed, style, alt, className, spriteS
         const rows = Math.ceil(total / columns);
         
         // Editorā parasti rādām pirmo kadru (index 0) vai norādīto kadru
-        const currentFrame = frameIndex !== undefined ? frameIndex : 0;
+        const fallbackFrame = spriteSheet && Number.isFinite(Number(spriteSheet.frameIndex)) ? Number(spriteSheet.frameIndex) : 0;
+        const currentFrame = frameIndex !== undefined ? frameIndex : fallbackFrame;
         const col = currentFrame % columns;
         const row = Math.floor(currentFrame / columns);
 

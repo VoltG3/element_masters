@@ -1,0 +1,74 @@
+{
+  "id": "system_meteor_break_effects",
+  "type": "system",
+  "isHiddenInEditor": true,
+  "enabled": true,
+  "defaults": {
+    "count": 18,
+    "speed": 3.1,
+    "lifeMs": 820,
+    "size": 3,
+    "gravity": 0.03,
+    "shape": "square",
+    "colors": ["#705746", "#9b7358", "#c18a5c", "#684b3a"]
+  },
+  "sizeScale": {
+    "min": 4,
+    "max": 12,
+    "count": [14, 30],
+    "speed": [2.8, 4.2],
+    "lifeMs": [720, 1040],
+    "size": [2, 5]
+  },
+  "surfaces": {
+    "ground": {
+      "count": 20,
+      "speed": 3.1,
+      "lifeMs": 820,
+      "size": 3,
+      "gravity": 0.03,
+      "shape": "square",
+      "colors": ["#705746", "#9b7358", "#c18a5c", "#684b3a"]
+    },
+    "water": {
+      "count": 22,
+      "speed": 2.6,
+      "lifeMs": 900,
+      "size": 3,
+      "gravity": 0.012,
+      "shape": "circle",
+      "angleRange": [-2.9, -0.2],
+      "colors": ["#2aa4ff", "#1a6fbf", "#7fd4ff", "#0c3d66"]
+    },
+    "lava": {
+      "count": 24,
+      "speed": 3.6,
+      "lifeMs": 920,
+      "size": 3,
+      "gravity": 0.02,
+      "shape": "circle",
+      "angleRange": [-2.8, -0.4],
+      "colors": ["#ff6a00", "#ffb000", "#b93200", "#ff2d00"]
+    },
+    "radiation": {
+      "count": 22,
+      "speed": 3.0,
+      "lifeMs": 900,
+      "size": 3,
+      "gravity": 0.016,
+      "shape": "circle",
+      "angleRange": [-2.9, -0.3],
+      "colors": ["#8cff3f", "#4fd11a", "#1c7d12", "#b7ff5f"]
+    },
+    "quicksand": {
+      "count": 20,
+      "speed": 2.4,
+      "lifeMs": 880,
+      "size": 3,
+      "gravity": 0.02,
+      "shape": "circle",
+      "angleRange": [-2.7, -0.5],
+      "colors": ["#b28b57", "#c9a56a", "#8a6d3b", "#d7b57c"]
+    }
+  }
+}
