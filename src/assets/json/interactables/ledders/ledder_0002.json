@@ -12,6 +12,9 @@
   "ladder": {
     "speed": 120
   },
+  "render": {
+    "overlapY": 0
+  },
   "collision": false,
   "editor": {
     "panel": "interactables",

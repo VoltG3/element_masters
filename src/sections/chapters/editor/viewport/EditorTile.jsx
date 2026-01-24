@@ -158,13 +158,22 @@ export const EditorTile = React.memo(({
             )}
 
             {/* Object Layer */}
-            {objObj && (
+            {objObj && (() => {
+                const renderOffsetX = Number(objObj?.render?.offsetX) || 0;
+                const renderOffsetY = Number(objObj?.render?.offsetY) || 0;
+                const overlapX = Number(objObj?.render?.overlapX) || 0;
+                const overlapY = Number(objObj?.render?.overlapY) || 0;
+                const baseTop = objObj.type === 'decoration' ? 0 : 2;
+                const baseLeft = objObj.type === 'decoration' ? 0 : 2;
+                const baseWidth = objObj.type === 'decoration' ? (width * 32) : (width * 32 - 4);
+                const baseHeight = objObj.type === 'decoration' ? (height * 32) : (height * 32 - 4);
+                return (
                 <div style={{
                     position: 'absolute', 
-                    top: objObj.type === 'decoration' ? '0' : '2px',
-                    left: objObj.type === 'decoration' ? '0' : '2px',
-                    width: objObj.type === 'decoration' ? `${width * 32}px` : `${width * 32 - 4}px`,
-                    height: objObj.type === 'decoration' ? `${height * 32}px` : `${height * 32 - 4}px`,
+                    top: `${baseTop + renderOffsetY - overlapY / 2}px`,
+                    left: `${baseLeft + renderOffsetX - overlapX / 2}px`,
+                    width: `${baseWidth + overlapX}px`,
+                    height: `${baseHeight + overlapY}px`,
                     zIndex: 3,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     filter: filter ? filter('object') : 'none', transition: 'filter 0.3s ease',
@@ -258,7 +267,8 @@ export const EditorTile = React.memo(({
                         </div>
                     )}
                 </div>
-            )}
+                );
+            })()}
 
             {/* Room Area Visibility Overlay */}
             {(isRoomAreaVisible || showRoomMapContent || activeTool === 'area') && secretObj && secretObj.subtype === 'room' && mapType !== 'room' && (

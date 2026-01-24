@@ -331,18 +331,22 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
     const x = offsetX + (i % mapWidth) * tileSize;
     const y = offsetY + Math.floor(i / mapWidth) * tileSize;
     
+    const renderOffsetX = Number(def.render?.offsetX) || 0;
+    const renderOffsetY = Number(def.render?.offsetY) || 0;
+    const overlapX = Number(def.render?.overlapX) || 0;
+    const overlapY = Number(def.render?.overlapY) || 0;
     if (visualElement.anchor && visualElement.anchor.x === 0.5) {
-      visualElement.x = tileSize / 2;
-      visualElement.y = tileSize / 2;
+      visualElement.x = tileSize / 2 + renderOffsetX - overlapX / 2;
+      visualElement.y = tileSize / 2 + renderOffsetY - overlapY / 2;
     } else {
-      visualElement.x = 0;
-      visualElement.y = 0;
+      visualElement.x = renderOffsetX - overlapX / 2;
+      visualElement.y = renderOffsetY - overlapY / 2;
     }
     
     const objWidth = (meta.width || def.width || 1) * tileSize;
     const objHeight = (meta.height || def.height || 1) * tileSize;
-    visualElement.width = objWidth;
-    visualElement.height = objHeight;
+    visualElement.width = objWidth + overlapX;
+    visualElement.height = objHeight + overlapY;
 
     const container = new Container();
     container.x = x;
