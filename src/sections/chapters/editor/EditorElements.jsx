@@ -62,6 +62,8 @@ export const EditorElements = ({
     createMap
 }) => {
     const [lastPanel, setLastPanel] = React.useState(null);
+    const [pinnedPanel, setPinnedPanel] = React.useState(null);
+    const hoverTimerRef = React.useRef(null);
 
     React.useEffect(() => {
         if (activePanel) {
@@ -70,6 +72,49 @@ export const EditorElements = ({
     }, [activePanel]);
 
     const displayPanel = activePanel || lastPanel;
+
+    const clearHoverTimer = () => {
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+        }
+    };
+
+    const handleIconClick = (panel) => {
+        clearHoverTimer();
+        if (pinnedPanel === panel) {
+            setPinnedPanel(null);
+            setActivePanel(null);
+            return;
+        }
+        setPinnedPanel(panel);
+        setActivePanel(panel);
+    };
+
+    const handleIconMouseEnter = (panel) => {
+        if (pinnedPanel) return;
+        clearHoverTimer();
+        setActivePanel(panel);
+    };
+
+    const handleIconMouseLeave = () => {
+        if (pinnedPanel) return;
+        clearHoverTimer();
+        hoverTimerRef.current = setTimeout(() => {
+            setActivePanel(null);
+        }, 120);
+    };
+
+    const handlePanelMouseEnter = () => {
+        if (pinnedPanel) return;
+        clearHoverTimer();
+    };
+
+    const handlePanelMouseLeave = () => {
+        if (pinnedPanel) return;
+        clearHoverTimer();
+        setActivePanel(null);
+    };
 
     const panelTitles = {
         map: 'Operations',
@@ -92,30 +137,30 @@ export const EditorElements = ({
         <div style={{ display: 'flex', height: '100%', position: 'relative', zIndex: 1001 }}>
             {/* Sidebar Left Icons */}
             <SidebarContainer>
-                <ElementEditorButton onClick={() => togglePanel('map')} $active={activePanel === 'map'} title="Map Controls">⚙️</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('blocks')} $active={activePanel === 'blocks'} title="Blocks">🧱</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('liquids')} $active={activePanel === 'liquids'} title="Liquids">💧</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('decorations')} $active={activePanel === 'decorations'} title="Decorations">🌲</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('obstacles')} $active={activePanel === 'obstacles'} title="Obstacles">🏺</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('items')} $active={activePanel === 'items'} title="Items">✨</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('entities')} $active={activePanel === 'entities'} title="Entities">👾</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('interactables')} $active={activePanel === 'interactables'} title="Interactables">🚪</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('hazards')} $active={activePanel === 'hazards'} title="Hazards">☠️</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('secrets')} $active={activePanel === 'secrets'} title="Sectors">√2</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('weather')} $active={activePanel === 'weather'} title="Weather">∑</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('messages')} $active={activePanel === 'messages'} title="Messages">∫</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('stats')} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
-                <ElementEditorButton onClick={() => togglePanel('props')} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('map')} onMouseEnter={() => handleIconMouseEnter('map')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'map'} title="Map Controls">⚙️</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('blocks')} onMouseEnter={() => handleIconMouseEnter('blocks')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'blocks'} title="Blocks">🧱</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('liquids')} onMouseEnter={() => handleIconMouseEnter('liquids')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'liquids'} title="Liquids">💧</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('decorations')} onMouseEnter={() => handleIconMouseEnter('decorations')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'decorations'} title="Decorations">🌲</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('obstacles')} onMouseEnter={() => handleIconMouseEnter('obstacles')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'obstacles'} title="Obstacles">🏺</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('items')} onMouseEnter={() => handleIconMouseEnter('items')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'items'} title="Items">✨</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('entities')} onMouseEnter={() => handleIconMouseEnter('entities')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'entities'} title="Entities">👾</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('interactables')} onMouseEnter={() => handleIconMouseEnter('interactables')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'interactables'} title="Interactables">🚪</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('hazards')} onMouseEnter={() => handleIconMouseEnter('hazards')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'hazards'} title="Hazards">☠️</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('secrets')} onMouseEnter={() => handleIconMouseEnter('secrets')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'secrets'} title="Sectors">√2</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('weather')} onMouseEnter={() => handleIconMouseEnter('weather')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'weather'} title="Weather">∑</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('messages')} onMouseEnter={() => handleIconMouseEnter('messages')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'messages'} title="Messages">∫</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('stats')} onMouseEnter={() => handleIconMouseEnter('stats')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('props')} onMouseEnter={() => handleIconMouseEnter('props')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
             </SidebarContainer>
 
             {/* Sidebar Fixed Panel Content */}
-            <PanelContainer $isOpen={!!activePanel}>
+            <PanelContainer $isOpen={!!activePanel} onMouseEnter={handlePanelMouseEnter} onMouseLeave={handlePanelMouseLeave}>
                 {displayPanel && (
                     <>
                         {/* Panel Header */}
                         <PanelHeader>
                             <span>{panelTitles[displayPanel]}</span>
-                            <CloseButton onClick={() => setActivePanel(null)}>✕</CloseButton>
+                            <CloseButton onClick={() => { setPinnedPanel(null); setActivePanel(null); }}>✕</CloseButton>
                         </PanelHeader>
 
                         {/* Panel Body */}

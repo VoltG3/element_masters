@@ -510,7 +510,7 @@ export const Editor = () => {
                         setShowRoomMapContent={setShowRoomMapContent}
                     />
                     
-                    <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flex: 1, flexDirection: 'row', overflow: 'hidden', position: 'relative' }}>
 
                     <EditorScene 
                         handleMapResize={handleMapResize}

@@ -7,7 +7,7 @@ export const EditorToolsContainer = styled.div`
 export const HeaderBar = styled.div`
     padding: 0 15px;
     background-color: #222;
-    border-bottom: 1px solid #000;
+    border-bottom: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -18,6 +18,17 @@ export const HeaderBar = styled.div`
     color: #fff;
     z-index: 1000;
     position: relative;
+
+    &::after {
+        content: "";
+        position: absolute;
+        left: 60px;
+        right: 0;
+        bottom: 0;
+        height: 1px;
+        background-color: #000;
+        pointer-events: none;
+    }
 `;
 
 export const ToolsSection = styled.div`

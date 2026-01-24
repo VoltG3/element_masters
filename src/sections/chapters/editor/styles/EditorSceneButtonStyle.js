@@ -32,7 +32,7 @@ export const SceneEditorButton = styled.button`
 
 export const RightSidebarContainer = styled.div`
     position: absolute;
-    top: 70px;
+    top: 10px;
     right: 20px;
     display: flex;
     flex-direction: column;
