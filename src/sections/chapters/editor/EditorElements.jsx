@@ -81,6 +81,8 @@ export const EditorElements = ({
         interactables: 'Interactables',
         hazards: 'Hazards',
         secrets: 'Sectors',
+        weather: 'Weather',
+        messages: 'Messages',
         obstacles: 'Obstacles',
         stats: 'Statistics',
         props: 'Object Properties'
@@ -100,6 +102,8 @@ export const EditorElements = ({
                 <ElementEditorButton onClick={() => togglePanel('interactables')} $active={activePanel === 'interactables'} title="Interactables">🚪</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('hazards')} $active={activePanel === 'hazards'} title="Hazards">☠️</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('secrets')} $active={activePanel === 'secrets'} title="Sectors">√2</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('weather')} $active={activePanel === 'weather'} title="Weather">∑</ElementEditorButton>
+                <ElementEditorButton onClick={() => togglePanel('messages')} $active={activePanel === 'messages'} title="Messages">∫</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('stats')} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
                 <ElementEditorButton onClick={() => togglePanel('props')} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
             </SidebarContainer>
@@ -140,6 +144,8 @@ export const EditorElements = ({
                               displayPanel === 'interactables' || 
                               displayPanel === 'hazards' || 
                               displayPanel === 'secrets' ||
+                              displayPanel === 'weather' ||
+                              displayPanel === 'messages' ||
                               displayPanel === 'obstacles') && (
                                 <PalettePanel 
                                     isPlayMode={isPlayMode}

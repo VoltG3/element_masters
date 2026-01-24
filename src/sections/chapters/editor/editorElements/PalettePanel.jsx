@@ -477,12 +477,6 @@ export const PalettePanel = ({
 
             {category === 'secrets' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="m2 windows" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {secrets && secrets.filter(s => s.subtype === 'room').map(s => renderPaletteItem(s, 'purple', 'secret'))}
-                        </div>
-                    </CollapsiblePanel>
-
                     <CollapsiblePanel title="Open Area" isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {secrets && secrets.filter(s => s.subtype === 'open').map(s => renderPaletteItem(s, 'purple', 'secret'))}
@@ -495,63 +489,71 @@ export const PalettePanel = ({
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Rain" isOpenDefault={false}>
+                    <CollapsiblePanel title="Alternative Secrets" isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {alternativeSecrets && alternativeSecrets.map(s => renderPaletteItem(s, 'purple', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+                </div>
+            )}
+
+            {category === 'weather' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <CollapsiblePanel title="Rain" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'rain').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Snow" isOpenDefault={false}>
+                    <CollapsiblePanel title="Snow" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'snow').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Clouds" isOpenDefault={false}>
+                    <CollapsiblePanel title="Clouds" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'clouds').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Fog" isOpenDefault={false}>
+                    <CollapsiblePanel title="Fog" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'fog').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Thunder" isOpenDefault={false}>
+                    <CollapsiblePanel title="Thunder" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'thunder').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Lava Rain" isOpenDefault={false}>
+                    <CollapsiblePanel title="Lava Rain" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'lavaRain').map(w => renderPaletteItem(w, 'red', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Radio Fog" isOpenDefault={false}>
+                    <CollapsiblePanel title="Radio Fog" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'radioactiveFog').map(w => renderPaletteItem(w, 'green', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Weather Meteor Rain" isOpenDefault={false}>
+                    <CollapsiblePanel title="Meteor Rain" isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'meteorRain').map(w => renderPaletteItem(w, 'orange', 'object'))}
                         </div>
                     </CollapsiblePanel>
+                </div>
+            )}
 
-                    <CollapsiblePanel title="Messages" isOpenDefault={false}>
+            {category === 'messages' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <CollapsiblePanel title="Messages" isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
-                        </div>
-                    </CollapsiblePanel>
-
-                    <CollapsiblePanel title="Alternative Secrets" isOpenDefault={false}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {alternativeSecrets && alternativeSecrets.map(s => renderPaletteItem(s, 'purple', 'object'))}
                         </div>
                     </CollapsiblePanel>
                 </div>

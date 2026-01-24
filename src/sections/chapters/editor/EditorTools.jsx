@@ -105,7 +105,6 @@ export const EditorTools = (props) => {
                                 { id: 'brush', icon: '🖌️', title: 'Brush (B)' },
                                 { id: 'bucket', icon: '🪣', title: 'Fill Bucket (F)' },
                                 { id: 'move', icon: '✋', title: 'Move Selection (M)' },
-                                { id: 'area', icon: <span style={{fontSize: '14px', fontWeight: 'bold'}}>m<sup>2</sup></span>, title: 'Room Area Tool' }
                             ].map(tool => (
                                 <ToolsEditorButton
                                     key={tool.id}
