@@ -246,6 +246,9 @@ export function updateFrame(ctx, timestamp) {
   // 2.6) Apply liquid damage-per-second if defined (e.g., lava)
   // Will be gated later for lava by resistance depletion; water dps usually 0.
 
+    const resourceParams = liquidParams?.resources || {};
+    const parseNumber = (v) => (v === null || v === undefined || v === '') ? null : Number(v);
+
   // 2.7) Resource bars logic (oxygen & lava resistance indicators)
   try {
     // Initialize defaults if missing
@@ -256,14 +259,20 @@ export function updateFrame(ctx, timestamp) {
     if (!Number.isFinite(oxy)) oxy = maxOxy;
     if (!Number.isFinite(lavaRes)) lavaRes = maxLava;
     // Resolve per-liquid parameters (with safe defaults)
-    const oxyParams = liquidParams?.oxygen || { drainPerSecond: 20, regenPerSecond: 35, damagePerSecondWhenDepleted: 10 };
-    const lavaParams = liquidParams?.resistance || { drainPerSecond: 25, regenPerSecond: 40, damagePerSecondWhenDepleted: 15 };
+    const oxyParams = resourceParams.oxygen || liquidParams?.oxygen || { drainPerSecond: 20, regenPerSecond: 35, damagePerSecondWhenDepleted: 10 };
+    const lavaParams = resourceParams.lavaResist || liquidParams?.resistance || { drainPerSecond: 25, regenPerSecond: 40, damagePerSecondWhenDepleted: 15 };
+    const iceParams = resourceParams.iceResist;
+    const strengthParams = resourceParams.strength;
 
     // Oxygen: drains only while head is under water; otherwise regenerates to 100 even after leaving water
-    if (headUnderWater && (liquidType === 'water' || liquidType === 'quicksand' || liquidType === 'radioactive_water')) {
-      oxy -= (Math.max(0, Number(oxyParams.drainPerSecond) || 0) * dt) / 1000;
-    } else {
-      oxy += (Math.max(0, Number(oxyParams.regenPerSecond) || 0) * dt) / 1000;
+    const oxygenApplies = !!(resourceParams.oxygen || liquidType === 'water' || liquidType === 'quicksand' || liquidType === 'radioactive_water' || liquidType === 'waterfall' || liquidType === 'radioactive_waterfall');
+    const oxygenEnabled = oxyParams?.enabled !== false;
+    const oxyDrain = parseNumber(oxyParams?.drainPerSecond);
+    const oxyRegen = parseNumber(oxyParams?.regenPerSecond);
+    if (oxygenEnabled && headUnderWater && oxygenApplies && Number.isFinite(oxyDrain)) {
+      oxy -= (Math.max(0, oxyDrain) * dt) / 1000;
+    } else if (oxygenEnabled) {
+      oxy += (Math.max(0, Number.isFinite(oxyRegen) ? oxyRegen : 0) * dt) / 1000;
     }
     // Clamp and write back
     oxy = Math.max(0, Math.min(maxOxy, oxy));
@@ -271,27 +280,62 @@ export function updateFrame(ctx, timestamp) {
     gameState.current.maxOxygen = maxOxy;
 
     // Lava resist depletion while in lava; regenerates outside
-    if (liquidType === 'lava') {
-      lavaRes -= (Math.max(0, Number(lavaParams.drainPerSecond) || 0) * dt) / 1000;
-    } else {
-      lavaRes += (Math.max(0, Number(lavaParams.regenPerSecond) || 0) * dt) / 1000;
+    const lavaApplies = !!(resourceParams.lavaResist || liquidType === 'lava' || liquidType === 'lava_waterfall');
+    const lavaEnabled = lavaParams?.enabled !== false;
+    const lavaDrain = parseNumber(lavaParams?.drainPerSecond);
+    const lavaRegen = parseNumber(lavaParams?.regenPerSecond);
+    if (lavaEnabled && lavaApplies && liquidType && liquidType.includes('lava') && Number.isFinite(lavaDrain)) {
+      lavaRes -= (Math.max(0, lavaDrain) * dt) / 1000;
+    } else if (lavaEnabled) {
+      lavaRes += (Math.max(0, Number.isFinite(lavaRegen) ? lavaRegen : 0) * dt) / 1000;
     }
     lavaRes = Math.max(0, Math.min(maxLava, lavaRes));
     gameState.current.lavaResist = lavaRes;
     gameState.current.maxLavaResist = maxLava;
+
+    // Ice resist & strength can be optionally affected by liquids
+    const applyResource = (key, maxKey, params) => {
+      if (!params || params.enabled === false) return;
+      const drain = parseNumber(params.drainPerSecond);
+      const regen = parseNumber(params.regenPerSecond);
+      if (!Number.isFinite(drain) && !Number.isFinite(regen)) return;
+      const maxVal = Math.max(1, Number(gameState.current[maxKey] || 100));
+      let cur = Number(gameState.current[key]);
+      if (!Number.isFinite(cur)) cur = maxVal;
+      if (inWater || liquidType) {
+        if (Number.isFinite(drain)) cur -= (Math.max(0, drain) * dt) / 1000;
+      } else if (Number.isFinite(regen)) {
+        cur += (Math.max(0, regen) * dt) / 1000;
+      }
+      cur = Math.max(0, Math.min(maxVal, cur));
+      gameState.current[key] = cur;
+      gameState.current[maxKey] = maxVal;
+    };
+
+    applyResource('iceResist', 'maxIceResist', iceParams);
+    applyResource('strength', 'maxStrength', strengthParams);
 
     // Radioactivity: fills up in radioactive liquid; slowly returns to 20% outside
     const maxRadio = Math.max(1, Number(gameState.current.maxRadioactivity || 100));
     let radio = Number(gameState.current.radioactivity);
     if (!Number.isFinite(radio)) radio = maxRadio * 0.2;
 
-    if (liquidType === 'radioactive_water' || liquidType === 'radioactive_waterfall') {
-      radio += (15 * dt) / 1000; 
-    } else {
-      if (radio > maxRadio * 0.2) {
-        radio -= (5 * dt) / 1000;
-      } else if (radio < maxRadio * 0.2) {
-        radio += (2 * dt) / 1000;
+    const radioParams = resourceParams.radioactivity;
+    const radioEnabled = radioParams?.enabled !== false;
+    const radioBaseline = Number.isFinite(parseNumber(radioParams?.baselinePercent)) ? Math.max(0, Math.min(1, parseNumber(radioParams?.baselinePercent))) : 0.2;
+    const radioGain = Number.isFinite(parseNumber(radioParams?.gainPerSecond)) ? Math.max(0, parseNumber(radioParams?.gainPerSecond)) : (liquidType === 'radioactive_water' || liquidType === 'radioactive_waterfall' ? 15 : 0);
+    const radioDecay = Number.isFinite(parseNumber(radioParams?.decayPerSecond)) ? Math.max(0, parseNumber(radioParams?.decayPerSecond)) : 5;
+    const radioRecover = Number.isFinite(parseNumber(radioParams?.recoverPerSecond)) ? Math.max(0, parseNumber(radioParams?.recoverPerSecond)) : 2;
+    const radioApplies = !!(radioParams || liquidType === 'radioactive_water' || liquidType === 'radioactive_waterfall');
+
+    if (radioEnabled && radioApplies && (liquidType === 'radioactive_water' || liquidType === 'radioactive_waterfall')) {
+      radio += (radioGain * dt) / 1000; 
+    } else if (radioEnabled) {
+      const baseline = maxRadio * radioBaseline;
+      if (radio > baseline) {
+        radio -= (radioDecay * dt) / 1000;
+      } else if (radio < baseline) {
+        radio += (radioRecover * dt) / 1000;
       }
     }
     radio = Math.max(0, Math.min(maxRadio, radio));
@@ -315,14 +359,14 @@ export function updateFrame(ctx, timestamp) {
     };
 
     // Oxygen depleted and still underwater → damage
-    if ((headUnderWater && (liquidType === 'water' || liquidType === 'quicksand' || liquidType === 'radioactive_water')) && oxy <= 0) {
+    if ((headUnderWater && oxygenApplies) && oxy <= 0) {
       tickDepleteDps(oxygenDepleteAccRef, oxyParams.damagePerSecondWhenDepleted);
     } else if (oxygenDepleteAccRef) {
       oxygenDepleteAccRef.current = 0;
     }
 
     // Lava resist depleted and still in lava → health damage model is gated by base DPS below
-    if (liquidType === 'lava' && lavaRes <= 0) {
+    if ((liquidType === 'lava' || liquidType === 'lava_waterfall') && lavaRes <= 0) {
       if (lavaDepleteAccRef) lavaDepleteAccRef.current = 0;
     } else if (lavaDepleteAccRef) {
       lavaDepleteAccRef.current = 0;
@@ -353,18 +397,23 @@ export function updateFrame(ctx, timestamp) {
   } catch {}
 
   // 2.8) Base liquid DPS (e.g., lava) — only after resource logic so we can gate by resistance
-  if (liquidType && liquidParams && Number(liquidParams.dps) > 0) {
+  const healthEnabled = resourceParams?.health?.enabled !== false;
+  const healthDpsOverride = (healthEnabled && resourceParams?.health && resourceParams.health.damagePerSecond !== null && resourceParams.health.damagePerSecond !== undefined)
+    ? Number(resourceParams.health.damagePerSecond)
+    : null;
+  const effectiveDps = Number.isFinite(healthDpsOverride) ? Math.max(0, healthDpsOverride) : Number(liquidParams?.dps);
+  if (liquidType && liquidParams && Number(effectiveDps) > 0) {
     try {
-      if (liquidType === 'lava') {
+      if (liquidType && liquidType.includes('lava')) {
         const curRes = Math.max(0, Number(gameState.current.lavaResist));
         if (curRes <= 0) {
-          tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, liquidParams);
+          tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, { dps: effectiveDps });
         } else {
           if (liquidDamageAccumulatorRef) liquidDamageAccumulatorRef.current = 0;
         }
       } else {
         // Other liquids (if any in future) apply their DPS normally
-        tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, liquidParams);
+        tickLiquidDamage({ accRef: liquidDamageAccumulatorRef, gameState }, deltaMs, { dps: effectiveDps });
       }
     } catch {}
   } else {
@@ -516,6 +565,7 @@ export function updateFrame(ctx, timestamp) {
     headUnderWater,
     atSurface,
     liquidType: liquidType || null,
+    liquidOverlay: liquidParams?.overlay || null,
     onIce: isSlippery
   };
   setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [], entities: entitiesRef.current || [] });

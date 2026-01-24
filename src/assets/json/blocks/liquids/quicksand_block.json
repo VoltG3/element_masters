@@ -1,0 +1,37 @@
+{
+  "id": "quicksand_block",
+  "name": "block.quicksand",
+  "displayName": "Quicksand",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "collision": false,
+  "editor": { "panel": "liquids", "group": "quicksand", "order": 10 },
+  "flags": { "liquid": true, "quicksand": true, "swimmable": true },
+  "liquid": {
+    "buoyancy": 0.1,
+    "drag": { "x": 0.3, "y": 0.35 },
+    "surface": true,
+    "damagePerSecond": 0,
+    "overlay": { "color": 10916187, "alpha": 0.2 },
+    "oxygen": {
+      "drainPerSecond": 15,
+      "regenPerSecond": 35,
+      "damagePerSecondWhenDepleted": 10
+    },
+    "resources": {
+      "oxygen": {
+        "enabled": true,
+        "drainPerSecond": 15,
+        "regenPerSecond": 35,
+        "damagePerSecondWhenDepleted": 10
+      },
+      "lavaResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0, "damagePerSecondWhenDepleted": 0 },
+      "iceResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "strength": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "radioactivity": { "enabled": false, "gainPerSecond": 0, "decayPerSecond": 0, "recoverPerSecond": 0, "baselinePercent": 0.2 },
+      "health": { "enabled": true, "damagePerSecond": 0 }
+    }
+  },
+  "tintBelowSurface": 10924635
+}

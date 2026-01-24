@@ -1,0 +1,43 @@
+{
+  "id": "radioactive_waterfall",
+  "name": "block.radioactive_waterfall",
+  "displayName": "Block Radioactive WaterFall",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "collision": false,
+  "editor": { "panel": "liquids", "group": "radiation", "order": 41 },
+  "flags": { "liquid": true, "radioactive": true, "radioactive_waterfall": true, "swimmable": true },
+  "liquid": {
+    "buoyancy": -0.25,
+    "drag": { "x": 0.7, "y": 0.95 },
+    "surface": false,
+    "damagePerSecond": 15,
+    "overlay": { "color": 1727514, "alpha": 0.16 },
+    "oxygen": {
+      "drainPerSecond": 0,
+      "regenPerSecond": 100,
+      "damagePerSecondWhenDepleted": 0
+    },
+    "resources": {
+      "oxygen": {
+        "enabled": true,
+        "drainPerSecond": 0,
+        "regenPerSecond": 100,
+        "damagePerSecondWhenDepleted": 0
+      },
+      "lavaResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0, "damagePerSecondWhenDepleted": 0 },
+      "iceResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "strength": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "radioactivity": {
+        "enabled": true,
+        "gainPerSecond": 15,
+        "decayPerSecond": 5,
+        "recoverPerSecond": 2,
+        "baselinePercent": 0.2
+      },
+      "health": { "enabled": true, "damagePerSecond": 15 }
+    }
+  },
+  "tintBelowSurface": 1727514
+}

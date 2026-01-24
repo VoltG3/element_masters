@@ -1,0 +1,38 @@
+{
+  "id": "lava_block",
+  "name": "block.lava",
+  "displayName": "Block Lava",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "collision": false,
+  "editor": { "panel": "liquids", "group": "lava", "order": 30 },
+  "flags": { "liquid": true, "lava": true, "swimmable": false },
+  "liquid": {
+    "buoyancy": 0.3,
+    "drag": { "x": 0.5, "y": 0.6 },
+    "surface": false,
+    "swimmable": false,
+    "damagePerSecond": 20,
+    "overlay": { "color": 10914816, "alpha": 0.25 },
+    "resistance": {
+      "drainPerSecond": 25,
+      "regenPerSecond": 40,
+      "damagePerSecondWhenDepleted": 15
+    },
+    "resources": {
+      "oxygen": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0, "damagePerSecondWhenDepleted": 0 },
+      "lavaResist": {
+        "enabled": true,
+        "drainPerSecond": 25,
+        "regenPerSecond": 40,
+        "damagePerSecondWhenDepleted": 15
+      },
+      "iceResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "strength": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "radioactivity": { "enabled": false, "gainPerSecond": 0, "decayPerSecond": 0, "recoverPerSecond": 0, "baselinePercent": 0.2 },
+      "health": { "enabled": true, "damagePerSecond": 20 }
+    }
+  },
+  "tintBelowSurface": 16763904
+}

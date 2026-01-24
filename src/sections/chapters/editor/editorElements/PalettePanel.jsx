@@ -119,20 +119,68 @@ export const PalettePanel = ({
                 </CollapsiblePanel>
             )}
 
-            {category === 'liquids' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="Liquids (Blocks)" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {liquids.filter(li => !li.flags?.radioactive).map(li => renderPaletteItem(li, 'blue', 'tile'))}
+            {category === 'liquids' && (() => {
+                const getLiquidGroup = (li) => {
+                    if (li.editor?.group) return li.editor.group;
+                    if (li.flags?.quicksand) return 'quicksand';
+                    if (li.flags?.lava || li.flags?.lava_waterfall) return 'lava';
+                    if (li.flags?.radioactive || li.flags?.radioactive_waterfall) return 'radiation';
+                    if (li.flags?.water || li.flags?.waterfall) return 'water';
+                    return 'other';
+                };
+
+                const groupOrder = [
+                    { key: 'quicksand', title: 'Quicksand', color: 'goldenrod', open: true },
+                    { key: 'water', title: 'Water', color: 'blue', open: true },
+                    { key: 'lava', title: 'Lava', color: 'orange', open: true },
+                    { key: 'radiation', title: 'Radiation', color: 'green', open: true }
+                ];
+
+                const withGroups = liquids.map(li => ({
+                    item: li,
+                    group: getLiquidGroup(li)
+                }));
+
+                const sortLiquids = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const items = withGroups.filter(li => li.group === group.key).sort(sortLiquids);
+                    if (items.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {items.map(li => renderPaletteItem(li.item, group.color, 'tile'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(li => !groupOrder.some(g => g.key === li.group)).sort(sortLiquids);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div
+                            title="Liquids support JSON overrides: liquid.overlay {color,alpha} and liquid.resources {oxygen,lavaResist,iceResist,strength,radioactivity,health} with enabled flags."
+                            style={{ fontSize: '11px', color: '#666', cursor: 'help' }}
+                        >
+                            ℹ️ Liquid JSON overrides available (hover for details)
                         </div>
-                    </CollapsiblePanel>
-                    <CollapsiblePanel title="Radioactive" isOpenDefault={true}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {liquids.filter(li => li.flags?.radioactive).map(li => renderPaletteItem(li, 'green', 'tile'))}
-                        </div>
-                    </CollapsiblePanel>
-                </div>
-            )}
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(li => renderPaletteItem(li.item, 'gray', 'tile'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
+                    </div>
+                );
+            })()}
 
             {category === 'decorations' && (
                 <CollapsiblePanel title="Decorations" isOpenDefault={true}>

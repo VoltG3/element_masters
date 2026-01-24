@@ -1,0 +1,38 @@
+{
+  "id": "lava_waterfall_block",
+  "name": "block.lava_waterfall",
+  "displayName": "Block Lava WaterFall",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "collision": false,
+  "editor": { "panel": "liquids", "group": "lava", "order": 31 },
+  "flags": { "liquid": true, "lava": true, "waterfall": true, "lava_waterfall": true, "swimmable": false },
+  "liquid": {
+    "buoyancy": -0.4,
+    "drag": { "x": 0.6, "y": 0.9 },
+    "surface": false,
+    "swimmable": false,
+    "damagePerSecond": 20,
+    "overlay": { "color": 10914816, "alpha": 0.22 },
+    "resistance": {
+      "drainPerSecond": 25,
+      "regenPerSecond": 40,
+      "damagePerSecondWhenDepleted": 15
+    },
+    "resources": {
+      "oxygen": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0, "damagePerSecondWhenDepleted": 0 },
+      "lavaResist": {
+        "enabled": true,
+        "drainPerSecond": 25,
+        "regenPerSecond": 40,
+        "damagePerSecondWhenDepleted": 15
+      },
+      "iceResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "strength": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "radioactivity": { "enabled": false, "gainPerSecond": 0, "decayPerSecond": 0, "recoverPerSecond": 0, "baselinePercent": 0.2 },
+      "health": { "enabled": true, "damagePerSecond": 20 }
+    }
+  },
+  "tintBelowSurface": 16763904
+}

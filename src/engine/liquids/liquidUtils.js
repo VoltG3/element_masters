@@ -30,6 +30,8 @@ export function getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZ
                (def.flags.quicksand ? 'quicksand' :
                (def.flags.lava ? 'lava' :
                (def.flags.water ? 'water' : 'liquid'))))));
+  const overlayColorRaw = def?.liquid?.overlay?.color ?? def?.liquid?.overlayColor ?? def?.tintBelowSurface;
+  const overlayAlphaRaw = def?.liquid?.overlay?.alpha ?? def?.liquid?.overlayAlpha;
   const params = {
     buoyancy: Number(def?.liquid?.buoyancy),
     dragX: Number(def?.liquid?.drag?.x),
@@ -37,6 +39,10 @@ export function getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZ
     surface: !!def?.liquid?.surface,
     swimmable: def?.flags?.swimmable === true || def?.liquid?.swimmable === true,
     dps: Number(def?.liquid?.damagePerSecond),
+    overlay: {
+      color: Number(overlayColorRaw),
+      alpha: Number(overlayAlphaRaw)
+    },
     // Optional resource models
     oxygen: {
       drainPerSecond: Number(def?.liquid?.oxygen?.drainPerSecond),
@@ -47,7 +53,8 @@ export function getLiquidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZ
       drainPerSecond: Number(def?.liquid?.resistance?.drainPerSecond),
       regenPerSecond: Number(def?.liquid?.resistance?.regenPerSecond),
       damagePerSecondWhenDepleted: Number(def?.liquid?.resistance?.damagePerSecondWhenDepleted)
-    }
+    },
+    resources: def?.liquid?.resources || {}
   };
   return { def, type, params };
 }
@@ -78,6 +85,14 @@ export function sampleLiquidForAABB({ x, y, width, height, TILE_SIZE, mapWidth, 
     return { inLiquid: false, headUnder: false, atSurface: false, type: null, params: null };
   }
   const type = candidate.type;
+  const defaultOverlay = (() => {
+    if (type.includes('lava')) return { color: 10914816, alpha: 0.25 };
+    if (type === 'quicksand') return { color: 10916187, alpha: 0.2 };
+    if (type === 'radioactive_water' || type === 'radioactive_waterfall') return { color: 1727514, alpha: 0.18 };
+    return { color: 1919093, alpha: 0.15 };
+  })();
+  const rawOverlayColor = candidate.params?.overlay?.color;
+  const rawOverlayAlpha = candidate.params?.overlay?.alpha;
   // Merge params with sane defaults if missing
   const p = {
     buoyancy: Number.isFinite(candidate.params.buoyancy) ? candidate.params.buoyancy : 0.5,
@@ -86,6 +101,10 @@ export function sampleLiquidForAABB({ x, y, width, height, TILE_SIZE, mapWidth, 
     surface: !!candidate.params.surface,
     swimmable: !!candidate.params.swimmable,
     dps: Number.isFinite(candidate.params.dps) ? Math.max(0, candidate.params.dps) : 0,
+    overlay: {
+      color: Number.isFinite(rawOverlayColor) ? rawOverlayColor : defaultOverlay.color,
+      alpha: Number.isFinite(rawOverlayAlpha) ? rawOverlayAlpha : defaultOverlay.alpha
+    },
     oxygen: {
       drainPerSecond: Number.isFinite(candidate.params?.oxygen?.drainPerSecond) ? Math.max(0, candidate.params.oxygen.drainPerSecond) : 20,
       regenPerSecond: Number.isFinite(candidate.params?.oxygen?.regenPerSecond) ? Math.max(0, candidate.params.oxygen.regenPerSecond) : 35,
@@ -95,7 +114,8 @@ export function sampleLiquidForAABB({ x, y, width, height, TILE_SIZE, mapWidth, 
       drainPerSecond: Number.isFinite(candidate.params?.resistance?.drainPerSecond) ? Math.max(0, candidate.params.resistance.drainPerSecond) : 25,
       regenPerSecond: Number.isFinite(candidate.params?.resistance?.regenPerSecond) ? Math.max(0, candidate.params.resistance.regenPerSecond) : 40,
       damagePerSecondWhenDepleted: Number.isFinite(candidate.params?.resistance?.damagePerSecondWhenDepleted) ? Math.max(0, candidate.params.resistance.damagePerSecondWhenDepleted) : 15
-    }
+    },
+    resources: candidate.params?.resources || {}
   };
   const inLiquid = !!(feet || chest);
   const headUnder = !!head;

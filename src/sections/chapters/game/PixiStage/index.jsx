@@ -593,21 +593,15 @@ const PixiStage = ({
             const headUnder = !!(sNow && sNow.headUnderWater);
             const inLiquid = !!(sNow && sNow.inWater);
             
-            const showOverlay = headUnder && (liquidType === 'water' || liquidType === 'lava' || liquidType === 'quicksand' || liquidType === 'radioactive_water');
+            const overlayCfg = sNow.liquidOverlay || null;
+            const showOverlay = headUnder && !!overlayCfg;
 
-            // Determine overlay color based on liquid type
-            let overlayColor = 0x1d4875; // water (blue)
+            let overlayColor = 0x1d4875;
             let maxTargetAlpha = 0.15;
 
-            if (liquidType && liquidType.includes('lava')) {
-              overlayColor = 0xa68c00; // lava (golden-yellow)
-              maxTargetAlpha = 0.25;
-            } else if (liquidType === 'quicksand') {
-              overlayColor = 0xa6915b; // quicksand (sand brown)
-              maxTargetAlpha = 0.20;
-            } else if (liquidType === 'radioactive_water') {
-              overlayColor = 0x1a5c1a; // toxic green
-              maxTargetAlpha = 0.18;
+            if (overlayCfg) {
+              if (Number.isFinite(overlayCfg.color)) overlayColor = overlayCfg.color;
+              if (Number.isFinite(overlayCfg.alpha)) maxTargetAlpha = overlayCfg.alpha;
             }
 
             if (showOverlay) {

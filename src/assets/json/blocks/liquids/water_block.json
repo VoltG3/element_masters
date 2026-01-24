@@ -1,0 +1,36 @@
+{
+  "id": "water_block",
+  "name": "block.water",
+  "displayName": "Block Water",
+  "type": "block",
+  "width": 1,
+  "height": 1,
+  "collision": false,
+  "editor": { "panel": "liquids", "group": "water", "order": 20 },
+  "flags": { "liquid": true, "water": true, "swimmable": true },
+  "liquid": {
+    "buoyancy": 0.5,
+    "drag": { "x": 0.55, "y": 0.65 },
+    "surface": true,
+    "damagePerSecond": 0,
+    "overlay": { "color": 1919093, "alpha": 0.15 },
+    "oxygen": {
+      "drainPerSecond": 20,
+      "regenPerSecond": 35,
+      "damagePerSecondWhenDepleted": 10
+    },
+    "resources": {
+      "oxygen": {
+        "drainPerSecond": 20,
+        "regenPerSecond": 35,
+        "damagePerSecondWhenDepleted": 10
+      },
+      "lavaResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0, "damagePerSecondWhenDepleted": 0 },
+      "iceResist": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "strength": { "enabled": false, "drainPerSecond": 0, "regenPerSecond": 0 },
+      "radioactivity": { "enabled": false, "gainPerSecond": 0, "decayPerSecond": 0, "recoverPerSecond": 0, "baselinePercent": 0.2 },
+      "health": { "damagePerSecond": 0 }
+    }
+  },
+  "tintBelowSurface": 3829853
+}
