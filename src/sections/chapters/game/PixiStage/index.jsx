@@ -14,6 +14,7 @@ import { syncProjectiles, cleanupProjectiles } from './projectileManager';
 import { syncEntities, cleanupEntities } from './entityManager';
 import { rebuildLayers } from './layerBuilder';
 import { createFloatingTextLayer, createFloatingTextManager } from './floatingTextManager';
+import { createBreakEffectLayer, createBreakEffectManager } from './breakEffectManager';
 
 // Suppress noisy Pixi Assets warnings for inlined data URLs (we load textures directly)
 Assets.setPreferences?.({
@@ -130,6 +131,8 @@ const PixiStage = ({
   const debugLayerRef = useRef(null);
   const debugEnabledRef = useRef(!!debugOverlayEnabled);
   const floatingManagerRef = useRef(null);
+  const breakFxLayerRef = useRef(null);
+  const breakFxManagerRef = useRef(null);
 
   // Keep latest state in refs for ticker
   useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
@@ -240,6 +243,7 @@ const PixiStage = ({
       const vignetteLayer = new Container();
       const overlayLayer = new Container();
       const floatingLayer = createFloatingTextLayer();
+      const breakFxLayer = createBreakEffectLayer();
 
       // Assign zIndex
       const parallaxLayer = new Container();
@@ -264,6 +268,7 @@ const PixiStage = ({
       vignetteLayer.zIndex = LAYERS.overlay - 1;
       overlayLayer.zIndex = LAYERS.overlay;
       floatingLayer.zIndex = LAYERS.overlay + 1;
+      breakFxLayer.zIndex = LAYERS.overlay + 2;
 
       bgRef.current = bg;
       bgAnimRef.current = bgAnim;
@@ -284,10 +289,13 @@ const PixiStage = ({
       overlayLayerRef.current = overlayLayer;
       floatingLayerRef.current = floatingLayer;
       floatingManagerRef.current = createFloatingTextManager(floatingLayer);
+      breakFxLayerRef.current = breakFxLayer;
+      breakFxManagerRef.current = createBreakEffectManager(breakFxLayer);
     
       const gridGraphics = new Graphics();
       gridRef.current = gridGraphics;
       overlayLayer.addChild(gridGraphics);
+      overlayLayer.addChild(breakFxLayer);
 
       const debugGraphics = new Graphics();
       debugLayerRef.current = debugGraphics;
@@ -749,6 +757,8 @@ const PixiStage = ({
 
         // Floating texts
         floatingManagerRef.current?.update(dt);
+        // Break FX
+        breakFxManagerRef.current?.update(dt);
       });
     } catch (error) {
       console.error('PixiStage init failed:', error);
@@ -789,6 +799,17 @@ const PixiStage = ({
     };
     window.addEventListener('game-floating-text', handler);
     return () => window.removeEventListener('game-floating-text', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e?.detail || {};
+      if (Number.isFinite(detail.x) && Number.isFinite(detail.y) && detail.config) {
+        breakFxManagerRef.current?.add(detail);
+      }
+    };
+    window.addEventListener('game-break-effect', handler);
+    return () => window.removeEventListener('game-break-effect', handler);
   }, []);
 
   useEffect(() => {

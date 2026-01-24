@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { TILE_SIZE } from '../../../../constants/gameConstants';
 import { useGameEngine } from '../../../../utilities/useGameEngine';
 import { applyWolfSecretShift, shouldRemoveCrackBlock } from '../../../../engine/gameplay/secrets';
+import { shouldTriggerBreakEffect, getBreakEffectParams } from '../../../../engine/gameplay/breakEffects';
 
 const EMPTY_ARRAY = [];
 
@@ -222,9 +223,20 @@ export const useEditorPlayMode = (
                     }
                 }
 
+                if (shouldTriggerBreakEffect(def, newHealth) && !current.breakFxPlayed) {
+                    const cfg = getBreakEffectParams(def);
+                    if (cfg) {
+                        const x = (index % mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+                        const y = Math.floor(index / mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+                        window.dispatchEvent(new CustomEvent('game-break-effect', {
+                            detail: { x, y, config: cfg }
+                        }));
+                    }
+                }
+
                 return {
                     ...prev,
-                    [index]: { ...current, health: newHealth }
+                    [index]: { ...current, health: newHealth, breakFxPlayed: current.breakFxPlayed || shouldTriggerBreakEffect(def, newHealth) }
                 };
             });
 

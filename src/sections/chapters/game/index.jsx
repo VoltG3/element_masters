@@ -8,6 +8,7 @@ import GameTerminal from './GameTerminal';
 import GameSettings from './GameSettings';
 import { findSpawnPosition } from '../../../engine/gameplay/interactables';
 import { applyWolfSecretShift, shouldRemoveCrackBlock } from '../../../engine/gameplay/secrets';
+import { shouldTriggerBreakEffect, getBreakEffectParams } from '../../../engine/gameplay/breakEffects';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
 import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver, toggleRoom, clearRooms } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
@@ -418,7 +419,19 @@ export default function Game() {
                     const currentMeta = objectMetadata[index] || {};
                     const maxH = def.maxHealth || 100;
                     const newHealth = Math.max(0, (currentMeta.health !== undefined ? currentMeta.health : maxH) - damage);
-                    dispatch(updateObjectMetadata({ index, metadata: { health: newHealth } }));
+                    const metaPatch = { health: newHealth };
+                    if (shouldTriggerBreakEffect(def, newHealth) && !currentMeta.breakFxPlayed) {
+                        metaPatch.breakFxPlayed = true;
+                        const cfg = getBreakEffectParams(def);
+                        if (cfg) {
+                            const x = (index % mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+                            const y = Math.floor(index / mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+                            window.dispatchEvent(new CustomEvent('game-break-effect', {
+                                detail: { x, y, config: cfg }
+                            }));
+                        }
+                    }
+                    dispatch(updateObjectMetadata({ index, metadata: metaPatch }));
 
                     if (shouldRemoveCrackBlock(def, newHealth)) {
                         dispatch(removeTileAtIndex(index));

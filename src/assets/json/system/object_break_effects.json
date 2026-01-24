@@ -1,0 +1,15 @@
+{
+  "id": "system_object_break_effects",
+  "type": "system",
+  "isHiddenInEditor": true,
+  "enabled": true,
+  "default": {
+    "count": 14,
+    "speed": 2.2,
+    "lifeMs": 700,
+    "size": 12,
+    "colors": ["#caa472", "#8b5a2b", "#d9b88f"]
+  },
+  "objectTypes": ["crack_block"],
+  "objectIds": ["wooden_box_0001"]
+}
