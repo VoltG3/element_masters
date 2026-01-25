@@ -4,5 +4,8 @@
   },
   "interactables": {
     "1": "Task: Find the entrance to the building.\nTip: Stand in the doorway and press E."
+  },
+  "weather_meteor": {
+    "1": "Task: Collect as many fish as possible.\nTip: Fish can only be collected after a meteor hits them."
   }
 }

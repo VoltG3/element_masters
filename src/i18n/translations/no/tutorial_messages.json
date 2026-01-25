@@ -4,5 +4,8 @@
   },
   "interactables": {
     "1": "Oppgave: Finn inngangen til bygningen.\nTips: Still deg i døråpningen og trykk E."
+  },
+  "weather_meteor": {
+    "1": "Oppgave: Samle så mange fisk som mulig.\nTips: Fisk kan bare samles etter at en meteor treffer dem."
   }
 }

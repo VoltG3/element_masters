@@ -17,6 +17,13 @@ const getTileLayerData = (mapData) => {
   return layer?.data || [];
 };
 
+const getSecretLayerData = (mapData) => {
+  if (!mapData) return [];
+  if (Array.isArray(mapData.secretMapData)) return mapData.secretMapData;
+  const layer = mapData.layers?.find(l => l.name === 'secrets' || l.type === 'secret');
+  return layer?.data || [];
+};
+
 const liquidTypeToHabitat = (liquidType) => {
   if (!liquidType) return 'none';
   if (liquidType.includes('radioactive')) return 'radioactive';
@@ -24,6 +31,20 @@ const liquidTypeToHabitat = (liquidType) => {
   if (liquidType.includes('quicksand')) return 'quicksand';
   if (liquidType.includes('water')) return 'water';
   return 'none';
+};
+
+const getFishTriggerAt = ({ x, y, mapWidth, mapHeight, TILE_SIZE, secretData, objectData, registryItems }) => {
+  if (!registryItems) return null;
+  const gx = Math.floor(x / TILE_SIZE);
+  const gy = Math.floor(y / TILE_SIZE);
+  if (gx < 0 || gy < 0 || gx >= mapWidth || gy >= mapHeight) return null;
+  const idx = gy * mapWidth + gx;
+  const secretId = secretData ? secretData[idx] : null;
+  const objectId = objectData ? objectData[idx] : null;
+  const def = getDefById(registryItems, secretId) || getDefById(registryItems, objectId);
+  if (!def) return null;
+  if (def.type === 'secret' && def.subtype === 'animal_trigger' && def.triggerType === 'fish') return def;
+  return null;
 };
 
 const getWaterSurfaceY = ({ x, mapWidth, mapHeight, tileData, registryItems, TILE_SIZE }) => {
@@ -273,7 +294,7 @@ export function updateEntities(ctx, deltaMs) {
       entity.flipY = false;
       entity.alpha = 1;
 
-      if (requireLiquid && !isAllowed) {
+      if (requireLiquid && !isAllowed && !fs.isJumping) {
         entities.splice(i, 1);
         continue;
       }
@@ -285,6 +306,86 @@ export function updateEntities(ctx, deltaMs) {
       const isWaterfall = !!(liquidType && liquidType.includes('waterfall'));
       const waterfallDriftMultiplier = Number.isFinite(cfg.waterfallDriftMultiplier) ? cfg.waterfallDriftMultiplier : 0.4;
       const waterfallSpeedMultiplier = Number.isFinite(cfg.waterfallSpeedMultiplier) ? cfg.waterfallSpeedMultiplier : 0.7;
+
+      const triggerDef = getFishTriggerAt({
+        x: entity.x + entity.width / 2,
+        y: entity.y + entity.height / 2,
+        mapWidth,
+        mapHeight,
+        TILE_SIZE,
+        secretData: getSecretLayerData(mapData),
+        objectData,
+        registryItems
+      });
+      const triggerCfg = triggerDef?.fishTrigger || {};
+      const nowMs = Number(gameState.current.timeMs) || 0;
+      const nextJumpAt = Number(fs.nextJumpAt) || 0;
+      const canJump = !fs.isJumping && nowMs >= nextJumpAt && triggerDef && liquidSample?.inLiquid && liquidTypeToHabitat(liquidType) === 'water';
+
+      if (canJump) {
+        const chance = Math.max(0, Math.min(1, Number(triggerCfg.chance ?? 1)));
+        if (Math.random() <= chance) {
+          const jumpDir = Math.random() < 0.5 ? -1 : 1;
+          entity.direction = jumpDir;
+          fs.isJumping = true;
+          fs.jumpVx = (Number(triggerCfg.speedX) || 3.5) * TILE_SIZE * jumpDir;
+          fs.jumpVy = -(Number(triggerCfg.speedY) || 6) * TILE_SIZE;
+          fs.jumpGravity = (Number(triggerCfg.gravity) || 18) * TILE_SIZE;
+          fs.jumpBounce = Number.isFinite(triggerCfg.bounce) ? Number(triggerCfg.bounce) : 0.35;
+          fs.nextJumpAt = nowMs + (Number(triggerCfg.cooldownMs) || 1400);
+        }
+      }
+
+      if (fs.isJumping) {
+        const dtSec = Math.max(0, Number(deltaMs) || 0) / 1000;
+        fs.jumpVy = (Number(fs.jumpVy) || 0) + (Number(fs.jumpGravity) || (GRAVITY * 60)) * dtSec;
+        let nextX = entity.x + (Number(fs.jumpVx) || 0) * dtSec;
+        let nextY = entity.y + (Number(fs.jumpVy) || 0) * dtSec;
+
+        if (checkCollision(nextX, entity.y, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
+          fs.jumpVx = -(Number(fs.jumpVx) || 0) * (Number(fs.jumpBounce) || 0.35);
+          nextX = entity.x + (Number(fs.jumpVx) || 0) * dtSec;
+        }
+
+        if (checkCollision(entity.x, nextY, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
+          if ((Number(fs.jumpVy) || 0) > 0) {
+            entity.health = 0;
+            fs.isJumping = false;
+            entity.vx = 0;
+            entity.vy = 0;
+            entity.isGrounded = true;
+            entity.x = nextX;
+            entity.y = Math.floor((nextY + entity.height - 0.1) / TILE_SIZE) * TILE_SIZE - entity.height;
+            continue;
+          }
+          fs.jumpVy = Math.abs(Number(fs.jumpVy) || 0) * (Number(fs.jumpBounce) || 0.35);
+          nextY = entity.y + (Number(fs.jumpVy) || 0) * dtSec;
+        }
+
+        const landingSample = getLiquidSample ? getLiquidSample({
+          x: nextX,
+          y: nextY,
+          width: entity.width,
+          height: entity.height,
+          TILE_SIZE,
+          mapWidth,
+          mapHeight
+        }) : { inLiquid: false };
+
+        if (landingSample?.inLiquid && liquidTypeToHabitat(landingSample?.type) === 'water' && (Number(fs.jumpVy) || 0) > 0) {
+          fs.isJumping = false;
+          entity.vx = 0;
+          entity.vy = 0;
+        } else {
+          entity.vx = Number(fs.jumpVx) || 0;
+          entity.vy = Number(fs.jumpVy) || 0;
+        }
+
+        entity.x = nextX;
+        entity.y = nextY;
+        entity.isGrounded = false;
+        continue;
+      }
 
       const px = playerX + gameState.current.width / 2;
       const py = playerY + gameState.current.height / 2;

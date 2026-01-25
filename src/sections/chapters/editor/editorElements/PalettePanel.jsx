@@ -562,7 +562,7 @@ export const PalettePanel = ({
                     
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_SECRET_AREA')} isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {secrets && secrets.filter(s => s.subtype !== 'open' && s.subtype !== 'room').map(s => renderPaletteItem(s, 'purple', 'secret'))}
+                            {secrets && secrets.filter(s => s.subtype !== 'open' && s.subtype !== 'room' && s.subtype !== 'animal_trigger').map(s => renderPaletteItem(s, 'purple', 'secret'))}
                         </div>
                     </CollapsiblePanel>
 
@@ -575,6 +575,12 @@ export const PalettePanel = ({
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_PUSHABLE_WALL')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {pushableWalls && pushableWalls.map(s => renderPaletteItem(s, 'purple', 'object'))}
+                        </div>
+                    </CollapsiblePanel>
+
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_ANIMAL_TRIGGERS')} isOpenDefault={false}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {secrets && secrets.filter(s => s.subtype === 'animal_trigger').map(s => renderPaletteItem(s, 'purple', 'object'))}
                         </div>
                     </CollapsiblePanel>
                 </div>
@@ -639,7 +645,7 @@ export const PalettePanel = ({
                             {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
                         </div>
                     </CollapsiblePanel>
-                    {selectedTile && selectedTile.i18nMessage && (
+                    {selectedTile && (selectedTile.i18nMessage || selectedTile.type === 'message_trigger') && (
                         <CollapsiblePanel title={t('EDITOR_ELEMENTS_I18N_TITLE')} isOpenDefault={true}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -676,7 +682,7 @@ export const PalettePanel = ({
                                                 if (targetIndex === null || targetIndex === undefined) return;
                                                 const objId = objectMapData?.[targetIndex];
                                                 const objDef = registryItems?.find(r => r.id === objId);
-                                                if (!objDef || !objDef.i18nMessage) return;
+                                                if (!objDef || objDef.type !== 'message_trigger') return;
                                                 setObjectMetadata(prev => ({
                                                     ...prev,
                                                     [targetIndex]: {

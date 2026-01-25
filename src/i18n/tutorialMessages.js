@@ -21,14 +21,18 @@ const getLang = (lang) => {
 
 export const getTutorialChapters = (lang) => {
   const l = getLang(lang);
-  const data = MESSAGES[l] || MESSAGES.en || {};
-  return Object.keys(data);
+  const data = MESSAGES[l] || {};
+  const fallback = MESSAGES.en || {};
+  return Array.from(new Set([...Object.keys(fallback), ...Object.keys(data)])).sort();
 };
 
 export const getTutorialItems = (chapter, lang) => {
   const l = getLang(lang);
-  const data = MESSAGES[l] || MESSAGES.en || {};
-  const chapterData = data[chapter] || {};
+  const data = MESSAGES[l] || {};
+  const fallback = MESSAGES.en || {};
+  const chapterData = (data[chapter] && Object.keys(data[chapter]).length)
+    ? data[chapter]
+    : (fallback[chapter] || {});
   return Object.keys(chapterData)
     .sort((a, b) => Number(a) - Number(b))
     .map((id) => ({ id, text: chapterData[id] }));

@@ -39,7 +39,7 @@ export const EditorTile = React.memo(({
     const messageText = objectMetadata?.[actualIndex]?.message;
     const i18nChapter = objectMetadata?.[actualIndex]?.i18nChapter;
     const i18nId = objectMetadata?.[actualIndex]?.i18nId;
-    const i18nText = objObj?.i18nMessage ? getTutorialText(i18nChapter, i18nId) : '';
+    const i18nText = objObj?.type === 'message_trigger' ? getTutorialText(i18nChapter, i18nId) : '';
     const resolvedMessageText = messageText || i18nText;
     
     // Dimensijas ņemam no tiešā indeksa, lai izvairītos no citu objektu (piem. Room Area) 
