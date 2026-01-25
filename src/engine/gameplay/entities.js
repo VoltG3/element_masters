@@ -258,6 +258,18 @@ export function updateEntities(ctx, deltaMs) {
       }
 
       if (entity.health <= 0) {
+        const player = gameState.current;
+        const hit = (
+          player.x < entity.x + entity.width &&
+          player.x + player.width > entity.x &&
+          player.y < entity.y + entity.height &&
+          player.y + player.height > entity.y
+        );
+        if (hit) {
+          gameState.current.fishCount = Math.max(0, (Number(gameState.current.fishCount) || 0) + 1);
+          entities.splice(i, 1);
+          continue;
+        }
         if (entity.fishState?.removeOnNext) {
           entities.splice(i, 1);
           continue;
@@ -318,21 +330,23 @@ export function updateEntities(ctx, deltaMs) {
         registryItems
       });
       const triggerCfg = triggerDef?.fishTrigger || {};
+      const fishJumpCfg = cfg.jump || {};
+      const mergedJumpCfg = { ...triggerCfg, ...fishJumpCfg };
       const nowMs = Number(gameState.current.timeMs) || 0;
       const nextJumpAt = Number(fs.nextJumpAt) || 0;
       const canJump = !fs.isJumping && nowMs >= nextJumpAt && triggerDef && liquidSample?.inLiquid && liquidTypeToHabitat(liquidType) === 'water';
 
       if (canJump) {
-        const chance = Math.max(0, Math.min(1, Number(triggerCfg.chance ?? 1)));
+        const chance = Math.max(0, Math.min(1, Number(mergedJumpCfg.chance ?? 1)));
         if (Math.random() <= chance) {
           const jumpDir = Math.random() < 0.5 ? -1 : 1;
           entity.direction = jumpDir;
           fs.isJumping = true;
-          fs.jumpVx = (Number(triggerCfg.speedX) || 3.5) * TILE_SIZE * jumpDir;
-          fs.jumpVy = -(Number(triggerCfg.speedY) || 6) * TILE_SIZE;
-          fs.jumpGravity = (Number(triggerCfg.gravity) || 18) * TILE_SIZE;
-          fs.jumpBounce = Number.isFinite(triggerCfg.bounce) ? Number(triggerCfg.bounce) : 0.35;
-          fs.nextJumpAt = nowMs + (Number(triggerCfg.cooldownMs) || 1400);
+          fs.jumpVx = (Number(mergedJumpCfg.speedX) || 3.5) * TILE_SIZE * jumpDir;
+          fs.jumpVy = -(Number(mergedJumpCfg.speedY) || 6) * TILE_SIZE;
+          fs.jumpGravity = (Number(mergedJumpCfg.gravity) || 18) * TILE_SIZE;
+          fs.jumpBounce = Number.isFinite(mergedJumpCfg.bounce) ? Number(mergedJumpCfg.bounce) : 0.35;
+          fs.nextJumpAt = nowMs + (Number(mergedJumpCfg.cooldownMs) || 1400);
         }
       }
 

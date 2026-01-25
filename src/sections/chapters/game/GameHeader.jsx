@@ -6,6 +6,7 @@ import fireballA from '../../../assets/images/items/fireball_basic_A.png';
 import fireballB from '../../../assets/images/items/fireball_basic_B.png';
 import fireballC from '../../../assets/images/items/fireball_basic_C.png';
 import fireballD from '../../../assets/images/items/fireball_basic_D.png';
+import fishSprite from '../../../assets/images/entities/animals/fish_01.png';
 
 const HeaderContainer = styled.div`
     position: absolute;
@@ -33,6 +34,10 @@ const AmmoDisplay = styled.div`
     display: inline-flex;
     align-items: center;
     gap: 6px;
+`;
+
+const FishDisplay = styled(AmmoDisplay)`
+    color: rgba(140, 230, 255, 0.95);
 `;
 
 const AmmoIcon = styled.span`
@@ -103,6 +108,7 @@ const GameHeader = ({
     health, 
     maxHealth = 100, 
     ammo = 0, 
+    fishCount = 0,
     oxygen = 100, 
     maxOxygen = 100, 
     lavaResist = 100, 
@@ -127,17 +133,30 @@ const GameHeader = ({
 
     return (
         <HeaderContainer>
-            <AmmoDisplay>
-                <AmmoIcon>
-                    <AnimatedItem
-                        textures={fireballFrames}
-                        speed={300}
-                        alt="Fireball ammo"
-                        style={{ width: '22px', height: '22px', imageRendering: 'pixelated' }}
-                    />
-                </AmmoIcon>
-                {ammo || 0}
-            </AmmoDisplay>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                <AmmoDisplay>
+                    <AmmoIcon>
+                        <AnimatedItem
+                            textures={fireballFrames}
+                            speed={300}
+                            alt="Fireball ammo"
+                            style={{ width: '22px', height: '22px', imageRendering: 'pixelated' }}
+                        />
+                    </AmmoIcon>
+                    {ammo || 0}
+                </AmmoDisplay>
+                <FishDisplay>
+                    <AmmoIcon>
+                        <AnimatedItem
+                            texture={fishSprite}
+                            spriteSheet={{ enabled: true, columns: 2, totalSprites: 3, frameIndex: 0 }}
+                            alt="Fish"
+                            style={{ width: '22px', height: '22px', imageRendering: 'pixelated' }}
+                        />
+                    </AmmoIcon>
+                    {fishCount || 0}
+                </FishDisplay>
+            </div>
 
             <RightSection>
                 <BarsContainer>
@@ -198,6 +217,7 @@ GameHeader.propTypes = {
     health: PropTypes.number.isRequired,
     maxHealth: PropTypes.number,
     ammo: PropTypes.number,
+    fishCount: PropTypes.number,
     oxygen: PropTypes.number,
     maxOxygen: PropTypes.number,
     lavaResist: PropTypes.number,

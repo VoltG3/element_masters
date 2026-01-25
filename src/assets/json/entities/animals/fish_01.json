@@ -45,6 +45,14 @@
     "bubbleIntervalMs": 900,
     "bubbleJitter": 0.4,
     "deathFloatSpeed": 0.25,
-    "deathSurfaceOffset": 0.5
+    "deathSurfaceOffset": 0.5,
+    "jump": {
+      "speedX": 3.5,
+      "speedY": 7,
+      "gravity": 10,
+      "bounce": 0.35,
+      "chance": 1,
+      "cooldownMs": 1400
+    }
   }
 }

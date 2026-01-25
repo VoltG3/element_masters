@@ -777,6 +777,7 @@ export default function Game() {
                 health={playerState.health} 
                 maxHealth={playerState.maxHealth}
                 ammo={playerState.ammo || 0} 
+                fishCount={playerState.fishCount || 0}
                 oxygen={playerState.oxygen}
                 maxOxygen={playerState.maxOxygen}
                 lavaResist={playerState.lavaResist}

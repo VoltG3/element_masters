@@ -46,6 +46,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         health: 90, // Initial health (for testing, to allow picking up hearts)
         maxHealth: MAX_HEALTH,
         ammo: 0, // Fireball ammunition
+        fishCount: 0,
         // New resources for display
         oxygen: MAX_OXYGEN,
         maxOxygen: MAX_OXYGEN,
@@ -356,6 +357,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     const maxHealth = Math.max(1, Number(registryPlayer?.maxHealth) || MAX_HEALTH);
 
                     const prevAmmo = Math.max(0, Number(gameState.current?.ammo) || 0);
+                    const prevFishCount = Math.max(0, Number(gameState.current?.fishCount) || 0);
                     // Completely overwrite gameState with default values + new position
                     gameState.current = {
                         x: startX,
@@ -370,6 +372,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         health: Math.min(90, maxHealth), // Reset to 90 (not MAX) to allow testing items
                         maxHealth,
                         ammo: prevAmmo,
+                        fishCount: prevFishCount,
                         // resources
                         oxygen: MAX_OXYGEN,
                         maxOxygen: MAX_OXYGEN,
