@@ -14,6 +14,7 @@ import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, mo
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
 import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
+import MessageOverlay from '../shared/MessageOverlay';
 
 import { BUILT_IN_MAPS } from '../../../constants/builtInMaps';
 import { TILE_SIZE } from '../../../constants/gameConstants';
@@ -238,30 +239,6 @@ const PlaceholderMessage = styled.div`
     font-size: 24px;
 `;
 
-const MessageOverlay = styled.div`
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80%;
-    text-align: center;
-    pointer-events: none;
-    z-index: 1500;
-    
-    h2 {
-        font-size: 48px;
-        color: white;
-        text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
-        margin: 0;
-        padding: 20px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-weight: 800;
-        letter-spacing: 2px;
-        opacity: ${props => props.$isVisible ? 1 : 0};
-        transition: opacity 2s ease-in-out;
-    }
-`;
-
 export default function Game() {
     const dispatch = useDispatch();
     const viewportRef = useRef(null);
@@ -314,6 +291,14 @@ export default function Game() {
         window.addEventListener('game-sound-toggle', onToggle);
         return () => window.removeEventListener('game-sound-toggle', onToggle);
     }, []);
+
+    useEffect(() => {
+        if (messageTimerRef.current) {
+            clearTimeout(messageTimerRef.current);
+            messageTimerRef.current = null;
+        }
+        setGameMessage({ text: '', isVisible: false });
+    }, [activeMapData]);
 
     // Registry
     const registryItems = getRegistry() || [];
@@ -614,6 +599,20 @@ export default function Game() {
         } catch {}
     }, [runtimeSettings, activeMapData]);
 
+    const cloneMapData = (data) => {
+        if (!data) return data;
+        try {
+            if (typeof structuredClone === 'function') {
+                return structuredClone(data);
+            }
+        } catch {}
+        try {
+            return JSON.parse(JSON.stringify(data));
+        } catch {
+            return data;
+        }
+    };
+
     const loadMapData = (mapData) => {
         try {
             if (!mapData) {
@@ -621,12 +620,13 @@ export default function Game() {
                 return;
             }
 
-            let effectiveMapData = mapData;
+            const sourceMapData = cloneMapData(mapData);
+            let effectiveMapData = sourceMapData;
             
             // Atbalsts Version 2.0 (Multi-map project)
-            if (mapData.meta?.version === "2.0" && mapData.maps) {
-                const activeId = mapData.meta.activeMapId || Object.keys(mapData.maps)[0];
-                const activeMap = mapData.maps[activeId];
+            if (sourceMapData.meta?.version === "2.0" && sourceMapData.maps) {
+                const activeId = sourceMapData.meta.activeMapId || Object.keys(sourceMapData.maps)[0];
+                const activeMap = sourceMapData.maps[activeId];
                 
                 if (activeMap) {
                     const activeLayers = activeMap.layers || [];
@@ -639,9 +639,9 @@ export default function Game() {
 
                     // Konvertējam uz formātu, ko saprot dzinējs un setActiveMap
                     effectiveMapData = {
-                        ...mapData, // Saglabājam visu projektu
+                        ...sourceMapData, // Saglabājam visu projektu
                         meta: {
-                            ...mapData.meta,
+                            ...sourceMapData.meta,
                             width: activeMap.width,
                             height: activeMap.height,
                             name: activeMap.name,
@@ -661,6 +661,10 @@ export default function Game() {
                     };
                 }
             }
+
+            const nowIso = new Date().toISOString();
+            if (!effectiveMapData.meta) effectiveMapData.meta = {};
+            effectiveMapData.meta.date_map_last_updated = nowIso;
 
             const w = effectiveMapData.meta?.width || effectiveMapData.width || 20;
             const h = effectiveMapData.meta?.height || effectiveMapData.height || 15;
@@ -765,11 +769,7 @@ export default function Game() {
                 </WinCounterOverlay>
             )}
 
-            {gameMessage.text && (
-                <MessageOverlay $isVisible={gameMessage.isVisible}>
-                    <h2>{gameMessage.text}</h2>
-                </MessageOverlay>
-            )}
+            <MessageOverlay text={gameMessage.text} isVisible={gameMessage.isVisible} />
 
             <GameHeader 
                 health={playerState.health} 

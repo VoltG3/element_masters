@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CollapsiblePanel } from './CollapsiblePanel';
 import AnimatedItem from '../../../../utilities/AnimatedItem';
+import i18n from '../../../../i18n/i18n';
+import { getTutorialChapters, getTutorialItems } from '../../../../i18n/tutorialMessages';
 
 export const PalettePanel = ({ 
     isPlayMode, 
@@ -18,9 +20,32 @@ export const PalettePanel = ({
     crackableWalls,
     pushableWalls,
     obstacles,
+    objectMetadata,
+    setObjectMetadata,
+    objectMapData,
+    highlightedIndex,
+    setHighlightedIndex,
+    registryItems,
     handlePaletteSelect, 
     selectedTile 
 }) => {
+    const [selectedChapter, setSelectedChapter] = useState('');
+
+    const currentLang = i18n?.language || 'en';
+    const tutorialChapters = useMemo(() => getTutorialChapters(currentLang), [currentLang]);
+    const tutorialItems = useMemo(
+        () => (selectedChapter ? getTutorialItems(selectedChapter, currentLang) : []),
+        [selectedChapter, currentLang]
+    );
+
+    useEffect(() => {
+        if (!selectedChapter && tutorialChapters.length > 0) {
+            setSelectedChapter(tutorialChapters[0]);
+        } else if (selectedChapter && !tutorialChapters.includes(selectedChapter)) {
+            setSelectedChapter(tutorialChapters[0] || '');
+        }
+    }, [tutorialChapters, selectedChapter]);
+
     const renderPaletteItem = (item, color, layer) => {
         const hasImage = !!(item.texture || (Array.isArray(item.textures) && item.textures.length > 0));
         const editorIcon = item.editorIcon;
@@ -76,15 +101,20 @@ export const PalettePanel = ({
                             alt={item.name}
                         />
                     ) : (
+                        (() => {
+                            const iconText = item.editorIcon || (item.i18nMessage ? 'i18n' : '');
+                            return (
                         <div style={{
                             width: '100%', height: '100%', borderRadius: 2,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             background: isMessageTrigger ? '#fff9c4' : '#f0f4f8', 
                             border: isMessageTrigger ? '1px solid #fbc02d' : '1px solid #d1d9e6',
-                            color: '#333', fontSize: '18px'
+                            color: '#333', fontSize: (iconText === 'i18n' ? '12px' : '18px'), fontWeight: 700
                         }}>
-                            {item.editorIcon}
+                            {iconText}
                         </div>
+                            );
+                        })()
                     )
                 ) : editorIcon ? (
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
@@ -576,6 +606,80 @@ export const PalettePanel = ({
                             {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
                         </div>
                     </CollapsiblePanel>
+                    {selectedTile && selectedTile.i18nMessage && (
+                        <CollapsiblePanel title="I18n" isOpenDefault={true}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {tutorialChapters.map(ch => (
+                                        <button
+                                            key={ch}
+                                            onClick={() => setSelectedChapter(ch)}
+                                            style={{
+                                                padding: '4px 8px',
+                                                fontSize: '11px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ccc',
+                                                background: ch === selectedChapter ? '#f4c542' : '#f0f0f0',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {ch}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                                    {tutorialItems.map(item => (
+                                        <button
+                                            key={`${selectedChapter}_${item.id}`}
+                                            onClick={() => {
+                                                let targetIndex = highlightedIndex;
+                                                if ((targetIndex === null || targetIndex === undefined) && selectedTile?.id && objectMapData) {
+                                                    const idx = objectMapData.findIndex(id => id === selectedTile.id);
+                                                    if (idx >= 0) {
+                                                        targetIndex = idx;
+                                                        if (setHighlightedIndex) setHighlightedIndex(idx);
+                                                    }
+                                                }
+                                                if (targetIndex === null || targetIndex === undefined) return;
+                                                const objId = objectMapData?.[targetIndex];
+                                                const objDef = registryItems?.find(r => r.id === objId);
+                                                if (!objDef || !objDef.i18nMessage) return;
+                                                setObjectMetadata(prev => ({
+                                                    ...prev,
+                                                    [targetIndex]: {
+                                                        ...prev[targetIndex],
+                                                        i18nChapter: selectedChapter,
+                                                        i18nId: item.id,
+                                                        message: ''
+                                                    }
+                                                }));
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '8px',
+                                                padding: '6px 8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd',
+                                                background: '#fff',
+                                                cursor: 'pointer',
+                                                textAlign: 'left'
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '11px', color: '#555' }}>id:{item.id}</span>
+                                            <span style={{ fontSize: '11px', color: '#222', flex: 1 }}>{item.text}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                {(highlightedIndex === null || highlightedIndex === undefined) && (
+                                    <div style={{ fontSize: '11px', color: '#888' }}>
+                                        Select an i18n message on the map to apply.
+                                    </div>
+                                )}
+                            </div>
+                        </CollapsiblePanel>
+                    )}
                 </div>
             )}
 

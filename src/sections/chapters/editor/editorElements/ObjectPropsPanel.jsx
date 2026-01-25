@@ -1,4 +1,5 @@
 import React from 'react';
+import { getTutorialText } from '../../../../i18n/tutorialMessages';
 
 export const ObjectPropsPanel = ({ 
     objectMapData, 
@@ -60,6 +61,9 @@ export const ObjectPropsPanel = ({
                     const x = index % mapWidth;
                     const y = Math.floor(index / mapWidth);
                     const metadata = objectMetadata[index] || {};
+                    const i18nPreview = metadata.i18nChapter && metadata.i18nId
+                        ? getTutorialText(metadata.i18nChapter, metadata.i18nId)
+                        : '';
                     const isHighlighted = highlightedIndex === index;
 
                     return (
@@ -246,6 +250,16 @@ export const ObjectPropsPanel = ({
 
                             {isMessage && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    {(metadata.i18nChapter || metadata.i18nId) && (
+                                        <div style={{ fontSize: '11px', color: '#666' }}>
+                                            i18n: {metadata.i18nChapter || '—'} / {metadata.i18nId || '—'}
+                                            {i18nPreview && (
+                                                <div style={{ marginTop: '4px', color: '#333' }}>
+                                                    {i18nPreview}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Message Text:</label>
                                     <textarea
                                         value={metadata.message || ''}
@@ -267,7 +281,7 @@ export const ObjectPropsPanel = ({
                                             resize: 'vertical',
                                             fontFamily: 'inherit'
                                         }}
-                                        placeholder="Enter message to display..."
+                                        placeholder={i18nPreview || "Enter message to display..."}
                                     />
                                 </div>
                             )}

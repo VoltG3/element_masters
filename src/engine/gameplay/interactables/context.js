@@ -10,9 +10,12 @@ export function resolveInteractableContext({
   centerY,
   TILE_SIZE
 }) {
+  const hasMainMetadata = mainObjectMetadata && Object.keys(mainObjectMetadata).length > 0;
   let activeTargetMap = mapData;
   let activeObjectData = objectLayerData;
-  let activeMetadata = mainObjectMetadata || mapData?.objectMetadata || mapData?.meta?.objectMetadata || {};
+  let activeMetadata = hasMainMetadata
+    ? mainObjectMetadata
+    : (mapData?.objectMetadata || mapData?.meta?.objectMetadata || {});
   let activeMapWidth = mapWidth;
   let activeMapHeight = mapHeight;
   let offsetX = 0;
@@ -23,7 +26,9 @@ export function resolveInteractableContext({
   const activeRoomIds = activeRoomIdsProp || mapData?.meta?.activeRoomIds || [];
 
   if (activeRoomIds.length > 0) {
-    const mainMetadata = mainObjectMetadata || mapData?.objectMetadata || mapData?.meta?.objectMetadata || {};
+    const mainMetadata = hasMainMetadata
+      ? mainObjectMetadata
+      : (mapData?.objectMetadata || mapData?.meta?.objectMetadata || {});
     for (const [idxStr, meta] of Object.entries(mainMetadata)) {
       const idx = parseInt(idxStr, 10);
       if (secretMapData && secretMapData[idx] !== 'room_area') continue;

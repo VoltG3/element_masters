@@ -1,5 +1,6 @@
 import React from 'react';
 import AnimatedItem from '../../../../utilities/AnimatedItem';
+import { getTutorialText } from '../../../../i18n/tutorialMessages';
 
 export const EditorTile = React.memo(({
     index,
@@ -36,6 +37,10 @@ export const EditorTile = React.memo(({
     const triggerId = objectMetadata?.[actualIndex]?.triggerId;
     const intensity = objectMetadata?.[actualIndex]?.intensity;
     const messageText = objectMetadata?.[actualIndex]?.message;
+    const i18nChapter = objectMetadata?.[actualIndex]?.i18nChapter;
+    const i18nId = objectMetadata?.[actualIndex]?.i18nId;
+    const i18nText = objObj?.i18nMessage ? getTutorialText(i18nChapter, i18nId) : '';
+    const resolvedMessageText = messageText || i18nText;
     
     // Dimensijas ņemam no tiešā indeksa, lai izvairītos no citu objektu (piem. Room Area) 
     // ietekmes uz 1x1 objektiem, kas atrodas to robežās.
@@ -180,7 +185,18 @@ export const EditorTile = React.memo(({
                     pointerEvents: 'none' // Let clicks pass through to the tile for resizing handles
                 }}>
                     {objObj.editorIcon ? (
-                        <span style={{ fontSize: '20px', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.3)' }}>{objObj.editorIcon}</span>
+                        <span style={{
+                            fontSize: objObj.editorIcon === 'i18n' ? '12px' : '20px',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            border: '1px dashed rgba(255,255,255,0.3)',
+                            color: '#222',
+                            fontWeight: 700
+                        }}>{objObj.editorIcon}</span>
                     ) : (
                         <AnimatedItem
                             textures={objObj.textures}
@@ -196,6 +212,23 @@ export const EditorTile = React.memo(({
                                 border: objObj.type === 'decoration' ? 'none' : '1px dashed rgba(255,255,255,0.3)' 
                             }}
                         />
+                    )}
+
+                    {objObj.type === 'message_trigger' && (
+                        <div style={{
+                            position: 'absolute',
+                            inset: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#fff9c4',
+                            border: '1px solid #fbc02d',
+                            color: '#333',
+                            fontWeight: 700,
+                            fontSize: (objObj.editorIcon === 'i18n' || objObj.i18nMessage) ? '12px' : '18px'
+                        }}>
+                            {objObj.editorIcon || (objObj.i18nMessage ? 'i18n' : '')}
+                        </div>
                     )}
 
                     {/* Trigger ID */}
@@ -221,7 +254,7 @@ export const EditorTile = React.memo(({
                     )}
 
                     {/* Message Bubble */}
-                    {showMessages && objObj && objObj.type === 'message_trigger' && messageText && (
+                    {showMessages && objObj && objObj.type === 'message_trigger' && resolvedMessageText && (
                         <div style={{
                             position: 'absolute',
                             left: '50%',
@@ -240,7 +273,7 @@ export const EditorTile = React.memo(({
                             zIndex: 12,
                             pointerEvents: 'none'
                         }}>
-                            {messageText}
+                            {resolvedMessageText}
                             <div style={{
                                 position: 'absolute',
                                 left: '50%',

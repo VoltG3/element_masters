@@ -133,6 +133,11 @@ export const useEditorPlayMode = (
                     setObjectMetadata({ ...saved.objectMetadata });
                 }
                 setRevealedSecrets([]);
+                if (messageTimerRef.current) {
+                    clearTimeout(messageTimerRef.current);
+                    messageTimerRef.current = null;
+                }
+                setGameMessage({ text: '', isVisible: false });
                 lastSyncedMapIdRef.current = activeMapId;
                 return;
             }
@@ -149,6 +154,11 @@ export const useEditorPlayMode = (
             setPlayModeObjectData(playData);
             setPlayModeSecretData([...secretMapData]);
             setRevealedSecrets([]);
+            if (messageTimerRef.current) {
+                clearTimeout(messageTimerRef.current);
+                messageTimerRef.current = null;
+            }
+            setGameMessage({ text: '', isVisible: false });
             lastSyncedMapIdRef.current = activeMapId;
         }
     }, [activeMapId, isPlayMode, objectMapData, secretMapData, mapWidth, mapHeight, spawnTriggerId]);
@@ -358,6 +368,11 @@ export const useEditorPlayMode = (
                         const newObjs = [...prevObjs];
                         newObjs[to] = newObjs[from];
                         newObjs[from] = null;
+                        playModeMapsRef.current[activeMapId] = {
+                            ...(playModeMapsRef.current[activeMapId] || {}),
+                            objectMapData: newObjs
+                        };
+                        setPlayModeMapsVersion(v => v + 1);
                         return newObjs;
                     });
                 },
@@ -368,6 +383,11 @@ export const useEditorPlayMode = (
                             newMeta[to] = newMeta[from];
                             delete newMeta[from];
                         }
+                        playModeMapsRef.current[activeMapId] = {
+                            ...(playModeMapsRef.current[activeMapId] || {}),
+                            objectMetadata: newMeta
+                        };
+                        setPlayModeMapsVersion(v => v + 1);
                         return newMeta;
                     });
                 },
@@ -375,6 +395,11 @@ export const useEditorPlayMode = (
                     setPlayModeObjectData(prevObjs => {
                         const newObjs = [...prevObjs];
                         newObjs[idx] = null;
+                        playModeMapsRef.current[activeMapId] = {
+                            ...(playModeMapsRef.current[activeMapId] || {}),
+                            objectMapData: newObjs
+                        };
+                        setPlayModeMapsVersion(v => v + 1);
                         return newObjs;
                     });
                 },
@@ -423,7 +448,7 @@ export const useEditorPlayMode = (
                 }));
             }
         }
-    }, [activeMapId, maps, updateMapData, activeRoomIds, playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap]);
+    }, [activeMapId, maps, updateMapData, activeRoomIds, playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap, playModeSecretData, objectMetadata, mapWidth, mapHeight]);
 
     const handleRevealSecret = useCallback((secretIndex) => {
         setRevealedSecrets(prev => [...prev, secretIndex]);

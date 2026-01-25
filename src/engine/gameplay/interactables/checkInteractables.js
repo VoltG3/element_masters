@@ -139,7 +139,12 @@ export function checkInteractables(ctx, currentX, currentY, mapWidth, mapHeight,
   if (foundIndex === -1) return;
   const actualIndex = foundIndex;
 
-  const currentMeta = activeMetadata?.[actualIndex];
+  let currentMeta = activeMetadata?.[actualIndex];
+  if (!currentMeta && mapData) {
+    const fromMap = mapData?.maps?.[currentMapId]?.objectMetadata;
+    const fromMeta = mapData?.meta?.objectMetadata || mapData?.objectMetadata;
+    currentMeta = (fromMap && fromMap[actualIndex]) || (fromMeta && fromMeta[actualIndex]) || currentMeta;
+  }
   const objId = activeObjectData[actualIndex];
   if (!objId) return;
 

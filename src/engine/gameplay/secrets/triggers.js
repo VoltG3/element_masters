@@ -1,4 +1,5 @@
 // Secret-related trigger handlers (weather, messages)
+import { getTutorialText } from '../../../i18n/tutorialMessages';
 
 export function handleWeatherTrigger({
   objDef,
@@ -56,7 +57,11 @@ export function handleMessageTrigger({
     return false;
   }
 
-  const message = currentMeta?.message;
+  const i18nChapter = currentMeta?.i18nChapter;
+  const i18nId = currentMeta?.i18nId;
+  const message = (currentMeta?.message && String(currentMeta.message).trim())
+    ? currentMeta.message
+    : (i18nChapter && i18nId ? getTutorialText(i18nChapter, i18nId) : null);
   if (!message) return true;
 
   if (!gameState.current.lastMessageTrigger) {

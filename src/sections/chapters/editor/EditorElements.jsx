@@ -211,6 +211,12 @@ export const EditorElements = ({
                                     obstacles={obstacles}
                                     handlePaletteSelect={handlePaletteSelect}
                                     selectedTile={selectedTile}
+                                    objectMetadata={objectMetadata}
+                                    setObjectMetadata={setObjectMetadata}
+                                    objectMapData={objectMapData}
+                                    highlightedIndex={highlightedIndex}
+                                    setHighlightedIndex={setHighlightedIndex}
+                                    registryItems={registryItems}
                                 />
                             )}
 

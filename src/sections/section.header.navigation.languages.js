@@ -35,6 +35,17 @@ const NavButton = styled.button`
     }
 `
 
+const SettingsButton = styled(NavButton)`
+    ${props => props.$soundOff ? `
+        animation: soundOffPulse 2s ease-in-out infinite;
+        @keyframes soundOffPulse {
+            0% { box-shadow: 0 0 0 rgba(86, 255, 138, 0.0); border-color: rgba(86, 255, 138, 0.3); color: #7dffb4; }
+            50% { box-shadow: 0 0 12px rgba(86, 255, 138, 0.5); border-color: rgba(86, 255, 138, 0.9); color: #e8fff2; }
+            100% { box-shadow: 0 0 0 rgba(86, 255, 138, 0.0); border-color: rgba(86, 255, 138, 0.3); color: #7dffb4; }
+        }
+    ` : ''}
+`;
+
 const DropdownContainer = styled.div`
     position: relative;
     display: flex;
@@ -166,9 +177,13 @@ export default function SectionHeaderNavigationLanguages() {
             </NavButton>
 
             <DropdownContainer ref={dropdownRef}>
-                <NavButton onClick={() => setIsMenuOpen(!isMenuOpen)} title="Settings">
+                <SettingsButton
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    title="Settings"
+                    $soundOff={!soundEnabled}
+                >
                     ⚙️
-                </NavButton>
+                </SettingsButton>
                 {isMenuOpen && (
                     <DropdownMenu>
                         <MenuItem onClick={toggleSound}>

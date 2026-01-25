@@ -1,0 +1,19 @@
+{
+  "id": "message_i18n_0001",
+  "name": "message.i18n",
+  "displayName": "I18n Message",
+  "type": "message_trigger",
+  "width": 1,
+  "height": 1,
+  "editorIcon": "i18n",
+  "isHiddenInGame": true,
+  "collision": false,
+  "requiresActionKey": false,
+  "i18nMessage": true,
+  "editor": {
+    "panel": "messages",
+    "group": "messages",
+    "order": 1
+  },
+  "description": "Shows a localized tutorial message on touch"
+}

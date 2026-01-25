@@ -6,6 +6,11 @@ import no_navigation_home from  "./translations/no/navigation_home.json"
 import en_navigation_home from  "./translations/en/navigation_home.json"
 import ru_navigation_home from  "./translations/ru/navigation_home.json"
 import ja_navigation_home from  "./translations/ja/navigation_home.json"
+import lv_tutorial_messages from "./translations/lv/tutorial_messages.json"
+import no_tutorial_messages from "./translations/no/tutorial_messages.json"
+import en_tutorial_messages from "./translations/en/tutorial_messages.json"
+import ru_tutorial_messages from "./translations/ru/tutorial_messages.json"
+import ja_tutorial_messages from "./translations/ja/tutorial_messages.json"
 
 const lv_navigation = {
     ...lv_navigation_home
@@ -33,24 +38,29 @@ i18n
         lng: "en",
         fallbackLng: "en",
         supportedLngs: ["lv", "no", "en", "ru", "ja"],
-        ns: ["navigation"],
+        ns: ["navigation", "tutorial"],
         defaultNS: "navigation",
         interpolation: { escapeValue: false },
         resources: {
             lv: {
-                navigation: lv_navigation
+                navigation: lv_navigation,
+                tutorial: lv_tutorial_messages
             },
             no: {
-                navigation: no_navigation
+                navigation: no_navigation,
+                tutorial: no_tutorial_messages
             },
             en: {
-                navigation: en_navigation
+                navigation: en_navigation,
+                tutorial: en_tutorial_messages
             },
             ru: {
-                navigation: ru_navigation
+                navigation: ru_navigation,
+                tutorial: ru_tutorial_messages
             },
             ja: {
-                navigation: ja_navigation
+                navigation: ja_navigation,
+                tutorial: ja_tutorial_messages
             },
         },
     })
