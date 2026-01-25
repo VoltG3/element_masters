@@ -15,6 +15,22 @@ import en_game_map_selector from "./translations/en/game_map_selector.json"
 import en_editor_elements from "./translations/en/editor_elements.json"
 import en_editor_scene from "./translations/en/editor_scene.json"
 import en_editor_tools from "./translations/en/editor_tools.json"
+import lv_game_map_selector from "./translations/lv/game_map_selector.json"
+import no_game_map_selector from "./translations/no/game_map_selector.json"
+import ru_game_map_selector from "./translations/ru/game_map_selector.json"
+import ja_game_map_selector from "./translations/ja/game_map_selector.json"
+import lv_editor_elements from "./translations/lv/editor_elements.json"
+import no_editor_elements from "./translations/no/editor_elements.json"
+import ru_editor_elements from "./translations/ru/editor_elements.json"
+import ja_editor_elements from "./translations/ja/editor_elements.json"
+import lv_editor_scene from "./translations/lv/editor_scene.json"
+import no_editor_scene from "./translations/no/editor_scene.json"
+import ru_editor_scene from "./translations/ru/editor_scene.json"
+import ja_editor_scene from "./translations/ja/editor_scene.json"
+import lv_editor_tools from "./translations/lv/editor_tools.json"
+import no_editor_tools from "./translations/no/editor_tools.json"
+import ru_editor_tools from "./translations/ru/editor_tools.json"
+import ja_editor_tools from "./translations/ja/editor_tools.json"
 
 const lv_navigation = {
     ...lv_navigation_home
@@ -49,18 +65,18 @@ i18n
             lv: {
                 navigation: lv_navigation,
                 tutorial: lv_tutorial_messages,
-                game: {},
-                editor_elements: {},
-                editor_scene: {},
-                editor_tools: {}
+                game: lv_game_map_selector,
+                editor_elements: lv_editor_elements,
+                editor_scene: lv_editor_scene,
+                editor_tools: lv_editor_tools
             },
             no: {
                 navigation: no_navigation,
                 tutorial: no_tutorial_messages,
-                game: {},
-                editor_elements: {},
-                editor_scene: {},
-                editor_tools: {}
+                game: no_game_map_selector,
+                editor_elements: no_editor_elements,
+                editor_scene: no_editor_scene,
+                editor_tools: no_editor_tools
             },
             en: {
                 navigation: en_navigation,
@@ -73,18 +89,18 @@ i18n
             ru: {
                 navigation: ru_navigation,
                 tutorial: ru_tutorial_messages,
-                game: {},
-                editor_elements: {},
-                editor_scene: {},
-                editor_tools: {}
+                game: ru_game_map_selector,
+                editor_elements: ru_editor_elements,
+                editor_scene: ru_editor_scene,
+                editor_tools: ru_editor_tools
             },
             ja: {
                 navigation: ja_navigation,
                 tutorial: ja_tutorial_messages,
-                game: {},
-                editor_elements: {},
-                editor_scene: {},
-                editor_tools: {}
+                game: ja_game_map_selector,
+                editor_elements: ja_editor_elements,
+                editor_scene: ja_editor_scene,
+                editor_tools: ja_editor_tools
             },
         },
     })

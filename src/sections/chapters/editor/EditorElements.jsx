@@ -231,6 +231,9 @@ export const EditorElements = ({
                                     filledBlocks={filledBlocks}
                                     objectsCount={objectsCount}
                                     emptyBlocks={emptyBlocks}
+                                    objectMapData={objectMapData}
+                                    registryItems={registryItems}
+                                    maps={maps}
                                 />
                             )}
 
