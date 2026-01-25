@@ -88,6 +88,42 @@ export default class WeatherMeteorRain {
       p.g.x = p.x;
       p.g.y = p.y;
 
+      const playerState = typeof this.api.getPlayerState === 'function'
+        ? this.api.getPlayerState()
+        : null;
+      let hitEntity = false;
+      if (playerState) {
+        const px = (playerState.x || 0) + (playerState.width || 0) / 2;
+        const py = (playerState.y || 0) + (playerState.height || 0) / 2;
+        const pr = Math.max(6, Math.max(playerState.width || 0, playerState.height || 0) / 2);
+        const dx = px - p.x;
+        const dy = py - p.y;
+        if ((dx * dx + dy * dy) <= Math.pow(p.size + pr, 2)) {
+          hitEntity = true;
+        } else if (Array.isArray(playerState.entities)) {
+          for (const ent of playerState.entities) {
+            const ex = (ent.x || 0) + (ent.width || 0) / 2;
+            const ey = (ent.y || 0) + (ent.height || 0) / 2;
+            const er = Math.max(6, Math.max(ent.width || 0, ent.height || 0) / 2);
+            const edx = ex - p.x;
+            const edy = ey - p.y;
+            if ((edx * edx + edy * edy) <= Math.pow(p.size + er, 2)) {
+              hitEntity = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (hitEntity) {
+        if (typeof this.api.onMeteorHit === 'function') {
+          this.api.onMeteorHit({ x: p.x, y: p.y, size: p.size, isLarge: p.isLarge, surfaceType: 'air' });
+        }
+        p.alive = false;
+        toRemove.push(i);
+        continue;
+      }
+
       const liquidType = typeof this.api.getLiquidTypeAt === 'function'
         ? this.api.getLiquidTypeAt(p.x, p.y)
         : null;

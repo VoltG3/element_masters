@@ -1106,6 +1106,7 @@ const PixiStage = ({
       mapWidth,
       mapHeight,
       tileSize,
+      getPlayerState: () => playerStateRef.current,
       getLiquidTypeAt: (x, y) => {
         const tmd = tileMapDataRef.current;
         const regs = registryItemsRef.current;
