@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { getTutorialText } from '../../../../i18n/tutorialMessages';
 
 export const ObjectPropsPanel = ({ 
@@ -14,6 +15,7 @@ export const ObjectPropsPanel = ({
     activeMapId,
     createMap
 }) => {
+    const { t } = useTranslation('editor_elements');
     const mapType = maps[activeMapId]?.type || 'overworld';
     const mapList = Object.values(maps || {});
     const listRef = React.useRef(null);
@@ -31,11 +33,21 @@ export const ObjectPropsPanel = ({
     return (
         <div style={{ padding: '0' }}>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
-                Configure triggers for Portals, Targets, Weather and Messages.
+                {t('EDITOR_ELEMENTS_PROPS_INTRO_LINE1')}
                 <br />
-                <strong>1.</strong> Place a <strong>Portal</strong>, <strong>Target</strong>, <strong>Weather</strong> or <strong>Message Trigger</strong> from the palette.
+                <strong>1.</strong>{' '}
+                <Trans
+                    i18nKey="EDITOR_ELEMENTS_PROPS_INTRO_LINE2"
+                    t={t}
+                    components={[<strong key="portal" />, <strong key="target" />, <strong key="weather" />, <strong key="message" />]}
+                />
                 <br />
-                <strong>2.</strong> Configure <strong>Trigger ID</strong> for links, <strong>Intensity</strong> for weather or <strong>Message Text</strong>.
+                <strong>2.</strong>{' '}
+                <Trans
+                    i18nKey="EDITOR_ELEMENTS_PROPS_INTRO_LINE3"
+                    t={t}
+                    components={[<strong key="trigger" />, <strong key="intensity" />, <strong key="messageText" />]}
+                />
             </p>
             <div ref={listRef} style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
                 {Array.from({ length: objectMapData.length }).map((_, index) => {
@@ -102,9 +114,9 @@ export const ObjectPropsPanel = ({
                                             padding: '2px 6px', fontSize: '10px', cursor: 'pointer',
                                             backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '3px'
                                         }}
-                                        title="Scroll to this object"
+                                        title={t('EDITOR_ELEMENTS_PROPS_LOCATE_TITLE')}
                                     >
-                                        Locate
+                                        {t('EDITOR_ELEMENTS_PROPS_LOCATE_LABEL')}
                                     </button>
                                 </div>
                             </div>
@@ -112,11 +124,11 @@ export const ObjectPropsPanel = ({
                             {isRoomArea && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Room Name:</label>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_ROOM_NAME')}</label>
                                         <input
                                             type="text"
                                             value={metadata.roomName || ''}
-                                            placeholder="Enter house name"
+                                            placeholder={t('EDITOR_ELEMENTS_PROPS_ROOM_NAME_PLACEHOLDER')}
                                             onChange={(e) => {
                                                 setObjectMetadata(prev => ({
                                                     ...prev,
@@ -133,7 +145,7 @@ export const ObjectPropsPanel = ({
                                         />
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Size:</label>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_SIZE')}</label>
                                         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                                             <input
                                                 type="number"
@@ -166,7 +178,7 @@ export const ObjectPropsPanel = ({
                                     </div>
                                     {metadata.linkedMapId ? (
                                         <div style={{ fontSize: '11px', color: 'green' }}>
-                                            Linked to Map ID: {metadata.linkedMapId}
+                                            {t('EDITOR_ELEMENTS_PROPS_LINKED_MAP', { id: metadata.linkedMapId })}
                                         </div>
                                     ) : (
                                         <button
@@ -189,7 +201,7 @@ export const ObjectPropsPanel = ({
                                                 fontWeight: 'bold'
                                             }}
                                         >
-                                            Confirm
+                                            {t('EDITOR_ELEMENTS_PROPS_CONFIRM')}
                                         </button>
                                     )}
                                 </div>
@@ -197,7 +209,7 @@ export const ObjectPropsPanel = ({
 
                             {(!isWeather && !isMessage && !isRoomArea) && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Trigger ID:</label>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_TRIGGER_ID')}</label>
                                     <input
                                         type="number"
                                         value={metadata.triggerId || ''}
@@ -216,14 +228,14 @@ export const ObjectPropsPanel = ({
                                             fontSize: '13px',
                                             backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
                                         }}
-                                        placeholder="Enter ID (e.g. 1)"
+                                        placeholder={t('EDITOR_ELEMENTS_PROPS_TRIGGER_ID_PLACEHOLDER')}
                                     />
                                 </div>
                             )}
 
                             {isWeather && def.hasIntensity && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Intensity (%):</label>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_INTENSITY')}</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -252,7 +264,10 @@ export const ObjectPropsPanel = ({
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                     {(metadata.i18nChapter || metadata.i18nId) && (
                                         <div style={{ fontSize: '11px', color: '#666' }}>
-                                            i18n: {metadata.i18nChapter || '—'} / {metadata.i18nId || '—'}
+                                            {t('EDITOR_ELEMENTS_PROPS_I18N_LABEL', {
+                                                chapter: metadata.i18nChapter || t('EDITOR_ELEMENTS_PROPS_I18N_EMPTY'),
+                                                id: metadata.i18nId || t('EDITOR_ELEMENTS_PROPS_I18N_EMPTY')
+                                            })}
                                             {i18nPreview && (
                                                 <div style={{ marginTop: '4px', color: '#333' }}>
                                                     {i18nPreview}
@@ -260,7 +275,7 @@ export const ObjectPropsPanel = ({
                                             )}
                                         </div>
                                     )}
-                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Message Text:</label>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_MESSAGE_TEXT')}</label>
                                     <textarea
                                         value={metadata.message || ''}
                                         onChange={(e) => {
@@ -281,7 +296,7 @@ export const ObjectPropsPanel = ({
                                             resize: 'vertical',
                                             fontFamily: 'inherit'
                                         }}
-                                        placeholder={i18nPreview || "Enter message to display..."}
+                                        placeholder={i18nPreview || t('EDITOR_ELEMENTS_PROPS_MESSAGE_PLACEHOLDER')}
                                     />
                                 </div>
                             )}
@@ -289,7 +304,7 @@ export const ObjectPropsPanel = ({
                             {( (id.includes('portal') && !id.includes('target')) || isDoor ) && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '5px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Target Map:</label>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_TARGET_MAP')}</label>
                                         <select
                                             value={metadata.targetMapId || ''}
                                             onChange={(e) => {
@@ -308,14 +323,14 @@ export const ObjectPropsPanel = ({
                                                 backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
                                             }}
                                         >
-                                            <option value="">Current Map</option>
+                                            <option value="">{t('EDITOR_ELEMENTS_PROPS_CURRENT_MAP_OPTION')}</option>
                                             {mapList.map(m => (
                                                 <option key={m.id} value={m.id}>{m.name}</option>
                                             ))}
                                         </select>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Spawn ID:</label>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_SPAWN_ID')}</label>
                                         <input
                                             type="number"
                                             value={metadata.spawnTriggerId !== undefined ? metadata.spawnTriggerId : ''}
@@ -326,7 +341,7 @@ export const ObjectPropsPanel = ({
                                                     [index]: { ...prev[index], spawnTriggerId: isNaN(val) ? null : val }
                                                 }));
                                             }}
-                                            placeholder="Trigger ID to spawn at"
+                                            placeholder={t('EDITOR_ELEMENTS_PROPS_SPAWN_ID_PLACEHOLDER')}
                                             style={{
                                                 flex: 1,
                                                 padding: '4px 8px',
@@ -339,7 +354,7 @@ export const ObjectPropsPanel = ({
                                     </div>
                                     {isDoor && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Delay (s):</label>
+                                            <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_DELAY')}</label>
                                             <input
                                                 type="number"
                                                 step="0.1"
@@ -368,7 +383,7 @@ export const ObjectPropsPanel = ({
                             {/* Size Configuration */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px', paddingTop: '5px', borderTop: '1px solid #eee' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <label style={{ fontSize: '11px', color: '#666' }}>W:</label>
+                                    <label style={{ fontSize: '11px', color: '#666' }}>{t('EDITOR_ELEMENTS_PROPS_SIZE_W')}</label>
                                     <input
                                         type="number"
                                         min="1"
@@ -385,7 +400,7 @@ export const ObjectPropsPanel = ({
                                     />
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <label style={{ fontSize: '11px', color: '#666' }}>H:</label>
+                                    <label style={{ fontSize: '11px', color: '#666' }}>{t('EDITOR_ELEMENTS_PROPS_SIZE_H')}</label>
                                     <input
                                         type="number"
                                         min="1"
@@ -401,7 +416,7 @@ export const ObjectPropsPanel = ({
                                         style={{ width: '40px', padding: '2px 4px', fontSize: '12px', border: '1px solid #ccc', borderRadius: '3px' }}
                                     />
                                 </div>
-                                <span style={{ fontSize: '10px', color: '#999' }}>Drag handles on map to resize</span>
+                                <span style={{ fontSize: '10px', color: '#999' }}>{t('EDITOR_ELEMENTS_PROPS_RESIZE_HINT')}</span>
                             </div>
                         </div>
                     );
@@ -415,7 +430,7 @@ export const ObjectPropsPanel = ({
                     return isPortalOrTarget || isWeather || isMessage;
                 }).length === 0 && (
                     <p style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
-                        No configurable objects found on map.
+                        {t('EDITOR_ELEMENTS_PROPS_NO_CONFIGURABLE')}
                     </p>
                 )}
             </div>

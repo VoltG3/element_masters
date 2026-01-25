@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DraggableWindow } from './editorScene/DraggableWindow';
 import { EditorMapResizer } from './editorScene/EditorMapResizer';
 import { Minimap } from './editorScene/Minimap';
@@ -58,6 +59,7 @@ export const EditorScene = ({
     showRoomMapContent,
     activeRoomIds
 }) => {
+    const { t } = useTranslation('editor_scene');
     const [isMinimapOpen, setIsMinimapOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isBackgroundOpen, setIsBackgroundOpen] = useState(false);
@@ -73,20 +75,20 @@ export const EditorScene = ({
             />
             {/* Right side buttons */}
             <RightSidebarContainer>
-                <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title="Maps & Minimap">🗺️</SceneEditorButton>
-                <SceneEditorButton onClick={() => setIsWorldViewOpen(!isWorldViewOpen)} $active={isWorldViewOpen} title="Project World View">🌐</SceneEditorButton>
-                <SceneEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title="Background">🖼️</SceneEditorButton>
-                <SceneEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title="Music">
+                <SceneEditorButton onClick={() => setIsMinimapOpen(!isMinimapOpen)} $active={isMinimapOpen} title={t('EDITOR_SCENE_BUTTON_MAPS_MINIMAP')}>🗺️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsWorldViewOpen(!isWorldViewOpen)} $active={isWorldViewOpen} title={t('EDITOR_SCENE_BUTTON_WORLD_VIEW')}>🌐</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsBackgroundOpen(!isBackgroundOpen)} $active={isBackgroundOpen} title={t('EDITOR_SCENE_BUTTON_BACKGROUND')}>🖼️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsMusicOpen(!isMusicOpen)} $active={isMusicOpen} title={t('EDITOR_SCENE_BUTTON_MUSIC')}>
                     <span style={{ color: '#fff' }}>𝄞</span>
                 </SceneEditorButton>
-                <SceneEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title="Settings">🛠️</SceneEditorButton>
-                <SceneEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title="Resize Map">📐</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsSettingsOpen(!isSettingsOpen)} $active={isSettingsOpen} title={t('EDITOR_SCENE_BUTTON_SETTINGS')}>🛠️</SceneEditorButton>
+                <SceneEditorButton onClick={() => setIsResizeWindowOpen(!isResizeWindowOpen)} $active={isResizeWindowOpen} title={t('EDITOR_SCENE_BUTTON_RESIZE')}>📐</SceneEditorButton>
             </RightSidebarContainer>
 
             {/* Floating Windows */}
             {isMinimapOpen && (
                 <DraggableWindow
-                    title="Active Map Minimap"
+                    title={t('EDITOR_SCENE_WINDOW_MINIMAP')}
                     defaultPosition={{ x: window.innerWidth - 340, y: 80 }}
                     defaultWidth={300}
                     isOpenDefault={true}
@@ -103,7 +105,7 @@ export const EditorScene = ({
                             backgroundColor={selectedBackgroundColor}
                         />
                         <div style={{ fontSize: '12px', color: '#ccc', textAlign: 'center' }}>
-                            {maps[activeMapId]?.name || 'Current Map'}
+                            {maps[activeMapId]?.name || t('EDITOR_SCENE_MINIMAP_CURRENT_MAP')}
                         </div>
                     </div>
                 </DraggableWindow>
@@ -111,7 +113,7 @@ export const EditorScene = ({
 
             {isWorldViewOpen && (
                 <DraggableWindow
-                    title="Project World View"
+                    title={t('EDITOR_SCENE_WINDOW_WORLD_VIEW')}
                     defaultPosition={{ x: 100, y: 100 }}
                     defaultWidth={800}
                     isOpenDefault={true}
@@ -143,7 +145,7 @@ export const EditorScene = ({
 
             {isBackgroundOpen && (
                 <DraggableWindow
-                    title="Background"
+                    title={t('EDITOR_SCENE_WINDOW_BACKGROUND')}
                     defaultPosition={{ x: window.innerWidth - 340, y: 80 }}
                     defaultWidth={320}
                     isOpenDefault={true}
@@ -162,7 +164,7 @@ export const EditorScene = ({
 
             {isMusicOpen && (
                 <DraggableWindow
-                    title="Music"
+                    title={t('EDITOR_SCENE_WINDOW_MUSIC')}
                     defaultPosition={{ x: window.innerWidth - 340, y: 300 }}
                     defaultWidth={320}
                     isOpenDefault={true}
@@ -178,7 +180,7 @@ export const EditorScene = ({
 
             {isSettingsOpen && (
                 <DraggableWindow
-                    title="Settings"
+                    title={t('EDITOR_SCENE_WINDOW_SETTINGS')}
                     defaultPosition={{ x: window.innerWidth - 340, y: 400 }}
                     defaultWidth={300}
                     isOpenDefault={true}
@@ -207,7 +209,7 @@ export const EditorScene = ({
 
             {isResizeWindowOpen && (
                 <DraggableWindow
-                    title="Resize Map"
+                    title={t('EDITOR_SCENE_WINDOW_RESIZE')}
                     defaultPosition={{ x: 400, y: 100 }}
                     defaultWidth={300}
                     isOpenDefault={true}

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const WorldView = ({
     maps,
@@ -12,6 +13,7 @@ export const WorldView = ({
     onAddRoomArea,
     showRoomMapContent
 }) => {
+    const { t } = useTranslation('editor_scene');
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const mapLayoutsRef = useRef({});
@@ -305,7 +307,7 @@ export const WorldView = ({
                 const btnX = layout.x + layout.w - 15;
                 const btnY = layout.y - 25;
                 if (x >= btnX && x <= btnX + 15 && y >= btnY && y <= btnY + 15) {
-                    if (window.confirm(`Delete map "${layout.map.name}"?`)) {
+                    if (window.confirm(t('EDITOR_SCENE_WORLD_DELETE_CONFIRM', { name: layout.map.name }))) {
                         deleteMap(layout.map.id);
                     }
                     return;
@@ -376,29 +378,29 @@ export const WorldView = ({
                     onClick={() => switchMap('main')}
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#1e88e5', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
                 >
-                    Main
+                    {t('EDITOR_SCENE_WORLD_MAIN')}
                 </button>
                 <button 
                     onClick={() => createMap('overworld')}
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
                 >
-                    + Overworld
+                    {t('EDITOR_SCENE_WORLD_ADD_OVERWORLD')}
                 </button>
                 <button 
                     onClick={() => createMap('underworld')}
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#5D4037', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
                 >
-                    + Underworld
+                    {t('EDITOR_SCENE_WORLD_ADD_UNDERWORLD')}
                 </button>
                 <button 
                     onClick={onAddRoomArea}
-                    title="Mark Room Area on Map"
+                    title={t('EDITOR_SCENE_WORLD_ADD_ROOM_TITLE')}
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#f39c12', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
                 >
                     + m<sup>2</sup>
                 </button>
                 <div style={{ marginLeft: 'auto', color: '#ccc', fontSize: '11px' }}>
-                    Double-click map to select. Drag to move.
+                    {t('EDITOR_SCENE_WORLD_HELP')}
                 </div>
             </div>
 
@@ -414,8 +416,8 @@ export const WorldView = ({
                     onMouseLeave={handleMouseUp}
                 />
                 <div style={{ position: 'absolute', bottom: '10px', right: '10px', backgroundColor: 'rgba(0,0,0,0.7)', color: '#fff', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', pointerEvents: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: 10, height: 10, backgroundColor: '#fff', border: '1px dashed #fff' }}></div> Intra-map teleport</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: 10, height: 10, backgroundColor: '#00ff00', border: '1px dashed #00ff00' }}></div> Inter-map teleport</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: 10, height: 10, backgroundColor: '#fff', border: '1px dashed #fff' }}></div> {t('EDITOR_SCENE_WORLD_LEGEND_INTRA')}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: 10, height: 10, backgroundColor: '#00ff00', border: '1px dashed #00ff00' }}></div> {t('EDITOR_SCENE_WORLD_LEGEND_INTER')}</div>
                 </div>
             </div>
         </div>

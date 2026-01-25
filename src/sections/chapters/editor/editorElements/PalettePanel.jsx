@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CollapsiblePanel } from './CollapsiblePanel';
 import AnimatedItem from '../../../../utilities/AnimatedItem';
 import i18n from '../../../../i18n/i18n';
@@ -29,6 +30,7 @@ export const PalettePanel = ({
     handlePaletteSelect, 
     selectedTile 
 }) => {
+    const { t } = useTranslation('editor_elements');
     const [selectedChapter, setSelectedChapter] = useState('');
 
     const currentLang = i18n?.language || 'en';
@@ -45,6 +47,25 @@ export const PalettePanel = ({
             setSelectedChapter(tutorialChapters[0] || '');
         }
     }, [tutorialChapters, selectedChapter]);
+
+    const getLiquidLabel = ({
+        isLavaWaterfall,
+        isLava,
+        isRadioactiveWaterfall,
+        isRadioactive,
+        isWater,
+        isWaterfall,
+        isQuicksand
+    }) => {
+        if (isLavaWaterfall) return t('EDITOR_ELEMENTS_LIQUID_LABEL_LFALL');
+        if (isLava) return t('EDITOR_ELEMENTS_LIQUID_LABEL_LAVA');
+        if (isRadioactiveWaterfall) return t('EDITOR_ELEMENTS_LIQUID_LABEL_RADFALL');
+        if (isRadioactive) return t('EDITOR_ELEMENTS_LIQUID_LABEL_RAD');
+        if (isWater) return t('EDITOR_ELEMENTS_LIQUID_LABEL_WATER');
+        if (isWaterfall) return t('EDITOR_ELEMENTS_LIQUID_LABEL_FALL');
+        if (isQuicksand) return t('EDITOR_ELEMENTS_LIQUID_LABEL_QUICK');
+        return t('EDITOR_ELEMENTS_LIQUID_LABEL_LIQ');
+    };
 
     const renderPaletteItem = (item, color, layer) => {
         const hasImage = !!(item.texture || (Array.isArray(item.textures) && item.textures.length > 0));
@@ -88,7 +109,7 @@ export const PalettePanel = ({
                         background: item.filterColorInEditor || item.filterColor || 'rgba(0, 0, 0, 0.5)',
                         color: '#fff', fontSize: 8, textAlign: 'center', lineHeight: 1.1, fontWeight: 'bold'
                     }}>
-                        {item.editorIcon || (item.subtype === 'above' ? 'ABOVE' : 'BELOW')}
+                        {item.editorIcon || (item.subtype === 'above' ? t('EDITOR_ELEMENTS_SECRET_ABOVE') : t('EDITOR_ELEMENTS_SECRET_BELOW'))}
                     </div>
                 ) : (isWeatherTrigger || isMessageTrigger) ? (
                     hasImage ? (
@@ -136,7 +157,17 @@ export const PalettePanel = ({
                         fontSize: 10, textAlign: 'center', lineHeight: 1.1,
                         ...swatchStyle
                     }}>
-                        {isLiquid ? (isLavaWaterfall ? 'L.FALL' : (isLava ? 'LAVA' : (isRadioactiveWaterfall ? 'RADFALL' : (isRadioactive ? 'RAD' : (isWater ? 'WATER' : (isWaterfall ? 'FALL' : (isQuicksand ? 'QUICK' : 'LIQ'))))))) : (item.name || '—')}
+                        {isLiquid
+                            ? getLiquidLabel({
+                                isLavaWaterfall,
+                                isLava,
+                                isRadioactiveWaterfall,
+                                isRadioactive,
+                                isWater,
+                                isWaterfall,
+                                isQuicksand
+                            })
+                            : (item.name || '—')}
                     </div>
                 )}
             </div>
@@ -146,7 +177,7 @@ export const PalettePanel = ({
     if (isPlayMode) {
         return (
             <div style={{ padding: '20px', fontSize: '14px', color: '#666', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
-                Palette disabled during Play mode
+                {t('EDITOR_ELEMENTS_PALETTE_DISABLED')}
             </div>
         );
     }
@@ -165,11 +196,11 @@ export const PalettePanel = ({
                 };
 
                 const groupOrder = [
-                    { key: 'ground', title: 'Ground', color: 'blue', open: true },
-                    { key: 'bricks', title: 'Bricks', color: 'blue', open: true },
-                    { key: 'stone', title: 'Stone', color: 'blue', open: true },
-                    { key: 'metal', title: 'Metal', color: 'blue', open: true },
-                    { key: 'wood', title: 'Wood', color: 'blue', open: true }
+                    { key: 'ground', title: t('EDITOR_ELEMENTS_BLOCK_GROUP_GROUND'), color: 'blue', open: true },
+                    { key: 'bricks', title: t('EDITOR_ELEMENTS_BLOCK_GROUP_BRICKS'), color: 'blue', open: true },
+                    { key: 'stone', title: t('EDITOR_ELEMENTS_BLOCK_GROUP_STONE'), color: 'blue', open: true },
+                    { key: 'metal', title: t('EDITOR_ELEMENTS_BLOCK_GROUP_METAL'), color: 'blue', open: true },
+                    { key: 'wood', title: t('EDITOR_ELEMENTS_BLOCK_GROUP_WOOD'), color: 'blue', open: true }
                 ];
 
                 const withGroups = blocks.map(b => ({
@@ -202,7 +233,7 @@ export const PalettePanel = ({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {groupPanels}
                         {otherItems.length > 0 && (
-                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_GROUP_OTHER')} isOpenDefault={false}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {otherItems.map(b => renderPaletteItem(b.item, 'gray', 'tile'))}
                                 </div>
@@ -223,10 +254,10 @@ export const PalettePanel = ({
                 };
 
                 const groupOrder = [
-                    { key: 'quicksand', title: 'Quicksand', color: 'goldenrod', open: true },
-                    { key: 'water', title: 'Water', color: 'blue', open: true },
-                    { key: 'lava', title: 'Lava', color: 'orange', open: true },
-                    { key: 'radiation', title: 'Radiation', color: 'green', open: true }
+                    { key: 'quicksand', title: t('EDITOR_ELEMENTS_LIQUID_GROUP_QUICKSAND'), color: 'goldenrod', open: true },
+                    { key: 'water', title: t('EDITOR_ELEMENTS_LIQUID_GROUP_WATER'), color: 'blue', open: true },
+                    { key: 'lava', title: t('EDITOR_ELEMENTS_LIQUID_GROUP_LAVA'), color: 'orange', open: true },
+                    { key: 'radiation', title: t('EDITOR_ELEMENTS_LIQUID_GROUP_RADIATION'), color: 'green', open: true }
                 ];
 
                 const withGroups = liquids.map(li => ({
@@ -258,14 +289,14 @@ export const PalettePanel = ({
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div
-                            title="Liquids support JSON overrides: liquid.overlay {color,alpha} and liquid.resources {oxygen,lavaResist,iceResist,strength,radioactivity,health} with enabled flags."
+                            title={t('EDITOR_ELEMENTS_LIQUIDS_INFO_TITLE')}
                             style={{ fontSize: '11px', color: '#666', cursor: 'help' }}
                         >
-                            ℹ️ Liquid JSON overrides available (hover for details)
+                            ℹ️ {t('EDITOR_ELEMENTS_LIQUIDS_INFO_LABEL')}
                         </div>
                         {groupPanels}
                         {otherItems.length > 0 && (
-                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_GROUP_OTHER')} isOpenDefault={false}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {otherItems.map(li => renderPaletteItem(li.item, 'gray', 'tile'))}
                                 </div>
@@ -276,7 +307,7 @@ export const PalettePanel = ({
             })()}
 
             {category === 'decorations' && (
-                <CollapsiblePanel title="Decorations" isOpenDefault={true}>
+                <CollapsiblePanel title={t('EDITOR_ELEMENTS_DECORATIONS_TITLE')} isOpenDefault={true}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {decorations && decorations.map(d => renderPaletteItem(d, 'purple', 'object'))}
                     </div>
@@ -292,8 +323,8 @@ export const PalettePanel = ({
                 };
 
                 const groupOrder = [
-                    { key: 'player', title: 'Player', color: 'red', open: true },
-                    { key: 'enemies', title: 'Enemies', color: 'red', open: true }
+                    { key: 'player', title: t('EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER'), color: 'red', open: true },
+                    { key: 'enemies', title: t('EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES'), color: 'red', open: true }
                 ];
 
                 const withGroups = entities.map(e => ({
@@ -325,14 +356,14 @@ export const PalettePanel = ({
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div
-                            title="Entities use editor metadata: editor.panel 'entities' and editor.group 'player' or 'enemies'."
+                            title={t('EDITOR_ELEMENTS_ENTITIES_INFO_TITLE')}
                             style={{ fontSize: '11px', color: '#666', cursor: 'help' }}
                         >
-                            ℹ️ Entities grouping is data-driven (hover for details)
+                            ℹ️ {t('EDITOR_ELEMENTS_ENTITIES_INFO_LABEL')}
                         </div>
                         {groupPanels}
                         {otherItems.length > 0 && (
-                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_GROUP_OTHER')} isOpenDefault={false}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {otherItems.map(e => renderPaletteItem(e.item, 'gray', 'object'))}
                                 </div>
@@ -351,8 +382,8 @@ export const PalettePanel = ({
                 };
 
                 const groupOrder = [
-                    { key: 'health', title: 'Health', color: 'green', open: true },
-                    { key: 'ammunition', title: 'Ammunition', color: 'green', open: true }
+                    { key: 'health', title: t('EDITOR_ELEMENTS_ITEMS_GROUP_HEALTH'), color: 'green', open: true },
+                    { key: 'ammunition', title: t('EDITOR_ELEMENTS_ITEMS_GROUP_AMMUNITION'), color: 'green', open: true }
                 ];
 
                 const withGroups = items.map(i => ({
@@ -384,14 +415,14 @@ export const PalettePanel = ({
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div
-                            title="Items use editor metadata: editor.panel 'items' and editor.group 'health' or 'ammunition'."
+                            title={t('EDITOR_ELEMENTS_ITEMS_INFO_TITLE')}
                             style={{ fontSize: '11px', color: '#666', cursor: 'help' }}
                         >
-                            ℹ️ Items grouping is data-driven (hover for details)
+                            ℹ️ {t('EDITOR_ELEMENTS_ITEMS_INFO_LABEL')}
                         </div>
                         {groupPanels}
                         {otherItems.length > 0 && (
-                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_GROUP_OTHER')} isOpenDefault={false}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {otherItems.map(i => renderPaletteItem(i.item, 'gray', 'object'))}
                                 </div>
@@ -417,14 +448,14 @@ export const PalettePanel = ({
                 };
 
                 const groupOrder = [
-                    { key: 'harvestables', title: 'Harvestables', color: 'purple', open: true },
-                    { key: 'physics', title: 'Physic', color: 'purple', open: true },
-                    { key: 'entrances', title: 'Entrences', color: 'purple', open: true },
-                    { key: 'platforms', title: 'Platforms', color: 'purple', open: true },
-                    { key: 'ledders', title: 'Ledders', color: 'purple', open: true },
-                    { key: 'ports', title: 'Ports', color: 'purple', open: true },
-                    { key: 'blocks', title: 'Blocks', color: 'purple', open: true },
-                    { key: 'ends', title: 'Ends', color: 'purple', open: true }
+                    { key: 'harvestables', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_HARVESTABLES'), color: 'purple', open: true },
+                    { key: 'physics', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_PHYSIC'), color: 'purple', open: true },
+                    { key: 'entrances', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_ENTRANCES'), color: 'purple', open: true },
+                    { key: 'platforms', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_PLATFORMS'), color: 'purple', open: true },
+                    { key: 'ledders', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_LEDDERS'), color: 'purple', open: true },
+                    { key: 'ports', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_PORTS'), color: 'purple', open: true },
+                    { key: 'blocks', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_BLOCKS'), color: 'purple', open: true },
+                    { key: 'ends', title: t('EDITOR_ELEMENTS_INTERACTABLES_GROUP_ENDS'), color: 'purple', open: true }
                 ];
 
                 const withGroups = interactables.map(i => ({
@@ -457,7 +488,7 @@ export const PalettePanel = ({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {groupPanels}
                         {otherItems.length > 0 && (
-                            <CollapsiblePanel title="Other" isOpenDefault={false}>
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_GROUP_OTHER')} isOpenDefault={false}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {otherItems.map(i => renderPaletteItem(i.item, 'gray', 'object'))}
                                 </div>
@@ -475,8 +506,8 @@ export const PalettePanel = ({
                 };
 
                 const groupOrder = [
-                    { key: 'blocks', title: 'Hazards (Blocks)', color: 'orange', open: true },
-                    { key: 'obstacles', title: 'Hazards (Obstacles)', color: 'brown', open: true }
+                    { key: 'blocks', title: t('EDITOR_ELEMENTS_HAZARDS_GROUP_BLOCKS'), color: 'orange', open: true },
+                    { key: 'obstacles', title: t('EDITOR_ELEMENTS_HAZARDS_GROUP_OBSTACLES'), color: 'brown', open: true }
                 ];
 
                 const withGroups = hazards.map(h => ({
@@ -509,7 +540,7 @@ export const PalettePanel = ({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {groupPanels}
                         {otherItems.length > 0 && (
-                            <CollapsiblePanel title="Hazards (Other)" isOpenDefault={false}>
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_HAZARDS_OTHER')} isOpenDefault={false}>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {otherItems.map(h => renderPaletteItem(h.item, 'gray', 'object'))}
                                 </div>
@@ -521,25 +552,25 @@ export const PalettePanel = ({
 
             {category === 'secrets' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="Open Area" isOpenDefault={true}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_OPEN_AREA')} isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {secrets && secrets.filter(s => s.subtype === 'open').map(s => renderPaletteItem(s, 'purple', 'secret'))}
                         </div>
                     </CollapsiblePanel>
                     
-                    <CollapsiblePanel title="Secret Area" isOpenDefault={true}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_SECRET_AREA')} isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {secrets && secrets.filter(s => s.subtype !== 'open' && s.subtype !== 'room').map(s => renderPaletteItem(s, 'purple', 'secret'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Crackable Wall" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_CRACKABLE_WALL')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {crackableWalls && crackableWalls.map(s => renderPaletteItem(s, 'purple', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Pushable Wall" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_SECRETS_PUSHABLE_WALL')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {pushableWalls && pushableWalls.map(s => renderPaletteItem(s, 'purple', 'object'))}
                         </div>
@@ -549,49 +580,49 @@ export const PalettePanel = ({
 
             {category === 'weather' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="Rain" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_RAIN')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'rain').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Snow" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_SNOW')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'snow').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Clouds" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_CLOUDS')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'clouds').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Fog" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_FOG')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'fog').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Thunder" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_THUNDER')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'thunder').map(w => renderPaletteItem(w, 'blue', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Lava Rain" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_LAVA_RAIN')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'lavaRain').map(w => renderPaletteItem(w, 'red', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Radio Fog" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_RADIO_FOG')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'radioactiveFog').map(w => renderPaletteItem(w, 'green', 'object'))}
                         </div>
                     </CollapsiblePanel>
 
-                    <CollapsiblePanel title="Meteor Rain" isOpenDefault={false}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_METEOR_RAIN')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {weather && weather.filter(w => w.weatherType === 'meteorRain').map(w => renderPaletteItem(w, 'orange', 'object'))}
                         </div>
@@ -601,13 +632,13 @@ export const PalettePanel = ({
 
             {category === 'messages' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <CollapsiblePanel title="Messages" isOpenDefault={true}>
+                    <CollapsiblePanel title={t('EDITOR_ELEMENTS_MESSAGES_TITLE')} isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
                         </div>
                     </CollapsiblePanel>
                     {selectedTile && selectedTile.i18nMessage && (
-                        <CollapsiblePanel title="I18n" isOpenDefault={true}>
+                        <CollapsiblePanel title={t('EDITOR_ELEMENTS_I18N_TITLE')} isOpenDefault={true}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                     {tutorialChapters.map(ch => (
@@ -667,14 +698,14 @@ export const PalettePanel = ({
                                                 textAlign: 'left'
                                             }}
                                         >
-                                            <span style={{ fontSize: '11px', color: '#555' }}>id:{item.id}</span>
+                                            <span style={{ fontSize: '11px', color: '#555' }}>{t('EDITOR_ELEMENTS_I18N_ID', { id: item.id })}</span>
                                             <span style={{ fontSize: '11px', color: '#222', flex: 1 }}>{item.text}</span>
                                         </button>
                                     ))}
                                 </div>
                                 {(highlightedIndex === null || highlightedIndex === undefined) && (
                                     <div style={{ fontSize: '11px', color: '#888' }}>
-                                        Select an i18n message on the map to apply.
+                                        {t('EDITOR_ELEMENTS_I18N_SELECT_HINT')}
                                     </div>
                                 )}
                             </div>
@@ -684,13 +715,13 @@ export const PalettePanel = ({
             )}
 
             {category === 'obstacles' && (
-                <CollapsiblePanel title="Obstacles" isOpenDefault={true}>
+                <CollapsiblePanel title={t('EDITOR_ELEMENTS_OBSTACLES_TITLE')} isOpenDefault={true}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {obstacles && obstacles.length > 0 ? (
                             obstacles.map(o => renderPaletteItem(o, 'brown', 'object'))
                         ) : (
                             <div style={{ padding: '10px', fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
-                                No obstacles available yet
+                                {t('EDITOR_ELEMENTS_OBSTACLES_EMPTY')}
                             </div>
                         )}
                     </div>

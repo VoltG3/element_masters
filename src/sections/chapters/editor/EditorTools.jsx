@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
     EditorToolsContainer,
     HeaderBar,
@@ -28,6 +29,7 @@ import {
 } from './styles/EditorToolsButton';
 
 export const EditorTools = (props) => {
+    const { t } = useTranslation('editor_tools');
     const {
         mapName, 
         creatorName, 
@@ -104,9 +106,9 @@ export const EditorTools = (props) => {
                         {/* Brush - Bucket - Move - Area */}
                         <ToolsRow>
                             {[
-                                { id: 'brush', icon: '🖌️', title: 'Brush (B)' },
-                                { id: 'bucket', icon: '🪣', title: 'Fill Bucket (F)' },
-                                { id: 'move', icon: '✋', title: 'Move Selection (M)' },
+                                { id: 'brush', icon: '🖌️', title: t('EDITOR_TOOLS_BRUSH_TITLE') },
+                                { id: 'bucket', icon: '🪣', title: t('EDITOR_TOOLS_BUCKET_TITLE') },
+                                { id: 'move', icon: '✋', title: t('EDITOR_TOOLS_MOVE_TITLE') },
                             ].map(tool => (
                                 <ToolsEditorButton
                                     key={tool.id}
@@ -114,7 +116,7 @@ export const EditorTools = (props) => {
                                     $active={activeTool === tool.id && !isPlayMode}
                                     $square
                                     $disabled={isPlayMode}
-                                    title={isPlayMode ? "Disabled in Play Mode" : tool.title}
+                                    title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : tool.title}
                                 >
                                     {tool.icon}
                                     {isPlayMode && <StrikeThrough />}
@@ -133,7 +135,7 @@ export const EditorTools = (props) => {
                                         $active={selectionMode === mode && !isDisabled}
                                         $square
                                         $disabled={isDisabled}
-                                        title={isPlayMode ? "Disabled in Play Mode" : (isDisabled ? `${mode === 'cut' ? 'Cut' : 'Copy'} (Only for Move tool)` : `${mode === 'cut' ? 'Cut' : 'Copy'} Selection`)}
+                                        title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : (isDisabled ? (mode === 'cut' ? t('EDITOR_TOOLS_CUT_ONLY_MOVE') : t('EDITOR_TOOLS_COPY_ONLY_MOVE')) : (mode === 'cut' ? t('EDITOR_TOOLS_CUT_SELECTION') : t('EDITOR_TOOLS_COPY_SELECTION')))}
                                     >
                                         {mode === 'cut' ? '✂️' : '📋'}
                                         {isDisabled && <StrikeThrough />}
@@ -144,15 +146,15 @@ export const EditorTools = (props) => {
                                 onClick={() => !isPlayMode && activeTool === 'move' && commitSelection()}
                                 $square
                                 $disabled={isPlayMode || activeTool !== 'move'}
-                                title={isPlayMode ? "Disabled in Play Mode" : (activeTool !== 'move' ? "Paste (Only for Move tool)" : "Paste Selection")}
+                                title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : (activeTool !== 'move' ? t('EDITOR_TOOLS_PASTE_ONLY_MOVE') : t('EDITOR_TOOLS_PASTE_SELECTION'))}
                             >
                                 📥
                                 {(isPlayMode || activeTool !== 'move') && <StrikeThrough />}
                             </ToolsEditorButton>
                             {selection && !isPlayMode && (
                                 <SelectionActions>
-                                    <ConfirmButton onClick={commitSelection} $square title="Confirm Selection (Enter)">✓</ConfirmButton>
-                                    <CancelButton onClick={cancelSelection} $square title="Cancel Selection (Esc)">✕</CancelButton>
+                                    <ConfirmButton onClick={commitSelection} $square title={t('EDITOR_TOOLS_CONFIRM_SELECTION')}>✓</ConfirmButton>
+                                    <CancelButton onClick={cancelSelection} $square title={t('EDITOR_TOOLS_CANCEL_SELECTION')}>✕</CancelButton>
                                 </SelectionActions>
                             )}
                         </ToolsInnerGroup>
@@ -165,15 +167,15 @@ export const EditorTools = (props) => {
                                 return (
                                     <ToolsEditorButton 
                                         key={size} 
-                                        onClick={() => !isDisabled && setBrushSize(size)} 
-                                        $active={brushSize === size && !isDisabled} 
-                                        $square 
-                                        $disabled={isDisabled}
-                                        title={isPlayMode ? "Disabled in Play Mode" : (isDisabled ? "Brush size (Only for Brush tool)" : `Brush Size ${size}`)}
-                                    >
-                                        {roman}
-                                        {isDisabled && <StrikeThrough />}
-                                    </ToolsEditorButton>
+                                    onClick={() => !isDisabled && setBrushSize(size)} 
+                                    $active={brushSize === size && !isDisabled} 
+                                    $square 
+                                    $disabled={isDisabled}
+                                    title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : (isDisabled ? t('EDITOR_TOOLS_BRUSH_SIZE_ONLY') : t('EDITOR_TOOLS_BRUSH_SIZE', { size }))}
+                                >
+                                    {roman}
+                                    {isDisabled && <StrikeThrough />}
+                                </ToolsEditorButton>
                                 );
                             })}
                         </ToolsInnerGroup>
@@ -185,7 +187,7 @@ export const EditorTools = (props) => {
                                 $active={showBackgroundImage && !isPlayMode}
                                 $square
                                 $disabled={isPlayMode}
-                                title={isPlayMode ? "Disabled in Play Mode" : (showBackgroundImage ? "Hide Background Image" : "Show Background Image")}
+                                title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : (showBackgroundImage ? t('EDITOR_TOOLS_BACKGROUND_IMAGE_HIDE') : t('EDITOR_TOOLS_BACKGROUND_IMAGE_SHOW'))}
                             >
                                 🖼️
                                 {isPlayMode && <StrikeThrough />}
@@ -196,7 +198,7 @@ export const EditorTools = (props) => {
                                 onClick={() => setShowGrid(!showGrid)}
                                 $active={showGrid}
                                 $square
-                                title={showGrid ? "Hide Grid Lines" : "Show Grid Lines"}
+                                title={showGrid ? t('EDITOR_TOOLS_GRID_HIDE') : t('EDITOR_TOOLS_GRID_SHOW')}
                             >
                                 <GridIcon>
                                     {showGrid ? '▦' : '▢'}
@@ -208,7 +210,7 @@ export const EditorTools = (props) => {
                                 onClick={() => setShowMessages(!showMessages)}
                                 $active={showMessages}
                                 $square
-                                title={showMessages ? "Hide Messages" : "Show Messages"}
+                                title={showMessages ? t('EDITOR_TOOLS_MESSAGES_HIDE') : t('EDITOR_TOOLS_MESSAGES_SHOW')}
                             >
                                 𝔐
                             </ToolsEditorButton>
@@ -218,7 +220,7 @@ export const EditorTools = (props) => {
                                 onClick={() => setIsRoomAreaVisible(!isRoomAreaVisible)}
                                 $active={isRoomAreaVisible}
                                 $square
-                                title={isRoomAreaVisible ? "Hide Room Areas Overlay" : "Show Room Areas Overlay"}
+                                title={isRoomAreaVisible ? t('EDITOR_TOOLS_ROOM_AREA_HIDE') : t('EDITOR_TOOLS_ROOM_AREA_SHOW')}
                             >
                                 <span style={{ fontSize: '14px' }}>🏠</span>
                             </ToolsEditorButton>
@@ -228,7 +230,7 @@ export const EditorTools = (props) => {
                                 onClick={() => setShowRoomMapContent(!showRoomMapContent)}
                                 $active={showRoomMapContent}
                                 $square
-                                title={showRoomMapContent ? "Hide Room Map Content" : "Show Room Map Content"}
+                                title={showRoomMapContent ? t('EDITOR_TOOLS_ROOM_CONTENT_HIDE') : t('EDITOR_TOOLS_ROOM_CONTENT_SHOW')}
                             >
                                 <span style={{ fontSize: '14px' }}>👁️‍🗨️</span>
                             </ToolsEditorButton>
@@ -240,7 +242,7 @@ export const EditorTools = (props) => {
                                         type="color"
                                         value={selectedBackgroundColor && selectedBackgroundColor !== 'transparent' ? selectedBackgroundColor : '#000000'}
                                         onChange={(e) => !isPlayMode && setSelectedBackgroundColor(e.target.value)}
-                                        title={isPlayMode ? "Disabled in Play Mode" : "Background Color"}
+                                        title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : t('EDITOR_TOOLS_BG_COLOR')}
                                         disabled={isPlayMode}
                                     />
                                     {isPlayMode && <StrikeThrough />}
@@ -248,7 +250,7 @@ export const EditorTools = (props) => {
                                 <BgTransparentButton 
                                     $active={selectedBackgroundColor === 'transparent'}
                                     onClick={() => !isPlayMode && setSelectedBackgroundColor('transparent')}
-                                    title={isPlayMode ? "Disabled in Play Mode" : "Transparent Background"}
+                                    title={isPlayMode ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : t('EDITOR_TOOLS_BG_TRANSPARENT')}
                                 />
                             </BgColorContainer>
                         </ToolsRow>
@@ -258,7 +260,15 @@ export const EditorTools = (props) => {
                         {/* Active Layer Indicator */}
                         <ToolsInnerGroup>
                             <LayerIndicator {...getLayerIndicatorData()}>
-                                Layer: {activeLayer === 'tile' ? 'Blocks' : (activeLayer === 'object' ? 'Objects' : (activeLayer === 'secret' ? 'Sectors' : 'Properties'))}
+                                {t('EDITOR_TOOLS_LAYER_LABEL', {
+                                    layer: activeLayer === 'tile'
+                                        ? t('EDITOR_TOOLS_LAYER_BLOCKS')
+                                        : (activeLayer === 'object'
+                                            ? t('EDITOR_TOOLS_LAYER_OBJECTS')
+                                            : (activeLayer === 'secret'
+                                                ? t('EDITOR_TOOLS_LAYER_SECTORS')
+                                                : t('EDITOR_TOOLS_LAYER_PROPERTIES')))
+                                })}
                             </LayerIndicator>
                         </ToolsInnerGroup>
 
@@ -273,7 +283,15 @@ export const EditorTools = (props) => {
                                         onClick={() => !isDisabled && handlePaletteSelect(null, layer)}
                                         $active={isActive && !isDisabled}
                                         $disabled={isDisabled}
-                                        title={isDisabled ? "Disabled in Play Mode" : `Erase ${layer === 'tile' ? 'Blocks' : (layer === 'object' ? 'Objects' : (layer === 'secret' ? 'Sectors' : 'Properties'))}`}
+                                        title={isDisabled ? t('EDITOR_TOOLS_DISABLED_PLAY_MODE') : t('EDITOR_TOOLS_ERASE_LABEL', {
+                                            layer: layer === 'tile'
+                                                ? t('EDITOR_TOOLS_LAYER_BLOCKS')
+                                                : (layer === 'object'
+                                                    ? t('EDITOR_TOOLS_LAYER_OBJECTS')
+                                                    : (layer === 'secret'
+                                                        ? t('EDITOR_TOOLS_LAYER_SECTORS')
+                                                        : t('EDITOR_TOOLS_LAYER_PROPERTIES')))
+                                        })}
                                     >
                                         <EraserButtonInner $bgColor={bgColor} $textColor={textColor} $active={isActive && !isDisabled}>
                                             ⌫{layer === 'tile' ? 'B' : (layer === 'object' ? 'O' : (layer === 'secret' ? 'S' : 'P'))}
@@ -286,13 +304,13 @@ export const EditorTools = (props) => {
 
                         <ToolsInnerGroup>
                             <ToolsRow>
-                                <PlayButtonContainer onClick={isPlayMode ? handlePause : handlePlay} title={isPlayMode ? "Pause/Editor" : "Play Map"}>
+                                <PlayButtonContainer onClick={isPlayMode ? handlePause : handlePlay} title={isPlayMode ? t('EDITOR_TOOLS_PAUSE_TITLE') : t('EDITOR_TOOLS_PLAY_TITLE')}>
                                     <PlayButtonInner $variant={isPlayMode ? 'pause' : 'play'}>
                                         <span>{isPlayMode ? '⏸' : '▶'}</span>
                                     </PlayButtonInner>
                                 </PlayButtonContainer>
 
-                                <PlayButtonContainer onClick={handleReset} title="Reset State">
+                                <PlayButtonContainer onClick={handleReset} title={t('EDITOR_TOOLS_RESET_TITLE')}>
                                     <PlayButtonInner>
                                         <span>↻</span>
                                     </PlayButtonInner>
@@ -306,11 +324,11 @@ export const EditorTools = (props) => {
                 <ToolsSection>
                     <InfoContainer>
                         <InfoItem>
-                            <InfoLabel>Map:</InfoLabel>
+                            <InfoLabel>{t('EDITOR_TOOLS_INFO_MAP')}</InfoLabel>
                             <InfoValue>{mapName}</InfoValue>
                         </InfoItem>
                         <InfoItem>
-                            <InfoLabel>By:</InfoLabel>
+                            <InfoLabel>{t('EDITOR_TOOLS_INFO_BY')}</InfoLabel>
                             <InfoValue>{creatorName}</InfoValue>
                         </InfoItem>
                     </InfoContainer>

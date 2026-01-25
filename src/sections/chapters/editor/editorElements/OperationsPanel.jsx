@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { OperationButton, OperationLabel } from '../styles/EditorElementsButtonStyle';
 
 export const OperationsPanel = ({ 
@@ -14,6 +15,7 @@ export const OperationsPanel = ({
     setCreatorName,
     setMapDescription
 }) => {
+    const { t } = useTranslation('editor_elements');
     const inputStyle = {
         width: '100%',
         border: '1px solid transparent',
@@ -52,64 +54,64 @@ export const OperationsPanel = ({
                 gap: '10px' 
             }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <OperationButton onClick={openNewMapModal} title="New Map">
+                    <OperationButton onClick={openNewMapModal} title={t('EDITOR_ELEMENTS_OP_NEW_MAP_TITLE')}>
                         <span style={{ fontSize: '18px' }}>📄</span>
-                        <span>New</span>
+                        <span>{t('EDITOR_ELEMENTS_OP_NEW')}</span>
                     </OperationButton>
-                    <OperationButton onClick={saveMap} title="Save Map">
+                    <OperationButton onClick={saveMap} title={t('EDITOR_ELEMENTS_OP_SAVE_MAP_TITLE')}>
                         <span style={{ fontSize: '18px' }}>💾</span>
-                        <span>Save</span>
+                        <span>{t('EDITOR_ELEMENTS_OP_SAVE')}</span>
                     </OperationButton>
-                    <OperationLabel title="Load Map">
+                    <OperationLabel title={t('EDITOR_ELEMENTS_OP_LOAD_MAP_TITLE')}>
                         <span style={{ fontSize: '18px' }}>📂</span>
-                        <span>Load</span>
+                        <span>{t('EDITOR_ELEMENTS_OP_LOAD')}</span>
                         <input type="file" accept=".json,.txt" onChange={loadMap} style={{ display: 'none' }} />
                     </OperationLabel>
-                    <OperationButton onClick={openBuiltInModal} title="Built-in Maps">
+                    <OperationButton onClick={openBuiltInModal} title={t('EDITOR_ELEMENTS_OP_BUILT_IN_MAPS_TITLE')}>
                         <span style={{ fontSize: '18px' }}>📦</span>
-                        <span>Built-in</span>
+                        <span>{t('EDITOR_ELEMENTS_OP_BUILT_IN')}</span>
                     </OperationButton>
-                    <OperationButton onClick={clearMap} $danger title="Clear Map">
+                    <OperationButton onClick={clearMap} $danger title={t('EDITOR_ELEMENTS_OP_CLEAR_MAP_TITLE')}>
                         <span style={{ fontSize: '18px' }}>🗑️</span>
-                        <span>Clear</span>
+                        <span>{t('EDITOR_ELEMENTS_OP_CLEAR')}</span>
                     </OperationButton>
                 </div>
             </div>
 
             <div style={{ padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>MAP NAME</label>
+                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>{t('EDITOR_ELEMENTS_OP_MAP_NAME_LABEL')}</label>
                     <input 
                         value={mapName} 
                         onChange={(e) => setMapName(e.target.value)}
                         style={inputStyle}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        title="Click to edit map name"
+                        title={t('EDITOR_ELEMENTS_OP_EDIT_MAP_NAME_TITLE')}
                     />
                 </div>
                 
                 <div>
-                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>AUTHOR</label>
+                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>{t('EDITOR_ELEMENTS_OP_AUTHOR_LABEL')}</label>
                     <input 
                         value={creatorName} 
                         onChange={(e) => setCreatorName(e.target.value)}
                         style={inputStyle}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        title="Click to edit author"
+                        title={t('EDITOR_ELEMENTS_OP_EDIT_AUTHOR_TITLE')}
                     />
                 </div>
 
                 <div>
-                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>DESCRIPTION</label>
+                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>{t('EDITOR_ELEMENTS_OP_DESCRIPTION_LABEL')}</label>
                     <textarea 
                         value={mapDescription} 
                         onChange={(e) => setMapDescription(e.target.value)}
                         style={{ ...inputStyle, fontWeight: 'normal', minHeight: '60px', resize: 'vertical' }}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        title="Click to edit description"
+                        title={t('EDITOR_ELEMENTS_OP_EDIT_DESCRIPTION_TITLE')}
                     />
                 </div>
             </div>

@@ -11,6 +11,10 @@ import no_tutorial_messages from "./translations/no/tutorial_messages.json"
 import en_tutorial_messages from "./translations/en/tutorial_messages.json"
 import ru_tutorial_messages from "./translations/ru/tutorial_messages.json"
 import ja_tutorial_messages from "./translations/ja/tutorial_messages.json"
+import en_game_map_selector from "./translations/en/game_map_selector.json"
+import en_editor_elements from "./translations/en/editor_elements.json"
+import en_editor_scene from "./translations/en/editor_scene.json"
+import en_editor_tools from "./translations/en/editor_tools.json"
 
 const lv_navigation = {
     ...lv_navigation_home
@@ -38,29 +42,49 @@ i18n
         lng: "en",
         fallbackLng: "en",
         supportedLngs: ["lv", "no", "en", "ru", "ja"],
-        ns: ["navigation", "tutorial"],
+        ns: ["navigation", "tutorial", "game", "editor_elements", "editor_scene", "editor_tools"],
         defaultNS: "navigation",
         interpolation: { escapeValue: false },
         resources: {
             lv: {
                 navigation: lv_navigation,
-                tutorial: lv_tutorial_messages
+                tutorial: lv_tutorial_messages,
+                game: {},
+                editor_elements: {},
+                editor_scene: {},
+                editor_tools: {}
             },
             no: {
                 navigation: no_navigation,
-                tutorial: no_tutorial_messages
+                tutorial: no_tutorial_messages,
+                game: {},
+                editor_elements: {},
+                editor_scene: {},
+                editor_tools: {}
             },
             en: {
                 navigation: en_navigation,
-                tutorial: en_tutorial_messages
+                tutorial: en_tutorial_messages,
+                game: en_game_map_selector,
+                editor_elements: en_editor_elements,
+                editor_scene: en_editor_scene,
+                editor_tools: en_editor_tools
             },
             ru: {
                 navigation: ru_navigation,
-                tutorial: ru_tutorial_messages
+                tutorial: ru_tutorial_messages,
+                game: {},
+                editor_elements: {},
+                editor_scene: {},
+                editor_tools: {}
             },
             ja: {
                 navigation: ja_navigation,
-                tutorial: ja_tutorial_messages
+                tutorial: ja_tutorial_messages,
+                game: {},
+                editor_elements: {},
+                editor_scene: {},
+                editor_tools: {}
             },
         },
     })

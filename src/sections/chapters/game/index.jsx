@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { getRegistry, findItemById } from '../../../engine/registry';
 import PixiStage from './PixiStage';
 import { useGameEngine } from '../../../utilities/useGameEngine';
@@ -240,6 +241,7 @@ const PlaceholderMessage = styled.div`
 `;
 
 export default function Game() {
+    const { t } = useTranslation('game');
     const dispatch = useDispatch();
     const viewportRef = useRef(null);
 
@@ -828,7 +830,7 @@ export default function Game() {
             {isMapModalOpen && (
                 <ModalOverlay>
                     <ModalContent>
-                        <ModalTitle>Select a Map</ModalTitle>
+                        <ModalTitle>{t('GAME_MAP_SELECT_TITLE')}</ModalTitle>
                         <MapList>
                             {BUILT_IN_MAPS.map((map, index) => {
                                 const isV2 = map.meta?.version === "2.0";
@@ -857,7 +859,7 @@ export default function Game() {
                                     <MapCard key={index} onClick={() => loadMapData(map)}>
                                         <div>
                                             <MapTitle>{projectName}</MapTitle>
-                                            <MapAuthor>By: {author}</MapAuthor>
+                                            <MapAuthor>{t('GAME_MAP_BY', { author })}</MapAuthor>
                                         </div>
                                         {map.meta?.description && (
                                             <MapDescription title={map.meta.description}>
@@ -865,7 +867,7 @@ export default function Game() {
                                             </MapDescription>
                                         )}
                                         <MapInfo>
-                                            <div>Size: {sizeInfo}{subMapInfo}</div>
+                                            <div>{t('GAME_MAP_SIZE', { size: `${sizeInfo}${subMapInfo}` })}</div>
                                         </MapInfo>
                                     </MapCard>
                                 );
@@ -873,7 +875,7 @@ export default function Game() {
                         </MapList>
                         <ModalDivider>
                             <FileUploadLabel>
-                                📂 Load Custom Map from Computer
+                                📂 {t('GAME_MAP_LOAD_CUSTOM')}
                                 <HiddenFileInput type="file" accept=".json" onChange={handleCustomMapUpload} />
                             </FileUploadLabel>
                         </ModalDivider>

@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const EditorMapResizer = ({
     mapWidth,
     mapHeight,
     onResize
 }) => {
+    const { t } = useTranslation('editor_scene');
     const containerRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [startSize, setStartSize] = useState({ width: mapWidth, height: mapHeight });
@@ -57,7 +59,9 @@ export const EditorMapResizer = ({
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>
-                Map Size: <span style={{ color: '#4CAF50' }}>{mapWidth} × {mapHeight}</span> blocks
+                {t('EDITOR_SCENE_RESIZER_LABEL')}{' '}
+                <span style={{ color: '#4CAF50' }}>{mapWidth} x {mapHeight}</span>{' '}
+                {t('EDITOR_SCENE_RESIZER_BLOCKS')}
             </div>
 
             <div
@@ -102,8 +106,8 @@ export const EditorMapResizer = ({
             </div>
 
             <div style={{ fontSize: '11px', color: '#666', textAlign: 'center' }}>
-                💡 Drag the corner to resize the map<br/>
-                (Min: 5×5, Max: 100×100)
+                💡 {t('EDITOR_SCENE_RESIZER_HINT_LINE1')}<br/>
+                {t('EDITOR_SCENE_RESIZER_HINT_LINE2')}
             </div>
         </div>
     );

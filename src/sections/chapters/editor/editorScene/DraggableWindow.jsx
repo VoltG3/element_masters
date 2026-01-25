@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 let topZIndex = 1002;
 
@@ -10,6 +11,7 @@ export const DraggableWindow = ({
     isOpenDefault = true,
     onHeightChange
 }) => {
+    const { t } = useTranslation('editor_scene');
     const [position] = useState(defaultPosition);
     const [zIndex, setZIndex] = useState(() => {
         topZIndex += 1;
@@ -139,7 +141,7 @@ export const DraggableWindow = ({
                             padding: 0,
                             color: '#333'
                         }}
-                        title={isMinimized ? "Maximize" : "Minimize"}
+                        title={isMinimized ? t('EDITOR_SCENE_WINDOW_MAXIMIZE') : t('EDITOR_SCENE_WINDOW_MINIMIZE')}
                     >
                         {isMinimized ? '□' : '−'}
                     </button>
@@ -162,7 +164,7 @@ export const DraggableWindow = ({
                             justifyContent: 'center',
                             padding: 0
                         }}
-                        title="Close"
+                        title={t('EDITOR_SCENE_WINDOW_CLOSE')}
                     >
                         ✕
                     </button>

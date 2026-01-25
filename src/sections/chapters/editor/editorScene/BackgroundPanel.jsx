@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const BackgroundPanel = ({ 
     backgroundOptions, 
@@ -8,10 +9,11 @@ export const BackgroundPanel = ({
     backgroundParallaxFactor, 
     setBackgroundParallaxFactor 
 }) => {
+    const { t } = useTranslation('editor_scene');
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <section>
-                <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '12px' }}>Background Image</span>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '12px' }}>{t('EDITOR_SCENE_BACKGROUND_IMAGE')}</span>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                     <div onClick={() => setSelectedBackgroundImage(null)}
                         style={{
@@ -19,9 +21,9 @@ export const BackgroundPanel = ({
                             borderRadius: '6px', padding: '4px', cursor: 'pointer', background: '#fff',
                             boxShadow: !selectedBackgroundImage ? '0 0 8px rgba(33, 150, 243, 0.3)' : 'none'
                         }}
-                        title="Solid Color">
+                        title={t('EDITOR_SCENE_BACKGROUND_SOLID')}>
                         <div style={{ width: '100%', height: '60px', background: selectedBackgroundColor, display: 'block', borderRadius: '4px' }} />
-                        <div style={{ fontSize: '11px', textAlign: 'center', paddingTop: '5px', fontWeight: !selectedBackgroundImage ? 'bold' : 'normal' }}>Solid Color</div>
+                        <div style={{ fontSize: '11px', textAlign: 'center', paddingTop: '5px', fontWeight: !selectedBackgroundImage ? 'bold' : 'normal' }}>{t('EDITOR_SCENE_BACKGROUND_SOLID')}</div>
                     </div>
                     {backgroundOptions.map((bg) => (
                         <div key={bg.name} onClick={() => setSelectedBackgroundImage(bg.metaPath)}
@@ -40,7 +42,7 @@ export const BackgroundPanel = ({
 
             <section style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
                 <div style={{ marginBottom: '0px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Parallax Effect:</label>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>{t('EDITOR_SCENE_BACKGROUND_PARALLAX')}</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <input type="range" min="0" max="1" step="0.05" value={backgroundParallaxFactor}
                             onChange={(e) => setBackgroundParallaxFactor(parseFloat(e.target.value))}

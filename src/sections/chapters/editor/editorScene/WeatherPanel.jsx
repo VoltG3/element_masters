@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const WeatherPanel = ({
     weatherRain,
@@ -18,15 +19,16 @@ export const WeatherPanel = ({
     weatherMeteorRain,
     setWeatherMeteorRain
 }) => {
+    const { t } = useTranslation('editor_scene');
     const weatherItems = [
-        { label: 'Rain', value: weatherRain, setter: setWeatherRain, icon: '🌧️' },
-        { label: 'Lava Rain', value: weatherLavaRain, setter: setWeatherLavaRain, icon: '🔥' },
-        { label: 'Snow', value: weatherSnow, setter: setWeatherSnow, icon: '❄️' },
-        { label: 'Meteor Rain', value: weatherMeteorRain, setter: setWeatherMeteorRain, icon: '☄️' },
-        { label: 'Clouds', value: weatherClouds, setter: setWeatherClouds, icon: '☁️' },
-        { label: 'Fog', value: weatherFog, setter: setWeatherFog, icon: '🌫️' },
-        { label: 'Radio Fog', value: weatherRadioactiveFog, setter: setWeatherRadioactiveFog, icon: '☢️' },
-        { label: 'Thunder', value: weatherThunder, setter: setWeatherThunder, icon: '⚡' },
+        { label: t('EDITOR_SCENE_WEATHER_RAIN'), value: weatherRain, setter: setWeatherRain, icon: '🌧️' },
+        { label: t('EDITOR_SCENE_WEATHER_LAVA_RAIN'), value: weatherLavaRain, setter: setWeatherLavaRain, icon: '🔥' },
+        { label: t('EDITOR_SCENE_WEATHER_SNOW'), value: weatherSnow, setter: setWeatherSnow, icon: '❄️' },
+        { label: t('EDITOR_SCENE_WEATHER_METEOR_RAIN'), value: weatherMeteorRain, setter: setWeatherMeteorRain, icon: '☄️' },
+        { label: t('EDITOR_SCENE_WEATHER_CLOUDS'), value: weatherClouds, setter: setWeatherClouds, icon: '☁️' },
+        { label: t('EDITOR_SCENE_WEATHER_FOG'), value: weatherFog, setter: setWeatherFog, icon: '🌫️' },
+        { label: t('EDITOR_SCENE_WEATHER_RADIO_FOG'), value: weatherRadioactiveFog, setter: setWeatherRadioactiveFog, icon: '☢️' },
+        { label: t('EDITOR_SCENE_WEATHER_THUNDER'), value: weatherThunder, setter: setWeatherThunder, icon: '⚡' },
     ];
 
     return (
@@ -60,7 +62,7 @@ export const WeatherPanel = ({
                 </div>
             ))}
             <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', textAlign: 'center', marginTop: '5px' }}>
-                Weather effects will be visible in Play mode
+                {t('EDITOR_SCENE_WEATHER_HINT')}
             </div>
         </div>
     );

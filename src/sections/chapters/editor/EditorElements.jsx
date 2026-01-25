@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
     SidebarContainer,
     ElementEditorButton,
@@ -62,6 +63,7 @@ export const EditorElements = ({
     activeMapId,
     createMap
 }) => {
+    const { t } = useTranslation('editor_elements');
     const [lastPanel, setLastPanel] = React.useState(null);
     const [pinnedPanel, setPinnedPanel] = React.useState(null);
     const hoverTimerRef = React.useRef(null);
@@ -118,40 +120,40 @@ export const EditorElements = ({
     };
 
     const panelTitles = {
-        map: 'Operations',
-        blocks: 'Blocks',
-        liquids: 'Liquids (Blocks)',
-        decorations: 'Decorations',
-        entities: 'Entities',
-        items: 'Items',
-        interactables: 'Interactables',
-        hazards: 'Hazards',
-        secrets: 'Sectors',
-        weather: 'Weather',
-        messages: 'Messages',
-        obstacles: 'Obstacles',
-        stats: 'Statistics',
-        props: 'Object Properties'
+        map: t('EDITOR_ELEMENTS_PANEL_OPERATIONS'),
+        blocks: t('EDITOR_ELEMENTS_PANEL_BLOCKS'),
+        liquids: t('EDITOR_ELEMENTS_PANEL_LIQUIDS'),
+        decorations: t('EDITOR_ELEMENTS_PANEL_DECORATIONS'),
+        entities: t('EDITOR_ELEMENTS_PANEL_ENTITIES'),
+        items: t('EDITOR_ELEMENTS_PANEL_ITEMS'),
+        interactables: t('EDITOR_ELEMENTS_PANEL_INTERACTABLES'),
+        hazards: t('EDITOR_ELEMENTS_PANEL_HAZARDS'),
+        secrets: t('EDITOR_ELEMENTS_PANEL_SECTORS'),
+        weather: t('EDITOR_ELEMENTS_PANEL_WEATHER'),
+        messages: t('EDITOR_ELEMENTS_PANEL_MESSAGES'),
+        obstacles: t('EDITOR_ELEMENTS_PANEL_OBSTACLES'),
+        stats: t('EDITOR_ELEMENTS_PANEL_STATISTICS'),
+        props: t('EDITOR_ELEMENTS_PANEL_PROPERTIES')
     };
 
     return (
         <div style={{ display: 'flex', height: '100%', position: 'relative', zIndex: 1001 }}>
             {/* Sidebar Left Icons */}
             <SidebarContainer>
-                <ElementEditorButton onClick={() => handleIconClick('map')} onMouseEnter={() => handleIconMouseEnter('map')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'map'} title="Map Controls">⚙️</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('blocks')} onMouseEnter={() => handleIconMouseEnter('blocks')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'blocks'} title="Blocks">🧱</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('liquids')} onMouseEnter={() => handleIconMouseEnter('liquids')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'liquids'} title="Liquids">💧</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('decorations')} onMouseEnter={() => handleIconMouseEnter('decorations')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'decorations'} title="Decorations">🌲</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('obstacles')} onMouseEnter={() => handleIconMouseEnter('obstacles')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'obstacles'} title="Obstacles">🏺</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('items')} onMouseEnter={() => handleIconMouseEnter('items')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'items'} title="Items">✨</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('entities')} onMouseEnter={() => handleIconMouseEnter('entities')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'entities'} title="Entities">👾</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('interactables')} onMouseEnter={() => handleIconMouseEnter('interactables')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'interactables'} title="Interactables">🚪</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('hazards')} onMouseEnter={() => handleIconMouseEnter('hazards')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'hazards'} title="Hazards">☠️</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('secrets')} onMouseEnter={() => handleIconMouseEnter('secrets')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'secrets'} title="Sectors">√2</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('weather')} onMouseEnter={() => handleIconMouseEnter('weather')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'weather'} title="Weather">∑</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('messages')} onMouseEnter={() => handleIconMouseEnter('messages')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'messages'} title="Messages">𝔐</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('stats')} onMouseEnter={() => handleIconMouseEnter('stats')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'stats'} title="Statistics">📊</ElementEditorButton>
-                <ElementEditorButton onClick={() => handleIconClick('props')} onMouseEnter={() => handleIconMouseEnter('props')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'props'} title="Object Properties">📋</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('map')} onMouseEnter={() => handleIconMouseEnter('map')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'map'} title={t('EDITOR_ELEMENTS_ICON_MAP_CONTROLS')}>⚙️</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('blocks')} onMouseEnter={() => handleIconMouseEnter('blocks')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'blocks'} title={t('EDITOR_ELEMENTS_ICON_BLOCKS')}>🧱</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('liquids')} onMouseEnter={() => handleIconMouseEnter('liquids')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'liquids'} title={t('EDITOR_ELEMENTS_ICON_LIQUIDS')}>💧</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('decorations')} onMouseEnter={() => handleIconMouseEnter('decorations')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'decorations'} title={t('EDITOR_ELEMENTS_ICON_DECORATIONS')}>🌲</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('obstacles')} onMouseEnter={() => handleIconMouseEnter('obstacles')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'obstacles'} title={t('EDITOR_ELEMENTS_ICON_OBSTACLES')}>🏺</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('items')} onMouseEnter={() => handleIconMouseEnter('items')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'items'} title={t('EDITOR_ELEMENTS_ICON_ITEMS')}>✨</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('entities')} onMouseEnter={() => handleIconMouseEnter('entities')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'entities'} title={t('EDITOR_ELEMENTS_ICON_ENTITIES')}>👾</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('interactables')} onMouseEnter={() => handleIconMouseEnter('interactables')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'interactables'} title={t('EDITOR_ELEMENTS_ICON_INTERACTABLES')}>🚪</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('hazards')} onMouseEnter={() => handleIconMouseEnter('hazards')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'hazards'} title={t('EDITOR_ELEMENTS_ICON_HAZARDS')}>☠️</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('secrets')} onMouseEnter={() => handleIconMouseEnter('secrets')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'secrets'} title={t('EDITOR_ELEMENTS_ICON_SECTORS')}>√2</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('weather')} onMouseEnter={() => handleIconMouseEnter('weather')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'weather'} title={t('EDITOR_ELEMENTS_ICON_WEATHER')}>∑</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('messages')} onMouseEnter={() => handleIconMouseEnter('messages')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'messages'} title={t('EDITOR_ELEMENTS_ICON_MESSAGES')}>𝔐</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('stats')} onMouseEnter={() => handleIconMouseEnter('stats')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'stats'} title={t('EDITOR_ELEMENTS_ICON_STATISTICS')}>📊</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('props')} onMouseEnter={() => handleIconMouseEnter('props')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'props'} title={t('EDITOR_ELEMENTS_ICON_PROPERTIES')}>📋</ElementEditorButton>
             </SidebarContainer>
 
             {/* Sidebar Fixed Panel Content */}
