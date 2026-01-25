@@ -27,10 +27,12 @@ export const useEditorPlayMode = (
         rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0,
         lavaRain: 0, radioactiveFog: 0, meteorRain: 0
     });
+    const [playModeMapsVersion, setPlayModeMapsVersion] = useState(0);
     const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
     const messageTimerRef = useRef(null);
     const lastSyncedMapIdRef = useRef(null);
     const isPlayModeRef = useRef(isPlayMode);
+    const playModeMapsRef = useRef({});
 
     useEffect(() => {
         isPlayModeRef.current = isPlayMode;
@@ -65,6 +67,22 @@ export const useEditorPlayMode = (
         return playModeSecretData;
     }, [isPlayMode, activeMapId, playModeSecretData, secretMapData]);
 
+    const playModeMaps = useMemo(() => {
+        if (!isPlayMode) return maps;
+        const overrides = playModeMapsRef.current || {};
+        const merged = { ...maps };
+        Object.keys(overrides).forEach(id => {
+            if (!merged[id]) return;
+            merged[id] = {
+                ...merged[id],
+                objectMapData: overrides[id].objectMapData || merged[id].objectMapData,
+                secretMapData: overrides[id].secretMapData || merged[id].secretMapData,
+                objectMetadata: overrides[id].objectMetadata || merged[id].objectMetadata
+            };
+        });
+        return merged;
+    }, [isPlayMode, maps, playModeMapsVersion]);
+
     const mapDataForGame = useMemo(() => ({
         meta: {
             width: mapWidth,
@@ -89,10 +107,11 @@ export const useEditorPlayMode = (
                 thunder: isPlayMode ? playModeWeather.thunder : weatherThunder
             }
         },
-        maps: maps, // Project maps for inter-map teleports
+        maps: playModeMaps, // Project maps for inter-map teleports
         layers: [
             { type: "tile", name: "background", data: tileMapData },
-            { type: "object", name: "entities", data: currentPlayObjectData }
+            { type: "object", name: "entities", data: currentPlayObjectData },
+            { type: "secret", name: "secrets", data: currentPlaySecretData }
         ]
     }), [
         mapWidth, mapHeight, activeMapId, spawnTriggerId, selectedBackgroundImage, selectedBackgroundColor, 
@@ -100,12 +119,23 @@ export const useEditorPlayMode = (
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
         weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         playModeWeather,
-        isPlayMode, maps, engineInitId
+        isPlayMode, playModeMaps, engineInitId
     ]);
 
     // Synchronize play mode state when map changes (e.g., during inter-map teleport)
     useEffect(() => {
         if (isPlayMode && lastSyncedMapIdRef.current !== activeMapId) {
+            const saved = playModeMapsRef.current?.[activeMapId];
+            if (saved) {
+                setPlayModeObjectData([...saved.objectMapData]);
+                setPlayModeSecretData([...(saved.secretMapData || [])]);
+                if (saved.objectMetadata) {
+                    setObjectMetadata({ ...saved.objectMetadata });
+                }
+                setRevealedSecrets([]);
+                lastSyncedMapIdRef.current = activeMapId;
+                return;
+            }
             const playData = [...objectMapData];
             
             let spawnIndex = playData.findIndex(id => id && id.includes('player'));
@@ -147,12 +177,21 @@ export const useEditorPlayMode = (
                 setPlayModeObjectData(prev => {
                     const newData = [...prev];
                     newData[index] = null;
+                    playModeMapsRef.current[activeMapId] = {
+                        ...(playModeMapsRef.current[activeMapId] || {}),
+                        objectMapData: newData
+                    };
+                    setPlayModeMapsVersion(v => v + 1);
                     return newData;
                 });
             } else if (updateMapData && maps[mapId]) {
-                const newData = [...(maps[mapId].objectMapData || [])];
+                const newData = [...(playModeMapsRef.current?.[mapId]?.objectMapData || maps[mapId].objectMapData || [])];
                 newData[index] = null;
-                updateMapData(mapId, { objectMapData: newData });
+                playModeMapsRef.current[mapId] = {
+                    ...(playModeMapsRef.current[mapId] || {}),
+                    objectMapData: newData
+                };
+                setPlayModeMapsVersion(v => v + 1);
             }
         } else if (newState === 'interactable' && payload !== undefined) {
             const { index, mapId } = typeof payload === 'object' ? payload : { index: payload, mapId: null };
@@ -162,27 +201,49 @@ export const useEditorPlayMode = (
                     if (!currentId) return prev;
                     const newData = [...prev];
                     newData[index] = currentId + '_used';
+                    playModeMapsRef.current[activeMapId] = {
+                        ...(playModeMapsRef.current[activeMapId] || {}),
+                        objectMapData: newData
+                    };
+                    setPlayModeMapsVersion(v => v + 1);
                     return newData;
                 });
             } else if (updateMapData && maps[mapId]) {
-                const currentId = maps[mapId].objectMapData?.[index];
+                const mapObj = playModeMapsRef.current?.[mapId]?.objectMapData || maps[mapId].objectMapData || [];
+                const currentId = mapObj[index];
                 if (currentId) {
-                    const newData = [...maps[mapId].objectMapData];
+                    const newData = [...mapObj];
                     newData[index] = currentId + '_used';
-                    updateMapData(mapId, { objectMapData: newData });
+                    playModeMapsRef.current[mapId] = {
+                        ...(playModeMapsRef.current[mapId] || {}),
+                        objectMapData: newData
+                    };
+                    setPlayModeMapsVersion(v => v + 1);
                 }
             }
         } else if (newState === 'setObjectFrame' && payload !== undefined) {
             const { index, frame, mapId } = payload;
             if (!mapId || mapId === activeMapId) {
-                setObjectMetadata(prev => ({
-                    ...prev,
-                    [index]: { ...prev[index], currentFrame: frame }
-                }));
+                setObjectMetadata(prev => {
+                    const next = {
+                        ...prev,
+                        [index]: { ...prev[index], currentFrame: frame }
+                    };
+                    playModeMapsRef.current[activeMapId] = {
+                        ...(playModeMapsRef.current[activeMapId] || {}),
+                        objectMetadata: next
+                    };
+                    setPlayModeMapsVersion(v => v + 1);
+                    return next;
+                });
             } else if (updateMapData && maps[mapId]) {
-                const newMeta = { ...(maps[mapId].objectMetadata || {}) };
+                const newMeta = { ...((playModeMapsRef.current?.[mapId]?.objectMetadata) || maps[mapId].objectMetadata || {}) };
                 newMeta[index] = { ...(newMeta[index] || {}), currentFrame: frame };
-                updateMapData(mapId, { objectMetadata: newMeta });
+                playModeMapsRef.current[mapId] = {
+                    ...(playModeMapsRef.current[mapId] || {}),
+                    objectMetadata: newMeta
+                };
+                setPlayModeMapsVersion(v => v + 1);
             }
         } else if (newState === 'switchMap' && payload !== undefined) {
             const { targetMapId, triggerId } = payload;
@@ -196,9 +257,15 @@ export const useEditorPlayMode = (
                     else next.add(targetMapId);
                     return next;
                 });
-            } else if (targetMapId === 'main' && activeRoomIds.length > 0) {
+            } else if (targetMapId === 'main' && activeRoomIds.size > 0) {
                 setActiveRoomIds(new Set());
             } else if (switchMap && targetMapId) {
+                playModeMapsRef.current[activeMapId] = {
+                    objectMapData: [...playModeObjectData],
+                    secretMapData: [...playModeSecretData],
+                    objectMetadata: { ...objectMetadata }
+                };
+                setPlayModeMapsVersion(v => v + 1);
                 // We keep play mode active when switching maps via teleport
                 switchMap(targetMapId, triggerId);
             }
@@ -239,6 +306,18 @@ export const useEditorPlayMode = (
                     [index]: { ...current, health: newHealth, breakFxPlayed: current.breakFxPlayed || shouldTriggerBreakEffect(def, newHealth) }
                 };
             });
+            const nextMeta = {
+                ...(objectMetadata || {}),
+                [index]: {
+                    ...(objectMetadata?.[index] || {}),
+                    health: Math.max(0, ((objectMetadata?.[index]?.health ?? (def.maxHealth || 100)) - damage))
+                }
+            };
+            playModeMapsRef.current[activeMapId] = {
+                ...(playModeMapsRef.current[activeMapId] || {}),
+                objectMetadata: nextMeta
+            };
+            setPlayModeMapsVersion(v => v + 1);
 
             const x = (index % mapWidth) * TILE_SIZE + TILE_SIZE / 2;
             const y = Math.floor(index / mapWidth) * TILE_SIZE;
@@ -361,7 +440,9 @@ export const useEditorPlayMode = (
         handleStateUpdate,
         handleRevealSecret,
         objectMetadata,
-        Array.from(activeRoomIds)
+        Array.from(activeRoomIds),
+        mapWidth,
+        mapHeight
     );
 
     const handlePlay = () => {
@@ -384,6 +465,14 @@ export const useEditorPlayMode = (
 
         setPlayModeObjectData(playData);
         setPlayModeSecretData([...secretMapData]);
+        playModeMapsRef.current = {
+            [activeMapId]: {
+                objectMapData: playData,
+                secretMapData: [...secretMapData],
+                objectMetadata: { ...objectMetadata }
+            }
+        };
+        setPlayModeMapsVersion(v => v + 1);
         setPlayModeWeather({
             rain: weatherRain,
             snow: weatherSnow,
@@ -403,6 +492,8 @@ export const useEditorPlayMode = (
     const handlePause = () => {
         setIsPlayMode(false);
         setIsGameOver(false); // Reset game over when exiting play mode
+        playModeMapsRef.current = {};
+        setPlayModeMapsVersion(v => v + 1);
     };
 
     const handleReset = () => {
@@ -424,8 +515,28 @@ export const useEditorPlayMode = (
             setPlayModeSecretData([...editorSnapshot.secretMapData]);
             setObjectMetadata({ ...editorSnapshot.objectMetadata });
             setRevealedSecrets([]);
+            playModeMapsRef.current = {
+                [activeMapId]: {
+                    objectMapData: resetData,
+                    secretMapData: [...editorSnapshot.secretMapData],
+                    objectMetadata: { ...editorSnapshot.objectMetadata }
+                }
+            };
+            setPlayModeMapsVersion(v => v + 1);
             lastSyncedMapIdRef.current = activeMapId;
         }
+    };
+
+    const handleForceStop = () => {
+        setIsPlayMode(false);
+        setIsGameOver(false);
+        setEditorSnapshot(null);
+        setPlayModeObjectData([]);
+        setPlayModeSecretData([]);
+        setRevealedSecrets([]);
+        playModeMapsRef.current = {};
+        lastSyncedMapIdRef.current = null;
+        setPlayModeMapsVersion(v => v + 1);
     };
 
     return {
@@ -435,11 +546,13 @@ export const useEditorPlayMode = (
         handlePlay,
         handlePause,
         handleReset,
+        handleForceStop,
         handleReplay,
         handleStateUpdate,
         playModeObjectData: currentPlayObjectData,
         playModeSecretData: currentPlaySecretData,
         playModeWeather,
+        playModeMaps,
         gameMessage,
         revealedSecrets,
         activeRoomIds: Array.from(activeRoomIds),

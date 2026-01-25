@@ -306,8 +306,8 @@ export const Editor = () => {
     } = useEditorSelection(mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, setTileMapData, setObjectMapData, setSecretMapData, setObjectMetadata);
 
     const {
-        isPlayMode, handlePlay, handlePause, handleReset, handleReplay, handleStateUpdate,
-        playModeObjectData, playModeSecretData, playModeWeather, gameMessage, revealedSecrets, 
+        isPlayMode, handlePlay, handlePause, handleReset, handleReplay, handleStateUpdate, handleForceStop,
+        playModeObjectData, playModeSecretData, playModeWeather, playModeMaps, gameMessage, revealedSecrets, 
         activeRoomIds, gameEngineState, isGameOver
     } = useEditorPlayMode(
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
@@ -336,6 +336,20 @@ export const Editor = () => {
         setWeatherLavaRain, setWeatherRadioactiveFog, setWeatherMeteorRain,
         maps, setMaps, activeMapId, setActiveMapId
     );
+
+    const handleLoadMapWrapped = useCallback((event) => {
+        if (isPlayMode) {
+            handleForceStop();
+        }
+        handleLoadMap(event);
+    }, [isPlayMode, handleForceStop, handleLoadMap]);
+
+    const handleLoadBuiltInMapWrapped = useCallback((mapData) => {
+        if (isPlayMode) {
+            handleForceStop();
+        }
+        handleLoadBuiltInMap(mapData);
+    }, [isPlayMode, handleForceStop, handleLoadBuiltInMap]);
 
     const {
         hoverIndex, setHoverIndex, bucketPreviewIndices, setBucketPreviewIndices,
@@ -424,7 +438,7 @@ export const Editor = () => {
             <BuiltInMapsModal 
                 isOpen={isBuiltInMapsModalOpen}
                 onClose={() => setIsBuiltInMapsModalOpen(false)}
-                onSelect={handleLoadBuiltInMap}
+                onSelect={handleLoadBuiltInMapWrapped}
             />
 
             <div className="editor-container" style={{
@@ -444,7 +458,7 @@ export const Editor = () => {
                     openNewMapModal={openNewMapModal}
                     openBuiltInModal={() => setIsBuiltInMapsModalOpen(true)}
                     saveMap={handleSaveMap}
-                    loadMap={handleLoadMap}
+                    loadMap={handleLoadMapWrapped}
                     clearMap={handleClearMap}
                     isPlayMode={isPlayMode}
                     handlePaletteSelect={handlePaletteSelect}
@@ -647,10 +661,10 @@ export const Editor = () => {
                                 isEditor={false}
                                 isEditorPlayMode={true}
                                 showGrid={showGrid}
-                                mapType={maps[activeMapId]?.type || 'overworld'}
-                                activeRoomIds={activeRoomIds}
-                                maps={maps}
-                            />
+                            mapType={(playModeMaps?.[activeMapId]?.type || maps[activeMapId]?.type) || 'overworld'}
+                            activeRoomIds={activeRoomIds}
+                            maps={playModeMaps || maps}
+                        />
                             {isGameOver && (
                                 <GameOverOverlay>
                                     <GameOverTitle>Game Over</GameOverTitle>
