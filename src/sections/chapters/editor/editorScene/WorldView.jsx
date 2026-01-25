@@ -372,6 +372,12 @@ export const WorldView = ({
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button
+                    onClick={() => switchMap('main')}
+                    style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#1e88e5', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
+                >
+                    Main
+                </button>
                 <button 
                     onClick={() => createMap('overworld')}
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}

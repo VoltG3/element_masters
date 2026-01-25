@@ -51,12 +51,29 @@ const gameSlice = createSlice({
     },
     updateObjectMetadata: (state, action) => {
       const { index, metadata, mapId } = action.payload;
+      const activeId = state.activeMapData?.meta?.activeMapId || state.activeMapData?.meta?.activeMap || 'main';
+      const targetId = mapId || activeId;
       if (!mapId || mapId === 'main') {
         state.objectMetadata[index] = {
           ...(state.objectMetadata[index] || {}),
           ...metadata
         };
+        if (state.projectMaps[targetId]) {
+          if (!state.projectMaps[targetId].objectMetadata) {
+            state.projectMaps[targetId].objectMetadata = {};
+          }
+          state.projectMaps[targetId].objectMetadata[index] = {
+            ...(state.projectMaps[targetId].objectMetadata[index] || {}),
+            ...metadata
+          };
+        }
       } else if (state.projectMaps[mapId]) {
+        if (mapId === activeId) {
+          state.objectMetadata[index] = {
+            ...(state.objectMetadata[index] || {}),
+            ...metadata
+          };
+        }
         if (!state.projectMaps[mapId].objectMetadata) {
           state.projectMaps[mapId].objectMetadata = {};
         }
@@ -68,11 +85,30 @@ const gameSlice = createSlice({
     },
     removeObjectAtIndex: (state, action) => {
       const { index, mapId } = typeof action.payload === 'object' ? action.payload : { index: action.payload, mapId: null };
+      const activeId = state.activeMapData?.meta?.activeMapId || state.activeMapData?.meta?.activeMap || 'main';
+      const targetId = mapId || activeId;
       if (!mapId || mapId === 'main') {
         if (state.objectMapData[index] !== undefined) {
           state.objectMapData[index] = null;
         }
+        if (state.projectMaps[targetId]) {
+          const room = state.projectMaps[targetId];
+          if (!room.objectMapData) {
+            const layerData = room.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;
+            room.objectMapData = layerData ? [...layerData] : [];
+          } else {
+            room.objectMapData = [...room.objectMapData];
+          }
+          if (index >= 0 && index < room.objectMapData.length) {
+            room.objectMapData[index] = null;
+          }
+        }
       } else if (state.projectMaps[mapId]) {
+        if (mapId === activeId) {
+          if (state.objectMapData[index] !== undefined) {
+            state.objectMapData[index] = null;
+          }
+        }
         const room = state.projectMaps[mapId];
         if (!room.objectMapData) {
           const layerData = room.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;
@@ -117,11 +153,30 @@ const gameSlice = createSlice({
     },
     updateObjectAtIndex: (state, action) => {
       const { index, newId, mapId } = action.payload;
+      const activeId = state.activeMapData?.meta?.activeMapId || state.activeMapData?.meta?.activeMap || 'main';
+      const targetId = mapId || activeId;
       if (!mapId || mapId === 'main') {
         if (state.objectMapData[index] !== undefined) {
           state.objectMapData[index] = newId;
         }
+        if (state.projectMaps[targetId]) {
+          const room = state.projectMaps[targetId];
+          if (!room.objectMapData) {
+            const layerData = room.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;
+            room.objectMapData = layerData ? [...layerData] : [];
+          } else {
+            room.objectMapData = [...room.objectMapData];
+          }
+          if (index >= 0 && index < room.objectMapData.length) {
+            room.objectMapData[index] = newId;
+          }
+        }
       } else if (state.projectMaps[mapId]) {
+        if (mapId === activeId) {
+          if (state.objectMapData[index] !== undefined) {
+            state.objectMapData[index] = newId;
+          }
+        }
         const room = state.projectMaps[mapId];
         if (!room.objectMapData) {
           const layerData = room.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;

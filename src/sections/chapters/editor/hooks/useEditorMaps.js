@@ -4,7 +4,7 @@ export const useEditorMaps = () => {
     const [maps, setMaps] = useState({
         'main': {
             id: 'main',
-            name: 'Overworld',
+            name: 'Main',
             description: '',
             type: 'overworld',
             mapWidth: 20,

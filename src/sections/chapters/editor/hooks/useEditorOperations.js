@@ -25,8 +25,6 @@ export const useEditorOperations = (
         const currentMapData = {
             ...maps[activeMapId],
             mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-            name: mapName,
-            description: mapDescription,
             selectedBackgroundImage, selectedBackgroundColor,
             backgroundParallaxFactor, selectedBackgroundMusic,
             weather: {

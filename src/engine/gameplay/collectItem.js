@@ -11,7 +11,7 @@ const getDefById = (registryItems, id) => {
 // Args (ctx): { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, maps, activeRoomIds, objectMetadata }
 // Params: currentX, currentY, mapWidth, objectLayerData
 export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) {
-  const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, maps, activeRoomIds, objectMetadata: mainMetadata, secretMapData } = ctx;
+  const { registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate, gameState, maps, activeRoomIds, objectMetadata: mainMetadata, secretMapData, activeMapId } = ctx;
   if (!objectLayerData) return;
 
   const centerX = currentX + gameState.current.width / 2;
@@ -99,7 +99,8 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
   const index = gridY * mapWidth + gridX;
   if (index < 0 || index >= objectLayerData.length) return;
 
-  const itemKey = `main:${index}`;
+  const mapKey = activeMapId || 'main';
+  const itemKey = `${mapKey}:${index}`;
   if (gameState.current.collectedItems.has(itemKey)) return;
 
   const itemId = objectLayerData[index];
@@ -121,7 +122,7 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
       const vol = Math.max(0, Math.min(1, itemDef?.sfxVolume ?? 1));
       playShotSfx(itemDef?.sfx, vol);
     } catch {}
-    if (onStateUpdate) onStateUpdate('collectItem', index);
+    if (onStateUpdate) onStateUpdate('collectItem', { index, mapId: mapKey });
     return;
   }
 
@@ -133,7 +134,7 @@ export function collectItem(ctx, currentX, currentY, mapWidth, objectLayerData) 
       const vol = Math.max(0, Math.min(1, itemDef?.sfxVolume ?? 1));
       playShotSfx(itemDef?.sfx, vol);
     } catch {}
-    if (onStateUpdate) onStateUpdate('collectItem', index);
+    if (onStateUpdate) onStateUpdate('collectItem', { index, mapId: mapKey });
     return;
   }
 }

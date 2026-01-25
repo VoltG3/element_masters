@@ -368,8 +368,10 @@ export default function Game() {
             dispatch(updateObjectMetadata({ index, metadata: { currentFrame: frame }, mapId }));
         } else if (action === 'switchMap') {
             const { targetMapId, triggerId } = payload;
-            const projectMaps = activeMapData?.maps || activeMapData?.projectMaps || {};
-            const targetMap = projectMaps[targetMapId];
+            const projectMapsResolved = Object.keys(projectMaps || {}).length
+                ? projectMaps
+                : (activeMapData?.maps || activeMapData?.projectMaps || {});
+            const targetMap = projectMapsResolved[targetMapId];
             
             if (targetMap && targetMap.type === 'room') {
                 if (!activeRoomIds.includes(targetMapId)) {
@@ -401,6 +403,7 @@ export default function Game() {
                 // Mēs varam vienkārši nodot visu projektu un pielikt spawnTriggerId
                 const projectToLoad = {
                     ...activeMapData,
+                    maps: projectMapsResolved,
                     meta: {
                         ...activeMapData.meta,
                         activeMapId: targetMapId,

@@ -192,7 +192,6 @@ export const Editor = () => {
         // 1. Save current map data to store
         updateMapData(activeMapId, {
             mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-            mapName, creatorName, mapDescription, createdAt,
             selectedBackgroundImage, selectedBackgroundColor,
             backgroundParallaxFactor, selectedBackgroundMusic,
             weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
@@ -209,8 +208,6 @@ export const Editor = () => {
             setObjectMapData(nextMap.objectMapData);
             setSecretMapData(nextMap.secretMapData);
             setObjectMetadata(nextMap.objectMetadata || {});
-            setMapName(nextMap.name);
-            setMapDescription(nextMap.description || "");
             setCreatedAt(nextMap.createdAt || new Date().toISOString());
             setSelectedBackgroundImage(nextMap.selectedBackgroundImage);
             setSelectedBackgroundColor(nextMap.selectedBackgroundColor);
@@ -244,7 +241,6 @@ export const Editor = () => {
     }, [
         activeMapId, maps, updateMapData, setActiveMapId,
         mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-        mapName, creatorName, createdAt,
         selectedBackgroundImage, selectedBackgroundColor,
         backgroundParallaxFactor, selectedBackgroundMusic,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder,
@@ -273,8 +269,6 @@ export const Editor = () => {
         const timeout = setTimeout(() => {
             updateMapData(activeMapId, {
                 mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata,
-                name: mapName,
-                description: mapDescription,
                 selectedBackgroundImage, selectedBackgroundColor,
                 selectedBackgroundMusic, backgroundParallaxFactor,
                 weather: {
@@ -293,7 +287,7 @@ export const Editor = () => {
         return () => clearTimeout(timeout);
     }, [
         activeMapId, updateMapData, mapWidth, mapHeight, tileMapData, objectMapData, secretMapData, objectMetadata, 
-        mapName, mapDescription, selectedBackgroundImage, selectedBackgroundColor, selectedBackgroundMusic, backgroundParallaxFactor,
+        selectedBackgroundImage, selectedBackgroundColor, selectedBackgroundMusic, backgroundParallaxFactor,
         weatherRain, weatherSnow, weatherClouds, weatherFog, weatherThunder, weatherLavaRain, weatherRadioactiveFog, weatherMeteorRain,
         playerPosition
     ]);

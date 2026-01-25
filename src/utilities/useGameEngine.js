@@ -354,6 +354,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     const registryPlayer = findItemById(playerId) || findItemById("player"); // Fallback to generic player
                     const maxHealth = Math.max(1, Number(registryPlayer?.maxHealth) || MAX_HEALTH);
 
+                    const prevAmmo = Math.max(0, Number(gameState.current?.ammo) || 0);
                     // Completely overwrite gameState with default values + new position
                     gameState.current = {
                         x: startX,
@@ -367,7 +368,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         animation: 'idle',
                         health: Math.min(90, maxHealth), // Reset to 90 (not MAX) to allow testing items
                         maxHealth,
-                        ammo: 0,
+                        ammo: prevAmmo,
                         // resources
                         oxygen: MAX_OXYGEN,
                         maxOxygen: MAX_OXYGEN,
@@ -536,18 +537,19 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             },
             actions: {
                 collectItem: (x, y, mw, objectLayer) =>
-                    collectItem({
-                        registryItems,
-                        TILE_SIZE,
-                        MAX_HEALTH,
-                        playShotSfx,
-                        onStateUpdate: onStateUpdateRef.current,
-                        gameState,
-                        maps: mapData?.maps,
-                        activeRoomIds: activeRoomIdsRef.current || mapData?.meta?.activeRoomIds,
-                        objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata,
-                        secretMapData: secretDataRef.current || secretData
-                    }, x, y, mapWidthRef.current || 20, objectDataRef.current),
+                collectItem({
+                    registryItems,
+                    TILE_SIZE,
+                    MAX_HEALTH,
+                    playShotSfx,
+                    onStateUpdate: onStateUpdateRef.current,
+                    gameState,
+                    maps: mapData?.maps,
+                    activeRoomIds: activeRoomIdsRef.current || mapData?.meta?.activeRoomIds,
+                    objectMetadata: objectMetadataRef.current || mapData?.meta?.objectMetadata,
+                    secretMapData: secretDataRef.current || secretData,
+                    activeMapId: mapData?.meta?.activeMapId || mapData?.meta?.activeMap || 'main'
+                }, x, y, mapWidthRef.current || 20, objectDataRef.current),
                 checkInteractables: (x, y, mw, mh, objectLayer) =>
                     checkInteractables({ registryItems, TILE_SIZE, MAX_HEALTH, playShotSfx, onStateUpdate: onStateUpdateRef.current, gameState, mapData, input, activeRoomIds: activeRoomIdsRef.current, objectMetadata: objectMetadataRef.current, secretMapData: secretDataRef.current || secretData }, x, y, mapWidthRef.current || 20, mapHeightRef.current || 15, objectDataRef.current),
                 checkHazardDamage: (x, y, mw, objectLayer, deltaMs) =>
