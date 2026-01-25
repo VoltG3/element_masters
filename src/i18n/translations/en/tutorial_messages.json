@@ -1,5 +1,8 @@
 {
   "sectors": {
     "1": "Task 1: Locate the hidden tunnel.\n\nTask 2: Find and push movable walls (press E).\n\nTask 3: Break cracked walls to clear the way."
+  },
+  "interactables": {
+    "1": "Task: Find the entrance to the building.\nTip: Stand in the doorway and press E."
   }
 }

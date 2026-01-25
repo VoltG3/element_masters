@@ -319,11 +319,13 @@ export const PalettePanel = ({
                     if (e.editor?.group) return e.editor.group;
                     const name = (e.id || e.name || '').toLowerCase();
                     if (name.includes('player')) return 'player';
+                    if (name.includes('fish') || name.includes('animal')) return 'animals';
                     return 'enemies';
                 };
 
                 const groupOrder = [
                     { key: 'player', title: t('EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER'), color: 'red', open: true },
+                    { key: 'animals', title: t('EDITOR_ELEMENTS_ENTITIES_GROUP_ANIMALS'), color: 'red', open: true },
                     { key: 'enemies', title: t('EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES'), color: 'red', open: true }
                 ];
 

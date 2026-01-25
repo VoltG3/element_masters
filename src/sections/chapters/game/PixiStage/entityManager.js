@@ -93,6 +93,8 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
 
     // Virziens (flipping)
     const direction = ent.direction !== undefined ? ent.direction : 1;
+    const flipY = !!ent.flipY;
+    const alpha = Number.isFinite(ent.alpha) ? ent.alpha : 1;
     
     // Ja ir definēta rotācija (piem. akmeņiem), izmantojam centru kā enkuru
     if (ent.rotation !== undefined) {
@@ -100,21 +102,27 @@ export const syncEntities = (entitiesLayer, entitySpritesMap, entitiesList, regi
         spr.x = ent.x + targetWidth / 2;
         spr.y = ent.y + targetHeight / 2;
         spr.rotation = ent.rotation;
+        spr.alpha = alpha;
         
         // Flipping ar centru enkuru
         const absScaleX = Math.abs(spr.scale.x);
+        const absScaleY = Math.abs(spr.scale.y);
         spr.scale.x = direction >= 0 ? absScaleX : -absScaleX;
+        spr.scale.y = flipY ? -absScaleY : absScaleY;
     } else {
         // Standarta enkurs (augšējais kreisais stūris)
         spr.anchor.set(0, 0);
         spr.rotation = 0;
+        spr.alpha = alpha;
         
         const absScaleX = Math.abs(spr.scale.x);
+        const absScaleY = Math.abs(spr.scale.y);
         spr.scale.x = direction >= 0 ? absScaleX : -absScaleX;
+        spr.scale.y = flipY ? -absScaleY : absScaleY;
         
         // Pozicionēšana ņemot vērā flipping pie enkura (0,0)
         spr.x = ent.x + (direction < 0 ? targetWidth : 0);
-        spr.y = ent.y;
+        spr.y = ent.y + (flipY ? targetHeight : 0);
     }
   }
 

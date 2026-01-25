@@ -10,6 +10,39 @@ const getDefById = (registryItems, id) => {
   return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
 };
 
+const getTileLayerData = (mapData) => {
+  if (!mapData) return [];
+  if (Array.isArray(mapData.tileMapData)) return mapData.tileMapData;
+  const layer = mapData.layers?.find(l => l.name === 'background' || l.type === 'tile');
+  return layer?.data || [];
+};
+
+const liquidTypeToHabitat = (liquidType) => {
+  if (!liquidType) return 'none';
+  if (liquidType.includes('radioactive')) return 'radioactive';
+  if (liquidType.includes('lava')) return 'lava';
+  if (liquidType.includes('quicksand')) return 'quicksand';
+  if (liquidType.includes('water')) return 'water';
+  return 'none';
+};
+
+const getWaterSurfaceY = ({ x, mapWidth, mapHeight, tileData, registryItems, TILE_SIZE }) => {
+  if (!tileData || mapWidth <= 0 || mapHeight <= 0) return null;
+  const gx = Math.floor(x / TILE_SIZE);
+  if (gx < 0 || gx >= mapWidth) return null;
+  for (let gy = 0; gy < mapHeight; gy++) {
+    const idx = gy * mapWidth + gx;
+    const id = tileData[idx];
+    if (!id) continue;
+    const def = getDefById(registryItems, id);
+    if (!def || !def.flags || !def.flags.liquid) continue;
+    if (def.flags.water || def.flags.waterfall) {
+      return gy * TILE_SIZE;
+    }
+  }
+  return null;
+};
+
 /**
  * Atjaunina visas aktīvās entītijas (piemēram, tankus).
  * @param {Object} ctx Konteksts ar nepieciešamajiem datiem un funkcijām
@@ -48,8 +81,10 @@ export function updateEntities(ctx, deltaMs) {
   const entities = entitiesRef.current;
   for (let i = entities.length - 1; i >= 0; i--) {
     const entity = entities[i];
+    const def = entity.def || {};
+    const isFish = def?.subtype === 'fish' || def?.ai?.type === 'fish' || !!def?.fish;
     // 1. Ja entītija ir mirusi, apstrādājam sprādzienu vai noņemšanu
-    if (entity.health <= 0) {
+    if (entity.health <= 0 && !isFish) {
       if (!entity.isExploding) {
         entity.isExploding = true;
         entity.animation = 'explode';
@@ -60,7 +95,6 @@ export function updateEntities(ctx, deltaMs) {
         entity.isGrounded = true; // Sprāgst uz zemes
       }
       
-      const def = entity.def;
       const explodeAnim = def.spriteSheet?.animations?.explode || [];
       const totalFrames = explodeAnim.length;
       const frameDuration = 100; // ms uz kadru
@@ -79,8 +113,6 @@ export function updateEntities(ctx, deltaMs) {
       continue;
     }
 
-    const def = entity.def;
-    
     // 1.2. Liquid damage (e.g. lava, radioactive water)
     const liquidSample = getLiquidSample ? getLiquidSample({
       x: entity.x,
@@ -91,6 +123,28 @@ export function updateEntities(ctx, deltaMs) {
       mapWidth,
       mapHeight
     }) : { inLiquid: false };
+
+    if (isFish) {
+      const cfg = def.fish || {};
+      const activeRadiusPx = (Number(cfg.activeRadius) || 18) * TILE_SIZE;
+      const ex = entity.x + entity.width / 2;
+      const ey = entity.y + entity.height / 2;
+      const dxView = (playerX + gameState.current.width / 2) - ex;
+      const dyView = (playerY + gameState.current.height / 2) - ey;
+      const distView = Math.sqrt(dxView * dxView + dyView * dyView);
+      const isActive = distView <= activeRadiusPx;
+
+      if (!isActive && entity.health > 0) {
+        entity.isDormant = true;
+        entity.vx = 0;
+        entity.vy = 0;
+        entity.animation = 'idle';
+        const idleAnim = def.spriteSheet?.animations?.idle || [0];
+        entity.currentSpriteIndex = idleAnim[0] || 0;
+        continue;
+      }
+      entity.isDormant = false;
+    }
 
     if (liquidSample.inLiquid && liquidSample.params && liquidSample.params.dps > 0) {
       entity.liquidDamageAcc = (entity.liquidDamageAcc || 0) + deltaMs;
@@ -157,6 +211,204 @@ export function updateEntities(ctx, deltaMs) {
       }
     } else {
       entity.weatherDamageAcc = 0;
+    }
+
+    if (isFish) {
+      const cfg = def.fish || {};
+      const habitat = cfg.habitat || {};
+      const now = Number(gameState.current.timeMs) || 0;
+      const dt = Math.max(0, Number(deltaMs) || 0) / 1000;
+      const liquidType = liquidSample?.type || null;
+      const habitatKey = liquidTypeToHabitat(liquidType);
+      const isAllowed = !!(liquidSample?.inLiquid && habitatKey && habitat[habitatKey] !== false);
+      const requireLiquid = cfg.requireLiquid !== false;
+
+      entity.fishState = entity.fishState || {};
+      const fs = entity.fishState;
+
+      if (!fs.initialized) {
+        fs.initialized = true;
+        entity.direction = Math.random() < 0.5 ? -1 : 1;
+        fs.nextTurnAt = now + (cfg.turnMinMs || 900) + Math.random() * ((cfg.turnMaxMs || 2600) - (cfg.turnMinMs || 900));
+        fs.nextVerticalAt = now + 500 + Math.random() * 1500;
+        fs.verticalDir = Math.random() < 0.5 ? -1 : 1;
+        fs.animFrame = 0;
+        fs.animTimer = 0;
+      }
+
+      if (entity.health <= 0) {
+        if (entity.fishState?.removeOnNext) {
+          entities.splice(i, 1);
+          continue;
+        }
+        const tileData = getTileLayerData(mapData);
+        const surfaceY = getWaterSurfaceY({
+          x: entity.x + entity.width / 2,
+          mapWidth,
+          mapHeight,
+          tileData,
+          registryItems,
+          TILE_SIZE
+        });
+        const surfaceOffset = Number.isFinite(cfg.deathSurfaceOffset) ? cfg.deathSurfaceOffset : 0.5;
+        if (Number.isFinite(surfaceY)) {
+          const targetY = surfaceY - entity.height * surfaceOffset;
+          const floatSpeed = (Number(cfg.deathFloatSpeed) || 0.25) * TILE_SIZE;
+          if (entity.y > targetY) {
+            entity.y = Math.max(targetY, entity.y - floatSpeed * dt);
+          } else {
+            entity.y = targetY;
+          }
+        }
+        entity.vx = 0;
+        entity.vy = 0;
+        entity.isGrounded = false;
+        entity.flipY = true;
+        entity.animation = 'dead';
+        const deadAnim = def.spriteSheet?.animations?.dead || [];
+        entity.currentSpriteIndex = deadAnim.length ? deadAnim[0] : (cfg.meteorShockFrame || 2);
+        continue;
+      }
+
+      entity.flipY = false;
+      entity.alpha = 1;
+
+      if (requireLiquid && !isAllowed) {
+        entities.splice(i, 1);
+        continue;
+      }
+
+      const panicRadiusPx = (Number(cfg.panicRadius) || 6) * TILE_SIZE;
+      const panicSpeed = (Number(cfg.panicSpeed) || 2.2) * TILE_SIZE;
+      const baseSpeed = (Number(cfg.swimSpeed) || 0.6) * TILE_SIZE;
+      const verticalDrift = (Number(cfg.verticalDrift) || 0.25) * TILE_SIZE;
+      const isWaterfall = !!(liquidType && liquidType.includes('waterfall'));
+      const waterfallDriftMultiplier = Number.isFinite(cfg.waterfallDriftMultiplier) ? cfg.waterfallDriftMultiplier : 0.4;
+      const waterfallSpeedMultiplier = Number.isFinite(cfg.waterfallSpeedMultiplier) ? cfg.waterfallSpeedMultiplier : 0.7;
+
+      const px = playerX + gameState.current.width / 2;
+      const py = playerY + gameState.current.height / 2;
+      const ex = entity.x + entity.width / 2;
+      const ey = entity.y + entity.height / 2;
+      const dx = px - ex;
+      const dy = py - ey;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (fs.shockUntil && fs.shockUntil > now) {
+        const shockFrame = Number(cfg.meteorShockFrame) || 2;
+        entity.animation = 'shock';
+        entity.currentSpriteIndex = shockFrame;
+      }
+
+      const lastWaterEnter = gameState.current.lastWaterEnter;
+      if (lastWaterEnter && Number(lastWaterEnter.time) && now - Number(lastWaterEnter.time) < 1200) {
+        const waveRadiusPx = (Number(cfg.playerWaveRadius) || 10) * TILE_SIZE;
+        if (dist <= waveRadiusPx) {
+          fs.waveImpulse = Number(cfg.playerWaveImpulse) || 0.35;
+          fs.waveUntil = now + 400;
+        }
+        if (dist <= panicRadiusPx) {
+          fs.panicUntil = now + (Number(cfg.panicDurationMs) || 1200);
+        }
+      }
+      if (gameState.current.inWater && dist <= panicRadiusPx) {
+        fs.panicUntil = now + (Number(cfg.panicDurationMs) || 1200);
+      }
+
+      const isPanicking = fs.panicUntil && fs.panicUntil > now;
+      let dir = entity.direction || 1;
+      if (isPanicking) {
+        dir = dx >= 0 ? -1 : 1;
+      } else if (now >= (fs.nextTurnAt || 0)) {
+        dir = Math.random() < 0.5 ? -1 : 1;
+        fs.nextTurnAt = now + (cfg.turnMinMs || 900) + Math.random() * ((cfg.turnMaxMs || 2600) - (cfg.turnMinMs || 900));
+      }
+      entity.direction = dir;
+
+      if (now >= (fs.nextVerticalAt || 0)) {
+        fs.verticalDir = Math.random() < 0.5 ? -1 : 1;
+        fs.nextVerticalAt = now + 500 + Math.random() * 1500;
+      }
+
+      let vx = dir * (isPanicking ? panicSpeed : baseSpeed);
+      let vy = (fs.verticalDir || 1) * verticalDrift;
+      if (isWaterfall) {
+        vx *= waterfallSpeedMultiplier;
+        vy *= waterfallDriftMultiplier;
+        const downSpeed = (Number(cfg.waterfallDownSpeed) || 2.4) * TILE_SIZE;
+        vy = Math.max(Math.abs(vy), downSpeed);
+        entity.alpha = Number.isFinite(cfg.waterfallAlpha) ? cfg.waterfallAlpha : 1;
+      }
+
+      if (fs.waveUntil && fs.waveUntil > now) {
+        const impulse = Math.max(0, Number(fs.waveImpulse) || 0.35) * TILE_SIZE;
+        vx += (Math.random() - 0.5) * impulse;
+        vy += (Math.random() - 0.5) * impulse * 0.5;
+      }
+
+      let nextX = entity.x + vx * dt;
+      let nextY = entity.y + vy * dt;
+
+      if (checkCollision(nextX, entity.y, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
+        dir *= -1;
+        entity.direction = dir;
+        vx = dir * (isPanicking ? panicSpeed : baseSpeed);
+        nextX = entity.x + vx * dt;
+      }
+
+      if (checkCollision(entity.x, nextY, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
+        fs.verticalDir *= -1;
+        vy = fs.verticalDir * verticalDrift;
+        nextY = entity.y + vy * dt;
+      }
+
+      if (typeof getLiquidSample === 'function') {
+        const sampleNext = getLiquidSample({
+          x: nextX,
+          y: nextY,
+          width: entity.width,
+          height: entity.height,
+          TILE_SIZE,
+          mapWidth,
+          mapHeight
+        });
+        const nextType = liquidTypeToHabitat(sampleNext?.type);
+        const nextAllowed = !!(sampleNext?.inLiquid && nextType && habitat[nextType] !== false);
+        if (!nextAllowed) {
+          fs.verticalDir *= -1;
+          dir *= -1;
+          entity.direction = dir;
+          vx = dir * (isPanicking ? panicSpeed : baseSpeed);
+          vy = fs.verticalDir * verticalDrift;
+          nextX = entity.x + vx * dt;
+          nextY = entity.y + vy * dt;
+        }
+      }
+
+      entity.x = nextX;
+      entity.y = nextY;
+      entity.vx = vx;
+      entity.vy = vy;
+      entity.isGrounded = false;
+
+      const anims = def.spriteSheet?.animations || {};
+      let animKey = 'swim';
+      if (isPanicking && anims.panic) animKey = 'panic';
+      if (Math.abs(vx) < 0.02 && anims.idle) animKey = 'idle';
+
+      if (!(fs.shockUntil && fs.shockUntil > now)) {
+        const currentAnim = anims[animKey] || anims.swim || anims.idle || [0];
+        fs.animTimer = (fs.animTimer || 0) + deltaMs;
+        const frameDur = 180;
+        if (fs.animTimer >= frameDur) {
+          fs.animTimer = 0;
+          fs.animFrame = (fs.animFrame || 0) + 1;
+          if (fs.animFrame >= currentAnim.length) fs.animFrame = 0;
+        }
+        entity.currentSpriteIndex = currentAnim[fs.animFrame % currentAnim.length];
+      }
+
+      continue;
     }
 
     // 1.5. Pushable objektu (Akmeņu) fizika

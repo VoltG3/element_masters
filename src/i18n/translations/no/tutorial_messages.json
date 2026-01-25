@@ -1,5 +1,8 @@
 {
   "sectors": {
     "1": "Oppgave 1: Finn den skjulte tunnelen.\n\nOppgave 2: Finn og skyv skyvbare vegger (trykk E).\n\nOppgave 3: Knus sprukne vegger for å rydde veien."
+  },
+  "interactables": {
+    "1": "Oppgave: Finn inngangen til bygningen.\nTips: Still deg i døråpningen og trykk E."
   }
 }

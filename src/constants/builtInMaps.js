@@ -3,7 +3,8 @@ import map2 from '../assets/maps/exampel_liquids.json';
 import map3 from '../assets/maps/exampel_sectors_01.json';
 import map4 from '../assets/maps/exampel_sectors_02.json';
 import map5 from '../assets/maps/exampel_m2room.json';
-import map6 from '../assets/maps/Ports.json';
+import map6 from '../assets/maps/exampel_weather_01.json';
+import map7 from '../assets/maps/Ports.json';
 
 
 export const BUILT_IN_MAPS = [
@@ -12,5 +13,6 @@ export const BUILT_IN_MAPS = [
     map3,
     map4,
     map5,
-    map6
+    map6,
+    map7
 ];

@@ -187,6 +187,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         handleWeatherEffectHit(type, data, {
             gameState,
             entitiesRef,
+            TILE_SIZE,
             onBreakEffect: (detail) => {
                 window.dispatchEvent(new CustomEvent('game-break-effect', { detail }));
             }
@@ -443,7 +444,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     }, [mapData]); // objectData removed - item collection shouldn't trigger re-initialization
 
     // Helper function for collisions (AABB Collision) with blocks (tile layer) — delegates to GameEngine/collision
-    const checkCollision = (newX, newY, mw, mh, w, h) => {
+    const checkCollision = (newX, newY, mw, mh, w, h, ignoreEntityId) => {
         return checkCollisionExternal(
             newX,
             newY,
@@ -458,7 +459,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
             objectDataRef.current || objectData,
             objectMetadataRef.current || mapData?.meta?.objectMetadata,
             entitiesRef.current,
-            null,
+            ignoreEntityId || null,
             mapData?.maps,
             activeRoomIdsRef.current || mapData?.meta?.activeRoomIds
         );

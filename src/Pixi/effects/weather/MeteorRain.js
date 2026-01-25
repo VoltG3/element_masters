@@ -59,7 +59,7 @@ export default class WeatherMeteorRain {
     g.rotation = Math.atan2(vy, vx) - Math.PI/2;
     
     this.container.addChild(g);
-    this.particles.push({ g, x, y, vx, vy, size, isLarge, alive: true });
+    this.particles.push({ g, x, y, vx, vy, size, isLarge, alive: true, waterTouched: false });
   }
 
   update(dtMs) {
@@ -130,19 +130,24 @@ export default class WeatherMeteorRain {
 
       if (liquidType) {
         if (liquidType === 'water' && typeof this.api.onWaterImpact === 'function') {
-          this.api.onWaterImpact({ x: p.x, strength: p.isLarge ? 1.4 : 0.8 });
-        }
-        if (liquidType === 'lava' && typeof this.api.onLavaImpact === 'function') {
-          this.api.onLavaImpact({ x: p.x, y: p.y, strength: p.isLarge ? 1.6 : 0.9 });
-        }
+          if (!p.waterTouched) {
+            this.api.onWaterImpact({ x: p.x, strength: p.isLarge ? 1.4 : 0.8 });
+            p.waterTouched = true;
+          }
+          // Meteors pass through water until hitting solid ground
+        } else {
+          if (liquidType === 'lava' && typeof this.api.onLavaImpact === 'function') {
+            this.api.onLavaImpact({ x: p.x, y: p.y, strength: p.isLarge ? 1.6 : 0.9 });
+          }
 
-        if (typeof this.api.onMeteorHit === 'function') {
-          this.api.onMeteorHit({ x: p.x, y: p.y, size: p.size, isLarge: p.isLarge, surfaceType: liquidType });
-        }
+          if (typeof this.api.onMeteorHit === 'function') {
+            this.api.onMeteorHit({ x: p.x, y: p.y, size: p.size, isLarge: p.isLarge, surfaceType: liquidType });
+          }
 
-        p.alive = false;
-        toRemove.push(i);
-        continue;
+          p.alive = false;
+          toRemove.push(i);
+          continue;
+        }
       }
 
       // Check collision with solid world

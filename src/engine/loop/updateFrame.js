@@ -677,9 +677,18 @@ export function updateFrame(ctx, timestamp) {
     }
   } catch {}
 
+  if (!prevInWater && inWater) {
+    gameState.current.lastWaterEnter = {
+      x: x + width / 2,
+      y: y + height / 2,
+      time: Number(timestamp) || 0
+    };
+  }
+
   // 9) Commit new state for renderer
   gameState.current = {
     ...gameState.current,
+    timeMs: Number(timestamp) || 0,
     x,
     y,
     vx,

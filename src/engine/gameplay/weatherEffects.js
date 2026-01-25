@@ -1,4 +1,5 @@
 import { getMeteorBreakEffectConfig } from './meteorBreakEffects';
+import { getBiologicalBreakEffectConfig } from './biologicalBreakEffects';
 
 /**
  * Handles weather effect impacts like meteor strikes, lightning, etc.
@@ -36,12 +37,15 @@ export const handleWeatherEffectHit = (type, data, context) => {
         // 2. Check entities impact
         if (entitiesRef && entitiesRef.current) {
             entitiesRef.current.forEach(ent => {
+                const isFish = ent.def?.subtype === 'fish' || ent.def?.ai?.type === 'fish' || ent.def?.fish;
                 const edx = (ent.x + ent.width / 2) - x;
                 const edy = (ent.y + ent.height / 2) - y;
                 const edist = Math.sqrt(edx * edx + edy * edy);
 
-                if (edist < radius + ent.width / 2) {
-                    ent.health = Math.max(0, (ent.health || 0) - damage);
+                const prevHealth = Number(ent.health) || 0;
+                const inDamageRadius = edist < radius + ent.width / 2;
+                if (inDamageRadius) {
+                    ent.health = Math.max(0, prevHealth - damage);
                     // Platforms don't take knockback, but others might
                     if (ent.subtype !== 'platform') {
                         if (edist > 0) {
@@ -49,6 +53,30 @@ export const handleWeatherEffectHit = (type, data, context) => {
                             ent.vy -= 3;
                         } else {
                             ent.vy -= 6;
+                        }
+                    }
+                }
+
+                if (isFish) {
+                    const cfg = ent.def?.fish || {};
+                    const shockRadius = (Number(cfg.meteorShockRadius) || 0) * (context?.TILE_SIZE || 32);
+                    if (shockRadius > 0 && edist <= shockRadius) {
+                        ent.fishState = ent.fishState || {};
+                        ent.fishState.shockUntil = (Number(gameState?.current?.timeMs) || 0) + (Number(cfg.meteorShockDurationMs) || 1800);
+                    }
+                    const wasDead = prevHealth <= 0;
+                    if (wasDead && ent.health <= 0 && inDamageRadius) {
+                        const now = Number(gameState?.current?.timeMs) || 0;
+                        ent.fishState = ent.fishState || {};
+                        const lastFx = Number(ent.fishState.lastBioFxAt) || 0;
+                        const alreadyQueued = !!ent.fishState.removeOnNext;
+                        if (!alreadyQueued && now - lastFx > 200) {
+                            const bioConfig = getBiologicalBreakEffectConfig();
+                            if (bioConfig && typeof onBreakEffect === 'function') {
+                                onBreakEffect({ x: ent.x + ent.width / 2, y: ent.y + ent.height / 2, config: bioConfig });
+                            }
+                            ent.fishState.lastBioFxAt = now;
+                            ent.fishState.removeOnNext = true;
                         }
                     }
                 }

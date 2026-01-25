@@ -61,6 +61,7 @@
   "EDITOR_ELEMENTS_LIQUIDS_INFO_LABEL": "Liquid JSON overrides available (hover for details)",
   "EDITOR_ELEMENTS_DECORATIONS_TITLE": "Decorations",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER": "Player",
+  "EDITOR_ELEMENTS_ENTITIES_GROUP_ANIMALS": "Animals",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES": "Enemies",
   "EDITOR_ELEMENTS_ENTITIES_INFO_TITLE": "Entities use editor metadata: editor.panel 'entities' and editor.group 'player' or 'enemies'.",
   "EDITOR_ELEMENTS_ENTITIES_INFO_LABEL": "Entities grouping is data-driven (hover for details)",

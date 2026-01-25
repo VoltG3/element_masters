@@ -1,0 +1,50 @@
+{
+  "id": "fish_01",
+  "name": "entities.fish_01",
+  "displayName": "Fish 01",
+  "editor": { "panel": "entities", "group": "animals", "order": 30 },
+  "type": "entity",
+  "subtype": "fish",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/entities/animals/fish_01.png",
+  "collision": false,
+  "maxHealth": 10,
+  "spriteSheet": {
+    "enabled": true,
+    "totalSprites": 3,
+    "columns": 2,
+    "animations": {
+      "idle": [0, 1],
+      "swim": [0, 1],
+      "panic": [1, 0],
+      "dead": [2]
+    }
+  },
+  "fish": {
+    "habitat": { "water": true, "lava": false, "radioactive": false, "quicksand": false, "none": false },
+    "requireLiquid": true,
+    "activeRadius": 18,
+    "swimSpeed": 0.6,
+    "turnMinMs": 900,
+    "turnMaxMs": 2600,
+    "verticalDrift": 0.25,
+    "waterfallDriftMultiplier": 0.25,
+    "waterfallSpeedMultiplier": 0.55,
+    "waterfallDownSpeed": 4.8,
+    "waterfallAlpha": 1,
+    "panicRadius": 6,
+    "panicSpeed": 2.2,
+    "panicDurationMs": 1200,
+    "playerWaveRadius": 10,
+    "playerWaveImpulse": 0.35,
+    "meteorShockRadius": 10,
+    "meteorShockDurationMs": 1800,
+    "meteorShockFrame": 2,
+    "meteorShockFlip": true,
+    "bubbleIntervalMs": 900,
+    "bubbleJitter": 0.4,
+    "deathFloatSpeed": 0.25,
+    "deathSurfaceOffset": 0.5
+  }
+}

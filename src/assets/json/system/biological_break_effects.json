@@ -1,0 +1,26 @@
+{
+  "id": "system_biological_break_effects",
+  "type": "system",
+  "isHiddenInEditor": true,
+  "enabled": true,
+  "default": {
+    "count": 36,
+    "speed": 3.1,
+    "lifeMs": 980,
+    "size": 2.6,
+    "gravity": 0.02,
+    "shape": "circle",
+    "angleRange": [-3.1, 0.1],
+    "colors": ["#b11212", "#ff4d4d", "#7a1b1b", "#c97b6f", "#8c2a1d", "#e36d5a"]
+  },
+  "chunks": {
+    "count": 8,
+    "speed": 2.9,
+    "lifeMs": 1400,
+    "size": 6,
+    "gravity": 0.03,
+    "shape": "square",
+    "angleRange": [-3.1, 0.1],
+    "colors": ["#e6d2b6", "#b57a4a", "#7d2a1f", "#c8a37a", "#9e3a2a"]
+  }
+}

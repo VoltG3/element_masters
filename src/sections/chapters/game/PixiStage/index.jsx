@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Application, Container, Graphics, Assets, BlurFilter, ColorMatrixFilter, Texture, Sprite } from 'pixi.js';
 import { TextureCache } from '../../../../Pixi/TextureCache';
 import { Rain as WeatherRain, Snow as WeatherSnow, Clouds as WeatherClouds, Fog as WeatherFog, Thunder as WeatherThunder, LavaRain as WeatherLavaRain, RadioactiveFog as WeatherRadioactiveFog, MeteorRain as WeatherMeteorRain } from '../../../../Pixi/effects/weather';
-import { WaterSplashFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
+import { WaterSplashFX, BubbleFX, LavaEmbers, LavaSteamFX, LiquidRegionSystem } from '../../../../Pixi/effects/liquids';
 import HealthBar from '../../../../Pixi/ui/HealthBar';
 import LAYERS from '../../../../renderer/stage/layers/LayerOrder';
 import { clearTextureCache, createBackgroundResolver, createSolidChecker } from './helpers';
@@ -132,6 +132,9 @@ const PixiStage = ({
   const oxygenBarRef = useRef(null);
   const lavaBarRef = useRef(null);
   const waterFxRef = useRef(null);
+  const bubbleFxRef = useRef(null);
+  const fishBubbleStateRef = useRef(new Map());
+  const entityWaterStateRef = useRef(new Map());
   const lavaEmbersRef = useRef(null);
   const lavaSteamRef = useRef(null);
   const splashesEnabledRef = useRef(waterSplashesEnabled !== false);
@@ -461,6 +464,7 @@ const PixiStage = ({
 
       // FX systems
       try { waterFxRef.current = new WaterSplashFX(liquidFxLayer); } catch {}
+      try { bubbleFxRef.current = new BubbleFX(liquidFxLayer); } catch {}
       try { lavaSteamRef.current = new LavaSteamFX(liquidFxLayer); } catch {}
       try {
         lavaEmbersRef.current = new LavaEmbers(liquidLayerRef.current, { mapWidth, mapHeight, tileSize }, () => (embersEnabledRef.current ? 100 : 0));
@@ -609,6 +613,7 @@ const PixiStage = ({
         // FX
         try { lavaEmbersRef.current?.update(dt); } catch {}
         try { waterFxRef.current?.update(dt); } catch {}
+        try { bubbleFxRef.current?.update(dt); } catch {}
         try { lavaSteamRef.current?.update(dt); } catch {}
 
         // Underwater/lava overlay with smooth fade-in/out
@@ -774,6 +779,70 @@ const PixiStage = ({
         const sNow = playerStateRef.current || {};
         syncEntities(entitiesLayerRef.current, entitySpritesRef.current, sNow.entities, registryItems, tileSize);
 
+        try {
+          const ents = sNow.entities || [];
+          const tileData = tileMapDataRef.current;
+          const regs = registryItemsRef.current;
+          const seen = new Set();
+
+          for (const ent of ents) {
+            if (!ent) continue;
+            const id = ent.id;
+            seen.add(id);
+            const def = ent.def || {};
+            const cx = (ent.x || 0) + (ent.width || tileSize) * 0.5;
+            const cy = (ent.y || 0) + (ent.height || tileSize) * 0.5;
+            const liq = (tileData && regs)
+              ? getLiquidAtPixel(cx, cy, mapWidth, mapHeight, tileSize, tileData, regs)
+              : null;
+            const inWater = !!(liq && (liq.type === 'water' || liq.type === 'waterfall'));
+
+            const prev = entityWaterStateRef.current.get(id) || { inWater: false };
+            if (inWater && !prev.inWater && waterFxRef.current && liquidSystemRef.current) {
+              const sy = liquidSystemRef.current?.getSurfaceY?.('water', cx);
+              const strength = Math.min(2, Math.max(0.3, Math.abs(ent.vy || 0) * 0.08 + 0.4));
+              if (Number.isFinite(sy)) {
+                waterFxRef.current?.trigger({ x: cx, y: sy, strength, upward: false });
+                try { liquidSystemRef.current?.addWave?.('water', cx, Math.min(2.2, strength)); } catch {}
+              }
+            }
+            entityWaterStateRef.current.set(id, { inWater });
+
+            const isFish = def.subtype === 'fish' || def.ai?.type === 'fish' || def.fish;
+            const isAlive = Number(ent.health) > 0;
+            if (isFish && isAlive && !ent.isDormant && inWater && bubbleFxRef.current) {
+              const cfg = def.fish || {};
+              const interval = Math.max(200, Number(cfg.bubbleIntervalMs) || 900);
+              const jitter = Math.max(0, Number(cfg.bubbleJitter) || 0.4);
+              const state = fishBubbleStateRef.current.get(id) || { t: 0 };
+              state.t += dt;
+              if (state.t >= interval) {
+                state.t = 0;
+                const bx = cx + (Math.random() - 0.5) * tileSize * jitter;
+                const by = cy + (Math.random() - 0.5) * tileSize * jitter;
+                bubbleFxRef.current.trigger({
+                  x: bx,
+                  y: by,
+                  size: 2,
+                  rise: 0.025 + Math.random() * 0.02,
+                  life: 1000 + Math.random() * 400,
+                  drift: 0.015 + Math.random() * 0.02
+                });
+              }
+              fishBubbleStateRef.current.set(id, state);
+            } else if (isFish) {
+              fishBubbleStateRef.current.delete(id);
+            }
+          }
+
+          for (const key of fishBubbleStateRef.current.keys()) {
+            if (!seen.has(key)) fishBubbleStateRef.current.delete(key);
+          }
+          for (const key of entityWaterStateRef.current.keys()) {
+            if (!seen.has(key)) entityWaterStateRef.current.delete(key);
+          }
+        } catch {}
+
         // Floating texts
         floatingManagerRef.current?.update(dt);
         // Break FX
@@ -795,6 +864,7 @@ const PixiStage = ({
     }
     try { liquidSystemRef.current?.destroy(); } catch {}
     try { waterFxRef.current?.destroy(); } catch {}
+    try { bubbleFxRef.current?.destroy(); } catch {}
     try { lavaEmbersRef.current?.destroy(); } catch {}
     try { lavaSteamRef.current?.destroy(); } catch {}
     try { parallaxManagerRef.current?.destroy(); } catch {}
