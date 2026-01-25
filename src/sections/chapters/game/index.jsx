@@ -629,6 +629,14 @@ export default function Game() {
                 const activeMap = mapData.maps[activeId];
                 
                 if (activeMap) {
+                    const activeLayers = activeMap.layers || [];
+                    const bgLayer = activeLayers.find(l => l.name === 'background' || l.type === 'tile');
+                    const objLayer = activeLayers.find(l => l.name === 'entities' || l.type === 'object');
+                    const secretLayer = activeLayers.find(l => l.name === 'secrets' || l.type === 'secret');
+                    const mapTileData = activeMap.tileMapData || bgLayer?.data;
+                    const mapObjectData = activeMap.objectMapData || objLayer?.data;
+                    const mapSecretData = activeMap.secretMapData || secretLayer?.data;
+
                     // Konvertējam uz formātu, ko saprot dzinējs un setActiveMap
                     effectiveMapData = {
                         ...mapData, // Saglabājam visu projektu
@@ -645,10 +653,10 @@ export default function Game() {
                             objectMetadata: activeMap.objectMetadata || {},
                             playerPosition: activeMap.playerPosition
                         },
-                        layers: activeMap.layers || [
-                            { name: 'background', data: activeMap.tileMapData },
-                            { name: 'entities', data: activeMap.objectMapData },
-                            { name: 'secrets', data: activeMap.secretMapData }
+                        layers: [
+                            { name: 'background', data: mapTileData || Array((activeMap.width || 0) * (activeMap.height || 0)).fill(null) },
+                            { name: 'entities', data: mapObjectData || Array((activeMap.width || 0) * (activeMap.height || 0)).fill(null) },
+                            { name: 'secrets', data: mapSecretData || Array((activeMap.width || 0) * (activeMap.height || 0)).fill(null) }
                         ]
                     };
                 }
