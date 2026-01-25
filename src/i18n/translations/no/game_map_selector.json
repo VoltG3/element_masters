@@ -1,6 +1,6 @@
 {
-  "GAME_MAP_SELECT_TITLE": "Select a Map",
-  "GAME_MAP_BY": "By: {{author}}",
-  "GAME_MAP_SIZE": "Size: {{size}}",
-  "GAME_MAP_LOAD_CUSTOM": "Load Custom Map from Computer"
+  "GAME_MAP_SELECT_TITLE": "Velg et kart",
+  "GAME_MAP_BY": "Av: {{author}}",
+  "GAME_MAP_SIZE": "Størrelse: {{size}}",
+  "GAME_MAP_LOAD_CUSTOM": "Last inn egendefinert kart fra datamaskinen"
 }

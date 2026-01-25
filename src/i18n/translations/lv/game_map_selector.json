@@ -1,6 +1,6 @@
 {
-  "GAME_MAP_SELECT_TITLE": "Select a Map",
-  "GAME_MAP_BY": "By: {{author}}",
-  "GAME_MAP_SIZE": "Size: {{size}}",
-  "GAME_MAP_LOAD_CUSTOM": "Load Custom Map from Computer"
+  "GAME_MAP_SELECT_TITLE": "Izvēlēties karti",
+  "GAME_MAP_BY": "Autors: {{author}}",
+  "GAME_MAP_SIZE": "Izmērs: {{size}}",
+  "GAME_MAP_LOAD_CUSTOM": "Ielādēt pielāgotu karti no datora"
 }

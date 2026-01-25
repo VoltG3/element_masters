@@ -450,8 +450,10 @@ export const useEditorPlayMode = (
         }
     }, [activeMapId, maps, updateMapData, activeRoomIds, playModeObjectData, registryItems, setPlayerPosition, setObjectMetadata, switchMap, playModeSecretData, objectMetadata, mapWidth, mapHeight]);
 
-    const handleRevealSecret = useCallback((secretIndex) => {
-        setRevealedSecrets(prev => [...prev, secretIndex]);
+    const handleRevealSecret = useCallback((secretIndices) => {
+        const next = Array.isArray(secretIndices) ? secretIndices : [secretIndices];
+        if (next.length === 0) return;
+        setRevealedSecrets(prev => [...prev, ...next]);
     }, []);
 
     const gameEngineState = useGameEngine(

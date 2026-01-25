@@ -1,6 +1,6 @@
 {
-  "GAME_MAP_SELECT_TITLE": "Select a Map",
-  "GAME_MAP_BY": "By: {{author}}",
-  "GAME_MAP_SIZE": "Size: {{size}}",
-  "GAME_MAP_LOAD_CUSTOM": "Load Custom Map from Computer"
+  "GAME_MAP_SELECT_TITLE": "マップを選択",
+  "GAME_MAP_BY": "作者: {{author}}",
+  "GAME_MAP_SIZE": "サイズ: {{size}}",
+  "GAME_MAP_LOAD_CUSTOM": "PCからカスタムマップを読み込む"
 }
