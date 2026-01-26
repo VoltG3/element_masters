@@ -123,6 +123,8 @@ export function isSolidAtPixel(wx, wy, mapWidthTiles, mapHeightTiles, TILE_SIZE,
         if (ent.health <= 0 || ent.isExploding) continue;
         // Platforms are stand-on-able but not usually "solid" for other entities' horizontal physics
         if (ent.subtype === 'platform') continue;
+        // Fish should not block movement (player or other entities)
+        if (ent.subtype === 'fish' || ent.def?.subtype === 'fish' || ent.def?.ai?.type === 'fish' || ent.def?.fish) continue;
 
         if (wx >= ent.x && wx < ent.x + ent.width && wy >= ent.y && wy < ent.y + ent.height) {
           return true;

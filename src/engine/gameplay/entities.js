@@ -34,6 +34,12 @@ const liquidTypeToHabitat = (liquidType) => {
   return 'none';
 };
 
+const isFishEntity = (ent) => {
+  if (!ent) return false;
+  const def = ent.def || {};
+  return ent.subtype === 'fish' || def.subtype === 'fish' || def.ai?.type === 'fish' || !!def.fish;
+};
+
 const getFishTriggerAt = ({ x, y, mapWidth, mapHeight, TILE_SIZE, secretData, objectData, registryItems }) => {
   if (!registryItems) return null;
   const gx = Math.floor(x / TILE_SIZE);
@@ -510,6 +516,33 @@ export function updateEntities(ctx, deltaMs) {
           vy = fs.verticalDir * verticalDrift;
           nextX = entity.x + vx * dt;
           nextY = entity.y + vy * dt;
+        }
+      }
+
+      if (entitiesRef?.current?.length) {
+        const cx = nextX + entity.width / 2;
+        const cy = nextY + entity.height / 2;
+        const gx = Math.floor(cx / TILE_SIZE);
+        const gy = Math.floor(cy / TILE_SIZE);
+        for (const other of entitiesRef.current) {
+          if (other.id === entity.id) continue;
+          if (!isFishEntity(other) || other.health <= 0) continue;
+          const ocx = other.x + other.width / 2;
+          const ocy = other.y + other.height / 2;
+          if (Math.floor(ocx / TILE_SIZE) !== gx || Math.floor(ocy / TILE_SIZE) !== gy) continue;
+          const dir = String(entity.id) < String(other.id) ? -1 : 1;
+          const nudge = dir * TILE_SIZE * 0.25;
+          const tryX = nextX + nudge;
+          if (!checkCollision(tryX, nextY, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
+            nextX = tryX;
+            entity.direction = dir;
+            break;
+          }
+          const tryY = nextY + nudge;
+          if (!checkCollision(nextX, tryY, mapWidth, mapHeight, entity.width, entity.height, entity.id)) {
+            nextY = tryY;
+            break;
+          }
         }
       }
 
