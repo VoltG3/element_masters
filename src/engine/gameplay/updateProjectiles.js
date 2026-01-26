@@ -1,12 +1,13 @@
 // Projectile update and ricochet simulation extracted from useGameEngine.js
 
-// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate }
+// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate, playSfx }
 // updateProjectiles(ctx, deltaMs, mapWidth, mapHeight)
 export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
-  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate } = ctx;
+  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate, playSfx } = ctx;
   const dtProj = deltaMs / 1000;
   const worldW = mapWidth * TILE_SIZE;
   const worldH = mapHeight * TILE_SIZE;
+  const nowMs = Number(playerState?.timeMs) || 0;
 
   const isSolidRect = (cx, cy, hw, hh) => {
     const pts = [
@@ -137,6 +138,16 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       const hitEntX = checkEntityHit(nextX, cy, hw, hh, p);
       if (hitEntX) {
         hitEntX.health -= p.dmg || 10;
+        const isFish = hitEntX.subtype === 'fish' || hitEntX.def?.subtype === 'fish' || hitEntX.def?.ai?.type === 'fish' || !!hitEntX.def?.fish;
+        if (isFish && hitEntX.health > 0) {
+          hitEntX.fishState = hitEntX.fishState || {};
+          const panicMs = Number(hitEntX.def?.fish?.panicDurationMs) || 1200;
+          hitEntX.fishState.panicUntil = Math.max(hitEntX.fishState.panicUntil || 0, nowMs + panicMs * 2);
+        }
+        if (isFish && playSfx) {
+          const hitSound = hitEntX.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg";
+          try { playSfx(hitSound, 0.4); } catch {}
+        }
         if (onStateUpdate) {
           onStateUpdate('entityDamage', {
             x: hitEntX.x + hitEntX.width / 2,
@@ -193,6 +204,16 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       const hitEntY = checkEntityHit(cx, nextY, hw, hh, p);
       if (hitEntY) {
         hitEntY.health -= p.dmg || 10;
+        const isFish = hitEntY.subtype === 'fish' || hitEntY.def?.subtype === 'fish' || hitEntY.def?.ai?.type === 'fish' || !!hitEntY.def?.fish;
+        if (isFish && hitEntY.health > 0) {
+          hitEntY.fishState = hitEntY.fishState || {};
+          const panicMs = Number(hitEntY.def?.fish?.panicDurationMs) || 1200;
+          hitEntY.fishState.panicUntil = Math.max(hitEntY.fishState.panicUntil || 0, nowMs + panicMs * 2);
+        }
+        if (isFish && playSfx) {
+          const hitSound = hitEntY.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg";
+          try { playSfx(hitSound, 0.4); } catch {}
+        }
         if (onStateUpdate) {
           onStateUpdate('entityDamage', {
             x: hitEntY.x + hitEntY.width / 2,

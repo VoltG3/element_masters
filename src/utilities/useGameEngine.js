@@ -576,7 +576,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         tileData: tileDataRef.current || tileData,
                         secretData: secretDataRef.current || secretData,
                         registryItems,
-                        onStateUpdate: onStateUpdateRef.current
+                        onStateUpdate: onStateUpdateRef.current,
+                        playSfx: playShotSfx
                     }, deltaMs, mapWidthRef.current || 20, mapHeightRef.current || 15),
                 setPlayer: (next) => setPlayer(next),
                 onGameOver: onGameOverRef.current

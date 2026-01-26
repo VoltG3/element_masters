@@ -9,10 +9,11 @@
   "height": 1,
   "texture": "/assets/images/entities/animals/fish_clownfish.png",
   "collision": false,
-  "maxHealth": 10,
+  "maxHealth": 20,
   "sounds": {
     "water_out": "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg",
-    "water_in": "/assets/sound/sfx/water/out_splash-4-46870.ogg"
+    "water_in": "/assets/sound/sfx/water/out_splash-4-46870.ogg",
+    "hit": "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg"
   },
   "spriteSheet": {
     "enabled": true,
