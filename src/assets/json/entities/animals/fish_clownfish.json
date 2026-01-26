@@ -1,0 +1,58 @@
+{
+  "id": "fish_clownfish",
+  "name": "entities.fish_clownfish",
+  "displayName": "Fish Clownfish",
+  "editor": { "panel": "entities", "group": "animals", "order": 32 },
+  "type": "entity",
+  "subtype": "fish",
+  "width": 1,
+  "height": 1,
+  "texture": "/assets/images/entities/animals/fish_clownfish.png",
+  "collision": false,
+  "maxHealth": 10,
+  "spriteSheet": {
+    "enabled": true,
+    "totalSprites": 12,
+    "columns": 3,
+    "animations": {
+      "idle": [4, 5],
+      "swim": [4, 5],
+      "panic": [5, 4],
+      "dead": [11]
+    }
+  },
+  "fish": {
+    "habitat": { "water": true, "lava": false, "radioactive": false, "quicksand": false, "none": false },
+    "requireLiquid": true,
+    "activeRadius": 18,
+    "swimSpeed": 0.6,
+    "turnMinMs": 900,
+    "turnMaxMs": 2600,
+    "verticalDrift": 0.25,
+    "waterfallDriftMultiplier": 0.25,
+    "waterfallSpeedMultiplier": 0.55,
+    "waterfallDownSpeed": 4.8,
+    "waterfallAlpha": 1,
+    "panicRadius": 6,
+    "panicSpeed": 2.2,
+    "panicDurationMs": 1200,
+    "playerWaveRadius": 10,
+    "playerWaveImpulse": 0.35,
+    "meteorShockRadius": 10,
+    "meteorShockDurationMs": 1800,
+    "meteorShockFrame": 2,
+    "meteorShockFlip": true,
+    "bubbleIntervalMs": 900,
+    "bubbleJitter": 0.4,
+    "deathFloatSpeed": 0.25,
+    "deathSurfaceOffset": 0.5,
+    "jump": {
+      "speedX": 3.5,
+      "speedY": 7,
+      "gravity": 10,
+      "bounce": 0.35,
+      "chance": 1,
+      "cooldownMs": 1400
+    }
+  }
+}
