@@ -13,9 +13,10 @@
   "isRound": true,
   "sinkingSpeed": 0.2,
   "sounds": {
-    "water_splash": "/assets/sounds/interactables/stone_water.mp3",
-    "lava_splash": "/assets/sounds/interactables/stone_lava.mp3",
-    "push": "/assets/sounds/interactables/stone_push.mp3"
+    "water_splash": "/assets/sound/sfx/water/out_splash-4-46870.ogg",
+    "lava_splash": "/assets/sound/sfx/water/out_splash-4-46870.ogg",
+    "push": "",
+    "roll": "/assets/sound/sfx/stones/rolling-24b-100544.ogg"
   },
   "physics": {
     "gravity": true,

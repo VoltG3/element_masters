@@ -245,7 +245,8 @@ export function updateFrame(ctx, timestamp) {
   let vp = null;
   let remaining = physicsDt;
   let steps = 0;
-  let prevInWater = !!gameState.current.inWater;
+  const prevInWaterFrame = !!gameState.current.inWater;
+  let prevInWater = prevInWaterFrame;
   if (ladderInfo && !keys?.space) {
     const ladderSpeed = Math.max(40, Number(ladderInfo.def?.ladder?.speed) || 120);
     const climbDir = (keys.w ? -1 : 0) + (keys.s ? 1 : 0);
@@ -685,12 +686,21 @@ export function updateFrame(ctx, timestamp) {
     }
   } catch {}
 
-  if (!prevInWater && inWater) {
+  if (!prevInWaterFrame && inWater) {
     gameState.current.lastWaterEnter = {
       x: x + width / 2,
       y: y + height / 2,
       time: Number(timestamp) || 0
     };
+  }
+
+  if (actions.playSfx) {
+    const playerDef = getDefById('player');
+    if (playerDef?.sounds?.water_out && prevInWaterFrame && !inWater) {
+      try { actions.playSfx(playerDef.sounds.water_out, 0.35); } catch {}
+    } else if (playerDef?.sounds?.water_in && !prevInWaterFrame && inWater) {
+      try { actions.playSfx(playerDef.sounds.water_in, 0.35); } catch {}
+    }
   }
 
   // 9) Commit new state for renderer

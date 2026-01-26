@@ -15,6 +15,10 @@
   "maxRadioactivity": 100,
   "strength": 30,
   "maxStrength": 100,
+  "sounds": {
+    "water_out": "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg",
+    "water_in": "/assets/sound/sfx/water/out_splash-4-46870.ogg"
+  },
   "defaultAnimation": "player_default",
   "deadAnimation": "player_dead",
   "targetAnimation": "player_target"

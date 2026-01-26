@@ -82,6 +82,21 @@ const initRegistry = () => {
             return rawPath;
         };
 
+        const resolveSoundsMap = (sounds) => {
+            if (!sounds || typeof sounds !== 'object') return sounds;
+            const out = Array.isArray(sounds) ? [] : {};
+            for (const [k, v] of Object.entries(sounds)) {
+                if (typeof v === 'string') {
+                    out[k] = resolveSound(v);
+                } else if (v && typeof v === 'object') {
+                    out[k] = resolveSoundsMap(v);
+                } else {
+                    out[k] = v;
+                }
+            }
+            return out;
+        };
+
         _registry = jsonContext.keys().map((key) => {
             const data = jsonContext(key);
             const item = data.default || data;
@@ -100,7 +115,8 @@ const initRegistry = () => {
                 texture: resolvedTexture,     // Viena bilde (ja ir)
                 textures: resolvedTextures,   // Masīvs (ja ir)
                 // Skaņas ceļš (ja ir) — pārvērsts uz bundlera URL
-                sfx: resolveSound(item.sfx || item.sfxResolved || null)
+                sfx: resolveSound(item.sfx || item.sfxResolved || null),
+                sounds: resolveSoundsMap(item.sounds)
             };
         });
 

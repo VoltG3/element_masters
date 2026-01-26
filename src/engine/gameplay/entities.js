@@ -250,6 +250,7 @@ export function updateEntities(ctx, deltaMs) {
       const habitatKey = liquidTypeToHabitat(liquidType);
       const isAllowed = !!(liquidSample?.inLiquid && habitatKey && habitat[habitatKey] !== false);
       const requireLiquid = cfg.requireLiquid !== false;
+      const inWaterNow = !!(liquidSample?.inLiquid && habitatKey === 'water');
 
       entity.fishState = entity.fishState || {};
       const fs = entity.fishState;
@@ -262,6 +263,17 @@ export function updateEntities(ctx, deltaMs) {
         fs.verticalDir = Math.random() < 0.5 ? -1 : 1;
         fs.animFrame = 0;
         fs.animTimer = 0;
+        fs.prevInWater = inWaterNow;
+      }
+
+      if (entity.health > 0) {
+        const prevInWater = !!fs.prevInWater;
+        if (prevInWater && !inWaterNow && def.sounds?.water_out) {
+          playSfx(def.sounds.water_out, 0.35);
+        } else if (!prevInWater && inWaterNow && def.sounds?.water_in) {
+          playSfx(def.sounds.water_in, 0.35);
+        }
+        fs.prevInWater = inWaterNow;
       }
 
       if (entity.health <= 0) {
@@ -728,13 +740,21 @@ export function updateEntities(ctx, deltaMs) {
         }
 
         // Atjaunojam rotāciju, ja akmens veļas (horizontal movement while grounded)
-        if (entity.isGrounded && Math.abs(entity.vx) > 0.1 && def.isRound) {
-          // Rotācija proporcionāla ātrumam (0.07 rad/px * vx)
-          entity.rotation = (entity.rotation || 0) + (entity.vx * (deltaMs / 16.67) * 0.07);
-        } else if (!entity.isGrounded && def.isRound) {
-          // Arī krītot var nedaudz rotēt, ja ir bijis horizontāls ātrums
-          entity.rotation = (entity.rotation || 0) + (entity.vx * (deltaMs / 16.67) * 0.03);
+      if (entity.isGrounded && Math.abs(entity.vx) > 0.1 && def.isRound) {
+        // Rotācija proporcionāla ātrumam (0.07 rad/px * vx)
+        entity.rotation = (entity.rotation || 0) + (entity.vx * (deltaMs / 16.67) * 0.07);
+        if (def.sounds?.roll) {
+          const nowMs = Number(gameState.current.timeMs) || 0;
+          const lastAt = Number(entity.lastRollSfxAt) || 0;
+          if (!lastAt || nowMs - lastAt >= 450) {
+            playSfx(def.sounds.roll, 0.35);
+            entity.lastRollSfxAt = nowMs;
+          }
         }
+      } else if (!entity.isGrounded && def.isRound) {
+        // Arī krītot var nedaudz rotēt, ja ir bijis horizontāls ātrums
+        entity.rotation = (entity.rotation || 0) + (entity.vx * (deltaMs / 16.67) * 0.03);
+      }
       }
 
       // Animācija akmenim parasti ir statiska
