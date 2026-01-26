@@ -615,6 +615,14 @@ export function updateFrame(ctx, timestamp) {
     vy = gameState.current.vy;
     isGrounded = gameState.current.isGrounded;
     animation = gameState.current.animation;
+
+    if (checkSecrets && entitiesRef.current && entitiesRef.current.length > 0) {
+      for (const ent of entitiesRef.current) {
+        if (ent.subtype === 'pushable' || ent.def?.isPushable) {
+          try { checkSecrets(ent.x, ent.y, ent.width, ent.height, mapWidth, mapHeight); } catch {}
+        }
+      }
+    }
     
     // Kontaktbojājumi no entītijām
     const player = gameState.current;

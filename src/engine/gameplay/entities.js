@@ -1,5 +1,6 @@
 import { moveHorizontal } from '../physics/horizontal';
 import { applyVerticalPhysics } from '../physics/vertical';
+import { isSolidAtPixel } from '../physics';
 import { getWeatherDps, getMapWeather, weatherAffectsEnemy, weatherBlockedByCover } from './weatherDamage';
 import { isCoveredFromAbove } from './weatherCover';
 
@@ -275,27 +276,39 @@ export function updateEntities(ctx, deltaMs) {
           continue;
         }
         const tileData = getTileLayerData(mapData);
-        const surfaceY = getWaterSurfaceY({
-          x: entity.x + entity.width / 2,
-          mapWidth,
-          mapHeight,
-          tileData,
-          registryItems,
-          TILE_SIZE
-        });
-        const surfaceOffset = Number.isFinite(cfg.deathSurfaceOffset) ? cfg.deathSurfaceOffset : 0.5;
-        if (Number.isFinite(surfaceY)) {
-          const targetY = surfaceY - entity.height * surfaceOffset;
-          const floatSpeed = (Number(cfg.deathFloatSpeed) || 0.25) * TILE_SIZE;
-          if (entity.y > targetY) {
-            entity.y = Math.max(targetY, entity.y - floatSpeed * dt);
-          } else {
-            entity.y = targetY;
+        const secretData = getSecretLayerData(mapData);
+        const objectMetadata = mapData?.meta?.objectMetadata;
+        const cx = entity.x + entity.width / 2;
+        const headY = entity.y + Math.min(4, entity.height * 0.125);
+        const chestY = entity.y + entity.height * 0.45;
+        const feetY = entity.y + entity.height - 2;
+        const solidAtSample = isSolidAtPixel(cx, headY, mapWidth, mapHeight, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata, null, entity.id, mapData?.maps, activeRoomIds) ||
+          isSolidAtPixel(cx, chestY, mapWidth, mapHeight, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata, null, entity.id, mapData?.maps, activeRoomIds) ||
+          isSolidAtPixel(cx, feetY, mapWidth, mapHeight, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata, null, entity.id, mapData?.maps, activeRoomIds);
+        const canFloat = !!(liquidSample?.inLiquid && liquidSample?.type && liquidSample.type.includes('water') && !solidAtSample);
+        if (canFloat) {
+          const surfaceY = getWaterSurfaceY({
+            x: entity.x + entity.width / 2,
+            mapWidth,
+            mapHeight,
+            tileData,
+            registryItems,
+            TILE_SIZE
+          });
+          const surfaceOffset = Number.isFinite(cfg.deathSurfaceOffset) ? cfg.deathSurfaceOffset : 0.5;
+          if (Number.isFinite(surfaceY)) {
+            const targetY = surfaceY - entity.height * surfaceOffset;
+            const floatSpeed = (Number(cfg.deathFloatSpeed) || 0.25) * TILE_SIZE;
+            if (entity.y > targetY) {
+              entity.y = Math.max(targetY, entity.y - floatSpeed * dt);
+            } else {
+              entity.y = targetY;
+            }
           }
         }
         entity.vx = 0;
         entity.vy = 0;
-        entity.isGrounded = false;
+        entity.isGrounded = canFloat ? false : checkCollision(entity.x, entity.y + 1, mapWidth, mapHeight, entity.width, entity.height, entity.id);
         entity.flipY = true;
         entity.animation = 'dead';
         const deadAnim = def.spriteSheet?.animations?.dead || [];
