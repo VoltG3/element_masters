@@ -91,8 +91,8 @@ export const EditorMapResizer = ({
                     onMouseDown={handleCornerMouseDown}
                     style={{
                         position: 'absolute',
-                        bottom: -5,
-                        right: -5,
+                        bottom: 2,
+                        right: 2,
                         width: '15px',
                         height: '15px',
                         backgroundColor: '#4CAF50',

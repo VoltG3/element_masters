@@ -331,9 +331,12 @@ export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setM
     const resizeArray = (oldArr) => {
         const newArr = Array(newWidth * newHeight).fill(null);
         if (!oldArr) return newArr;
-        for (let y = 0; y < Math.min(oldH, newHeight); y++) {
+        const offsetY = newHeight - oldH;
+        for (let y = 0; y < newHeight; y++) {
+            const oldY = y - offsetY;
+            if (oldY < 0 || oldY >= oldH) continue;
             for (let x = 0; x < Math.min(oldW, newWidth); x++) {
-                newArr[y * newWidth + x] = oldArr[y * oldW + x];
+                newArr[y * newWidth + x] = oldArr[oldY * oldW + x];
             }
         }
         return newArr;
@@ -342,9 +345,12 @@ export const resizeMapData = ({ newWidth, newHeight, stateRef, setMapWidth, setM
     const resizeMetadata = (oldM) => {
         const newM = {};
         if (!oldM) return newM;
-        for (let y = 0; y < Math.min(oldH, newHeight); y++) {
+        const offsetY = newHeight - oldH;
+        for (let y = 0; y < newHeight; y++) {
+            const oldY = y - offsetY;
+            if (oldY < 0 || oldY >= oldH) continue;
             for (let x = 0; x < Math.min(oldW, newWidth); x++) {
-                const oldIdx = y * oldW + x;
+                const oldIdx = oldY * oldW + x;
                 const newIdx = y * newWidth + x;
                 if (oldM[oldIdx]) {
                     newM[newIdx] = oldM[oldIdx];
