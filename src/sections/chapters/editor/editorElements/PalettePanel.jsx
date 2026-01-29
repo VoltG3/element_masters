@@ -632,49 +632,49 @@ export const PalettePanel = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_RAIN')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'rain').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'rain').map(w => renderPaletteItem(w, 'blue', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_SNOW')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'snow').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'snow').map(w => renderPaletteItem(w, 'blue', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_CLOUDS')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'clouds').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'clouds').map(w => renderPaletteItem(w, 'blue', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_FOG')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'fog').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'fog').map(w => renderPaletteItem(w, 'blue', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_THUNDER')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'thunder').map(w => renderPaletteItem(w, 'blue', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'thunder').map(w => renderPaletteItem(w, 'blue', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_LAVA_RAIN')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'lavaRain').map(w => renderPaletteItem(w, 'red', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'lavaRain').map(w => renderPaletteItem(w, 'red', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_RADIO_FOG')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'radioactiveFog').map(w => renderPaletteItem(w, 'green', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'radioactiveFog').map(w => renderPaletteItem(w, 'green', 'props'))}
                         </div>
                     </CollapsiblePanel>
 
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_WEATHER_METEOR_RAIN')} isOpenDefault={false}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {weather && weather.filter(w => w.weatherType === 'meteorRain').map(w => renderPaletteItem(w, 'orange', 'object'))}
+                            {weather && weather.filter(w => w.weatherType === 'meteorRain').map(w => renderPaletteItem(w, 'orange', 'props'))}
                         </div>
                     </CollapsiblePanel>
                 </div>
@@ -684,7 +684,7 @@ export const PalettePanel = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <CollapsiblePanel title={t('EDITOR_ELEMENTS_MESSAGES_TITLE')} isOpenDefault={true}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {messages && messages.map(m => renderPaletteItem(m, 'gold', 'object'))}
+                        {messages && messages.map(m => renderPaletteItem(m, 'gold', 'props'))}
                         </div>
                     </CollapsiblePanel>
                     {selectedTile && (selectedTile.i18nMessage || selectedTile.type === 'message_trigger') && (

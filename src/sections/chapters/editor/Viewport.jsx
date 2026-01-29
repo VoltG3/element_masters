@@ -157,7 +157,8 @@ export const Viewport = ({
                 overflow: 'auto', position: 'relative', userSelect: 'none'
             }}
             onMouseUp={() => handleGridMouseUp(hoverIndex)}
-            onMouseMove={handleGridMouseMove}>
+            onMouseMove={handleGridMouseMove}
+            onContextMenu={(e) => e.preventDefault()}>
             <div
                 style={{ position: 'relative', width: 'fit-content' }}
                 onMouseLeave={() => {
@@ -239,7 +240,7 @@ export const Viewport = ({
                     }}
                 />
 
-                {isBrushActive && selectedTile && activeLayer === 'object' && (cursorIndex !== null || hoverIndex !== null) && (
+                {isBrushActive && selectedTile && (activeLayer === 'object' || activeLayer === 'props') && (cursorIndex !== null || hoverIndex !== null) && (
                     (() => {
                         const previewIndex = cursorIndex !== null ? cursorIndex : hoverIndex;
                         const previewX = (previewIndex % mapWidth) * tileSize;
@@ -335,7 +336,8 @@ export const Viewport = ({
                         position: 'relative', cursor: activeTool === 'bucket' ? 'cell' : 'default',
                         zIndex: 1
                     }}
-                    onMouseMove={handleGridMouseMove}>
+                    onMouseMove={handleGridMouseMove}
+                    onContextMenu={(e) => e.preventDefault()}>
                     {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
                         const x = index % mapWidth;
                         const y = Math.floor(index / mapWidth);

@@ -66,7 +66,13 @@ export const EditorTools = (props) => {
         setShowRoomMapContent
     } = props;
     const getEraserData = (layer) => {
-        const isActive = selectedTile === null && activeLayer === layer;
+        const isLayerBrushActive = activeLayer === layer
+            && activeTool === 'brush'
+            && selectedTile !== null;
+        const isLayerBucketActive = activeLayer === layer
+            && activeTool === 'bucket'
+            && selectedTile !== null;
+        const isActive = (selectedTile === null && activeLayer === layer) || isLayerBrushActive || isLayerBucketActive;
         const colors = {
             tile: { bg: '#e6f7ff', text: '#1890ff' },
             object: { bg: '#fff1f0', text: '#f5222d' },

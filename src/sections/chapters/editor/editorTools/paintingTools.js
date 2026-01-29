@@ -69,8 +69,8 @@ export const paintTile = ({
                     }
                 }
 
-                if (isPropsLayer) {
-                    // In props layer, we erase metadata and the object itself
+                if (isPropsLayer && selectedTile === null) {
+                    // In props layer eraser mode, remove object + metadata.
                     newData[targetIndex] = null;
                     if (newMetadata && newMetadata[targetIndex]) {
                         delete newMetadata[targetIndex];

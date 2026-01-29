@@ -15,6 +15,7 @@ export const useEditorPainting = (
     const [resizeState, setResizeState] = useState(null); // { index, edge, startX, startY, startW, startH }
     const [moveState, setMoveState] = useState(null); // { index, startX, startY, objId, secretId, meta }
     const bucketTimerRef = useRef(null);
+    const rightEraseRef = useRef(false);
 
     const getLinkedRoomAt = useCallback((index) => {
         if (!showRoomMapContent || !secretMapData || !objectMetadata) return null;
@@ -48,7 +49,8 @@ export const useEditorPainting = (
         return null;
     }, [showRoomMapContent, secretMapData, objectMetadata, maps, mapWidth]);
 
-    const paintTile = useCallback((index) => {
+    const paintTile = useCallback((index, overrideSelectedTile) => {
+        const effectiveTile = overrideSelectedTile !== undefined ? overrideSelectedTile : selectedTile;
         const linkedRoom = getLinkedRoomAt(index);
         
         if (linkedRoom && showRoomMapContent) {
@@ -70,7 +72,7 @@ export const useEditorPainting = (
                 activeTool,
                 brushSize,
                 activeLayer,
-                selectedTile,
+                selectedTile: effectiveTile,
                 mapWidth: rWidth,
                 mapHeight: rHeight,
                 tileMapData: map.tileMapData || [],
@@ -91,7 +93,7 @@ export const useEditorPainting = (
             activeTool,
             brushSize,
             activeLayer,
-            selectedTile,
+            selectedTile: effectiveTile,
             mapWidth,
             mapHeight,
             tileMapData,
@@ -177,6 +179,14 @@ export const useEditorPainting = (
         }
 
         if (activeTool === 'brush') {
+            const isRightErase = e.button === 2;
+            rightEraseRef.current = isRightErase;
+            if (isRightErase) {
+                e.preventDefault();
+                setIsDragging(true);
+                paintTile(index, null);
+                return;
+            }
             setIsDragging(true);
             paintTile(index);
         } else if (activeTool === 'area') {
@@ -315,7 +325,8 @@ export const useEditorPainting = (
             setHighlightedIndex(index);
 
         } else if (activeTool === 'brush' && isDragging) {
-            paintTile(index);
+            const shouldErase = rightEraseRef.current;
+            paintTile(index, shouldErase ? null : undefined);
         } else if (activeTool === 'bucket') {
             if (bucketTimerRef.current) clearTimeout(bucketTimerRef.current);
             bucketTimerRef.current = setTimeout(() => {
@@ -411,6 +422,7 @@ export const useEditorPainting = (
             setDragStart(null);
         }
 
+        rightEraseRef.current = false;
         setIsDragging(false);
         setResizeState(null);
         setMoveState(null);
