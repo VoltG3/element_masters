@@ -126,6 +126,17 @@ export const Viewport = ({
         return activeLayer === layer ? 'none' : 'grayscale(100%) opacity(0.2) blur(2px)';
     }, [isEraserActive, activeLayer]);
 
+    const getPlacementAnchor = useCallback((tile, layer) => {
+        if (!tile) return { x: 0, y: 0 };
+        if (layer !== 'object' && layer !== 'props') return { x: 0, y: 0 };
+        const width = Number(tile.width ?? 1);
+        const height = Number(tile.height ?? 1);
+        if (tile.type === 'decoration' && (width > 1 || height > 1)) {
+            return { x: Math.floor(width / 2), y: height - 1 };
+        }
+        return { x: 0, y: 0 };
+    }, []);
+
     const handleGridMouseMove = useCallback((event) => {
         const rect = gridRef.current ? gridRef.current.getBoundingClientRect() : event.currentTarget.getBoundingClientRect();
         const localX = event.clientX - rect.left;
@@ -160,7 +171,12 @@ export const Viewport = ({
             onMouseMove={handleGridMouseMove}
             onContextMenu={(e) => e.preventDefault()}>
             <div
-                style={{ position: 'relative', width: 'fit-content' }}
+                style={{
+                    position: 'relative',
+                    width: mapWidth * tileSize,
+                    height: mapHeight * tileSize,
+                    overflow: 'hidden'
+                }}
                 onMouseLeave={() => {
                     handleGridMouseLeave();
                     setCursorIndex(null);
@@ -243,8 +259,11 @@ export const Viewport = ({
                 {isBrushActive && selectedTile && (activeLayer === 'object' || activeLayer === 'props') && (cursorIndex !== null || hoverIndex !== null) && (
                     (() => {
                         const previewIndex = cursorIndex !== null ? cursorIndex : hoverIndex;
-                        const previewX = (previewIndex % mapWidth) * tileSize;
-                        const previewY = Math.floor(previewIndex / mapWidth) * tileSize;
+                        const anchor = getPlacementAnchor(selectedTile, activeLayer);
+                        const gridX = previewIndex % mapWidth;
+                        const gridY = Math.floor(previewIndex / mapWidth);
+                        const previewX = (gridX - anchor.x) * tileSize;
+                        const previewY = (gridY - anchor.y) * tileSize;
                         const previewW = Number(selectedTile.width ?? 1) * tileSize;
                         const previewH = Number(selectedTile.height ?? 1) * tileSize;
                         const renderOffsetX = Number(selectedTile?.render?.offsetX) || 0;

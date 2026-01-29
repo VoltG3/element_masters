@@ -343,14 +343,19 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
       visualElement.y = renderOffsetY - overlapY / 2;
     }
     
-    const objWidth = (meta.width || def.width || 1) * tileSize;
-    const objHeight = (meta.height || def.height || 1) * tileSize;
+    const tileW = meta.width || def.width || 1;
+    const tileH = meta.height || def.height || 1;
+    const objWidth = tileW * tileSize;
+    const objHeight = tileH * tileSize;
     visualElement.width = objWidth + overlapX;
     visualElement.height = objHeight + overlapY;
 
     const container = new Container();
-    container.x = x;
-    container.y = y;
+    const isLargeDecoration = def.type === 'decoration' && (tileW > 1 || tileH > 1);
+    const anchorOffsetX = isLargeDecoration ? -Math.floor(tileW / 2) * tileSize : 0;
+    const anchorOffsetY = isLargeDecoration ? -(tileH - 1) * tileSize : 0;
+    container.x = x + anchorOffsetX;
+    container.y = y + anchorOffsetY;
     container.isRoomContent = mapType === 'room';
     
     const isWeatherTrigger = def.type === 'weather_trigger';

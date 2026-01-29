@@ -68,11 +68,11 @@ export const useEditorPainting = (
             };
 
             paintTileUtil({
-                index: roomIndex,
-                activeTool,
-                brushSize,
-                activeLayer,
-                selectedTile: effectiveTile,
+            index: roomIndex,
+            activeTool,
+            brushSize,
+            activeLayer,
+            selectedTile: effectiveTile,
                 mapWidth: rWidth,
                 mapHeight: rHeight,
                 tileMapData: map.tileMapData || [],

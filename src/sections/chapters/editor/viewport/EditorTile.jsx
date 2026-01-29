@@ -168,6 +168,9 @@ export const EditorTile = React.memo(({
                 const renderOffsetY = Number(objObj?.render?.offsetY) || 0;
                 const overlapX = Number(objObj?.render?.overlapX) || 0;
                 const overlapY = Number(objObj?.render?.overlapY) || 0;
+                const isLargeDecoration = objObj.type === 'decoration' && (width > 1 || height > 1);
+                const anchorOffsetX = isLargeDecoration ? -Math.floor(width / 2) * 32 : 0;
+                const anchorOffsetY = isLargeDecoration ? -(height - 1) * 32 : 0;
                 const baseTop = objObj.type === 'decoration' ? 0 : 2;
                 const baseLeft = objObj.type === 'decoration' ? 0 : 2;
                 const baseWidth = objObj.type === 'decoration' ? (width * 32) : (width * 32 - 4);
@@ -175,8 +178,8 @@ export const EditorTile = React.memo(({
                 return (
                 <div style={{
                     position: 'absolute', 
-                    top: `${baseTop + renderOffsetY - overlapY / 2}px`,
-                    left: `${baseLeft + renderOffsetX - overlapX / 2}px`,
+                    top: `${baseTop + renderOffsetY + anchorOffsetY - overlapY / 2}px`,
+                    left: `${baseLeft + renderOffsetX + anchorOffsetX - overlapX / 2}px`,
                     width: `${baseWidth + overlapX}px`,
                     height: `${baseHeight + overlapY}px`,
                     zIndex: 3,
