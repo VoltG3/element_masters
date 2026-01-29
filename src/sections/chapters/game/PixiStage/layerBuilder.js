@@ -391,7 +391,8 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
       } catch (e) {}
     }
 
-    if (!!def.renderAbovePlayer) {
+    const renderAbove = meta.renderAbovePlayer !== undefined ? !!meta.renderAbovePlayer : !!def.renderAbovePlayer;
+    if (renderAbove) {
       targetObjFront.addChild(container);
     } else {
       targetObjBehind.addChild(container);

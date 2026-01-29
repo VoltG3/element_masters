@@ -169,6 +169,10 @@ export const EditorTile = React.memo(({
                 const overlapX = Number(objObj?.render?.overlapX) || 0;
                 const overlapY = Number(objObj?.render?.overlapY) || 0;
                 const isLargeDecoration = objObj.type === 'decoration' && (width > 1 || height > 1);
+                const isTree = objObj.editor?.group === 'trees';
+                const renderAboveOverride = objectMetadata?.[actualIndex]?.renderAbovePlayer;
+                const resolvedRenderAbove = renderAboveOverride !== undefined ? renderAboveOverride : objObj.renderAbovePlayer;
+                const treeLayerLabel = resolvedRenderAbove ? 'TREE: ABOVE PLAYER' : 'TREE: BEHIND PLAYER';
                 const anchorOffsetX = isLargeDecoration ? -Math.floor(width / 2) * 32 : 0;
                 const anchorOffsetY = isLargeDecoration ? -(height - 1) * 32 : 0;
                 const baseTop = objObj.type === 'decoration' ? 0 : 2;
@@ -215,6 +219,25 @@ export const EditorTile = React.memo(({
                                 border: objObj.type === 'decoration' ? 'none' : '1px dashed rgba(255,255,255,0.3)' 
                             }}
                         />
+                    )}
+
+                    {isTree && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-28px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            color: '#fff',
+                            padding: '1px 6px',
+                            borderRadius: '3px',
+                            fontSize: '10px',
+                            whiteSpace: 'nowrap',
+                            zIndex: 12,
+                            border: '1px solid #fff'
+                        }}>
+                            {treeLayerLabel}
+                        </div>
                     )}
 
                     {objObj.type === 'message_trigger' && (

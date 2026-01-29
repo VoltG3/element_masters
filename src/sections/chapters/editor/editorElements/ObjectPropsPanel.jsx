@@ -64,8 +64,9 @@ export const ObjectPropsPanel = ({
                     const isPortalOrTarget = objId && (objId.includes('portal') || objId.includes('target') || objId === 'portal_target');
                     const isDoor = objDef && objDef.subtype === 'door';
                     const isRoomArea = secretDef && secretDef.subtype === 'room' && mapType !== 'room';
+                    const isTree = objDef && objDef.type === 'decoration' && objDef.editor?.group === 'trees';
 
-                    if (!isPortalOrTarget && !isWeather && !isMessage && !isRoomArea && !isDoor) return null;
+                    if (!isPortalOrTarget && !isWeather && !isMessage && !isRoomArea && !isDoor && !isTree) return null;
 
                     const def = objDef || secretDef;
                     const id = objId || secretId;
@@ -97,7 +98,7 @@ export const ObjectPropsPanel = ({
                         >
                             <div style={{ fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    {isRoomArea ? '🏠' : ((isWeather || isMessage) ? def.editorIcon : (id.includes('portal') && !id.includes('target') ? '🔵' : '🎯'))} {def.displayName || def.name}
+                                    {isRoomArea ? '🏠' : (isTree ? '🌲' : ((isWeather || isMessage) ? def.editorIcon : (id.includes('portal') && !id.includes('target') ? '🔵' : '🎯')))} {def.displayName || def.name}
                                 </span>
                                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                                     <span style={{ color: '#666', fontSize: '11px' }}>({x}, {y})</span>
@@ -207,7 +208,7 @@ export const ObjectPropsPanel = ({
                                 </div>
                             )}
 
-                            {(!isWeather && !isMessage && !isRoomArea) && (
+                            {(!isWeather && !isMessage && !isRoomArea && !isTree) && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_PROPS_TRIGGER_ID')}</label>
                                     <input
@@ -230,6 +231,33 @@ export const ObjectPropsPanel = ({
                                         }}
                                         placeholder={t('EDITOR_ELEMENTS_PROPS_TRIGGER_ID_PLACEHOLDER')}
                                     />
+                                </div>
+                            )}
+
+                            {isTree && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('EDITOR_ELEMENTS_TREE_LAYER_LABEL')}</label>
+                                    <select
+                                        value={(metadata.renderAbovePlayer !== undefined ? metadata.renderAbovePlayer : def.renderAbovePlayer) ? 'above' : 'behind'}
+                                        onChange={(e) => {
+                                            const nextAbove = e.target.value === 'above';
+                                            setObjectMetadata(prev => ({
+                                                ...prev,
+                                                [index]: { ...prev[index], renderAbovePlayer: nextAbove }
+                                            }));
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '4px 8px',
+                                            border: '1px solid #ccc',
+                                            borderRadius: '4px',
+                                            fontSize: '13px',
+                                            backgroundColor: isHighlighted ? '#fff' : '#f0f0f0'
+                                        }}
+                                    >
+                                        <option value="behind">{t('EDITOR_ELEMENTS_TREE_LAYER_BEHIND')}</option>
+                                        <option value="above">{t('EDITOR_ELEMENTS_TREE_LAYER_ABOVE')}</option>
+                                    </select>
                                 </div>
                             )}
 
@@ -427,7 +455,8 @@ export const ObjectPropsPanel = ({
                     const isWeather = def && def.type === 'weather_trigger';
                     const isMessage = def && def.type === 'message_trigger';
                     const isPortalOrTarget = id.includes('portal') || id.includes('target') || id === 'portal_target';
-                    return isPortalOrTarget || isWeather || isMessage;
+                    const isTree = def && def.type === 'decoration' && def.editor?.group === 'trees';
+                    return isPortalOrTarget || isWeather || isMessage || isTree;
                 }).length === 0 && (
                     <p style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
                         {t('EDITOR_ELEMENTS_PROPS_NO_CONFIGURABLE')}

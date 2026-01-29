@@ -14,6 +14,29 @@ src/sections/chapters/game/
     ├── playerManager.js   # Spēlētāja sprite pārvaldība (~113 rindas)
     └── projectileManager.js # Projektilu sprite pārvaldība (~80 rindas)
 
+PixiStage slāņu konteineri un secība (no aizmugures uz priekšu):
+1) parallaxLayer
+2) bg
+3) bgAnim
+4) roomBg
+5) liquidBgLayer
+6) objBehind
+7) roomObjBehind
+8) secretBelowLayer
+9) playerLayer
+10) entitiesLayer
+11) projLayer
+12) objFront
+13) roomObjFront
+14) secretAboveLayer
+15) weatherLayer
+16) fogLayer
+17) liquidLayer
+18) liquidFxLayer
+19) vignetteLayer
+20) overlayLayer
+21) floatingLayer
+
 REFAKTORĒŠANAS REZULTĀTS:
 - PixiStage.jsx: 1380 rindas → 583 rindas (57% mazāks!)
 - Kods sadalīts 7 loģiskos moduļos
