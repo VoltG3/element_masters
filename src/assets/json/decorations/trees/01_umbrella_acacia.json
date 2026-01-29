@@ -1,0 +1,11 @@
+{
+  "id": "01_umbrella_acacia",
+  "name": "decoration.umbrella_acacia",
+  "type": "decoration",
+  "editor": { "group": "trees" },
+  "width": 17,
+  "height": 17,
+  "texture": "/assets/images/decorations/trees/01_umbrella_acacia_544x544.png",
+  "collision": false,
+  "renderAbovePlayer": false
+}

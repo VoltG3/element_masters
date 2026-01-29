@@ -57,6 +57,7 @@
   "EDITOR_ELEMENTS_LIQUIDS_INFO_TITLE": "\u0160\u0137idrumiem ir pieejami JSON p\u0101rrakst\u012bjumi: liquid.overlay {color,alpha} un liquid.resources {oxygen,lavaResist,iceResist,strength,radioactivity,health} ar enabled karodzi\u0146iem.",
   "EDITOR_ELEMENTS_LIQUIDS_INFO_LABEL": "Pieejami \u0161\u0137idrumu JSON p\u0101rrakst\u012bjumi (patur\u0113 kursoru virs, lai redz\u0113tu deta\u013cas)",
   "EDITOR_ELEMENTS_DECORATIONS_TITLE": "Dekor\u0101cijas",
+  "EDITOR_ELEMENTS_DECORATIONS_GROUP_TREES": "Koki",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER": "Sp\u0113l\u0113t\u0101js",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES": "Ienaidnieki",
   "EDITOR_ELEMENTS_ENTITIES_INFO_TITLE": "Ent\u012btijas izmanto redaktora metadatus: editor.panel 'entities' un editor.group 'player' vai 'enemies'.",

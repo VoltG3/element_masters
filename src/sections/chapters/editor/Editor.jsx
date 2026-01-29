@@ -587,6 +587,7 @@ export const Editor = () => {
                             previewPosition={previewPosition}
                             dragStart={dragStart}
                             isDragging={isDragging}
+                            selectedTile={selectedTile}
                             handleGridMouseDown={handleGridMouseDown}
                             handleGridMouseEnter={handleGridMouseMove}
                             handleGridMouseUp={handleGridMouseUp}

@@ -306,13 +306,55 @@ export const PalettePanel = ({
                 );
             })()}
 
-            {category === 'decorations' && (
-                <CollapsiblePanel title={t('EDITOR_ELEMENTS_DECORATIONS_TITLE')} isOpenDefault={true}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {decorations && decorations.map(d => renderPaletteItem(d, 'purple', 'object'))}
+            {category === 'decorations' && (() => {
+                const getDecorationGroup = (d) => {
+                    if (d.editor?.group) return d.editor.group;
+                    return 'other';
+                };
+
+                const groupOrder = [
+                    { key: 'trees', title: t('EDITOR_ELEMENTS_DECORATIONS_GROUP_TREES'), color: 'green', open: true }
+                ];
+
+                const withGroups = decorations.map(d => ({
+                    item: d,
+                    group: getDecorationGroup(d)
+                }));
+
+                const sortDecorations = (a, b) => {
+                    const ao = a.item.editor?.order ?? 0;
+                    const bo = b.item.editor?.order ?? 0;
+                    if (ao !== bo) return ao - bo;
+                    return (a.item.displayName || a.item.name || '').localeCompare(b.item.displayName || b.item.name || '');
+                };
+
+                const groupPanels = groupOrder.map(group => {
+                    const items = withGroups.filter(d => d.group === group.key).sort(sortDecorations);
+                    if (items.length === 0) return null;
+                    return (
+                        <CollapsiblePanel key={group.key} title={group.title} isOpenDefault={group.open}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {items.map(d => renderPaletteItem(d.item, group.color, 'object'))}
+                            </div>
+                        </CollapsiblePanel>
+                    );
+                }).filter(Boolean);
+
+                const otherItems = withGroups.filter(d => !groupOrder.some(g => g.key === d.group)).sort(sortDecorations);
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {groupPanels}
+                        {otherItems.length > 0 && (
+                            <CollapsiblePanel title={t('EDITOR_ELEMENTS_GROUP_OTHER')} isOpenDefault={false}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {otherItems.map(d => renderPaletteItem(d.item, 'gray', 'object'))}
+                                </div>
+                            </CollapsiblePanel>
+                        )}
                     </div>
-                </CollapsiblePanel>
-            )}
+                );
+            })()}
 
             {category === 'entities' && (() => {
                 const getEntityGroup = (e) => {

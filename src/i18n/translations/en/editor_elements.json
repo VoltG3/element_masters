@@ -60,6 +60,7 @@
   "EDITOR_ELEMENTS_LIQUIDS_INFO_TITLE": "Liquids support JSON overrides: liquid.overlay {color,alpha} and liquid.resources {oxygen,lavaResist,iceResist,strength,radioactivity,health} with enabled flags.",
   "EDITOR_ELEMENTS_LIQUIDS_INFO_LABEL": "Liquid JSON overrides available (hover for details)",
   "EDITOR_ELEMENTS_DECORATIONS_TITLE": "Decorations",
+  "EDITOR_ELEMENTS_DECORATIONS_GROUP_TREES": "Trees",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER": "Player",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_ANIMALS": "Animals",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES": "Enemies",

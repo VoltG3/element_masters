@@ -1,7 +1,8 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ObjectLinks } from './viewport/ObjectLinks';
 import { EditorTile } from './viewport/EditorTile';
 import PixiStage from '../game/PixiStage';
+import AnimatedItem from '../../../utilities/AnimatedItem';
 
 export const Viewport = ({
     mapWidth,
@@ -51,6 +52,9 @@ export const Viewport = ({
     const isEraserActive = activeTool === 'brush' && selectedTile === null;
     const isBrushActive = activeTool === 'brush';
     const isBucketActive = activeTool === 'bucket';
+    const tileSize = 32;
+    const gridRef = useRef(null);
+    const [cursorIndex, setCursorIndex] = useState(null);
 
     const regions = React.useMemo(() => {
         const res = [];
@@ -122,6 +126,23 @@ export const Viewport = ({
         return activeLayer === layer ? 'none' : 'grayscale(100%) opacity(0.2) blur(2px)';
     }, [isEraserActive, activeLayer]);
 
+    const handleGridMouseMove = useCallback((event) => {
+        const rect = gridRef.current ? gridRef.current.getBoundingClientRect() : event.currentTarget.getBoundingClientRect();
+        const localX = event.clientX - rect.left;
+        const localY = event.clientY - rect.top;
+        if (localX < 0 || localY < 0 || localX >= mapWidth * tileSize || localY >= mapHeight * tileSize) {
+            handleGridMouseLeave();
+            setCursorIndex(null);
+            return;
+        }
+        const gridX = Math.floor(localX / tileSize);
+        const gridY = Math.floor(localY / tileSize);
+        if (gridX < 0 || gridY < 0 || gridX >= mapWidth || gridY >= mapHeight) return;
+        const nextIndex = gridY * mapWidth + gridX;
+        setCursorIndex(prev => (prev === nextIndex ? prev : nextIndex));
+        handleGridMouseEnter(nextIndex);
+    }, [handleGridMouseEnter, handleGridMouseLeave, mapWidth, mapHeight, tileSize]);
+
     const getOverlayColor = () => {
         if (!isEraserActive) return 'transparent';
         if (activeLayer === 'tile') return 'rgba(24, 144, 255, 0.25)'; // Blueish for blocks
@@ -135,8 +156,15 @@ export const Viewport = ({
                 flex: 1, padding: '40px', backgroundColor: '#555',
                 overflow: 'auto', position: 'relative', userSelect: 'none'
             }}
-            onMouseUp={() => handleGridMouseUp(hoverIndex)}>
-            <div style={{ position: 'relative', width: 'fit-content' }} onMouseLeave={handleGridMouseLeave}>
+            onMouseUp={() => handleGridMouseUp(hoverIndex)}
+            onMouseMove={handleGridMouseMove}>
+            <div
+                style={{ position: 'relative', width: 'fit-content' }}
+                onMouseLeave={() => {
+                    handleGridMouseLeave();
+                    setCursorIndex(null);
+                }}
+            >
                 
                 <ObjectLinks 
                     mapWidth={mapWidth} 
@@ -183,7 +211,7 @@ export const Viewport = ({
                 <div
                     style={{
                         position: 'absolute', top: 0, left: 0,
-                        width: mapWidth * 32, height: mapHeight * 32,
+                        width: mapWidth * tileSize, height: mapHeight * tileSize,
                         backgroundImage: (selectedBackgroundUrl && showBackgroundImage && !isEraserActive) ? `url(${selectedBackgroundUrl})` : 'none',
                         backgroundColor: (isEraserActive || !showBackgroundImage || !selectedBackgroundUrl) ? selectedBackgroundColor : 'transparent',
                         backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%',
@@ -194,7 +222,7 @@ export const Viewport = ({
                 <div
                     style={{
                         position: 'absolute', top: 0, left: 0,
-                        width: mapWidth * 32, height: mapHeight * 32,
+                        width: mapWidth * tileSize, height: mapHeight * tileSize,
                         backgroundColor: getOverlayColor(),
                         zIndex: 5, pointerEvents: 'none',
                         transition: 'background-color 0.3s ease'
@@ -205,11 +233,67 @@ export const Viewport = ({
                 <div
                     style={{
                         position: 'absolute', top: 0, left: 0,
-                        width: mapWidth * 32, height: mapHeight * 32,
+                        width: mapWidth * tileSize, height: mapHeight * tileSize,
                         zIndex: 10, pointerEvents: 'none',
                         ...getGridStyles()
                     }}
                 />
+
+                {isBrushActive && selectedTile && activeLayer === 'object' && (cursorIndex !== null || hoverIndex !== null) && (
+                    (() => {
+                        const previewIndex = cursorIndex !== null ? cursorIndex : hoverIndex;
+                        const previewX = (previewIndex % mapWidth) * tileSize;
+                        const previewY = Math.floor(previewIndex / mapWidth) * tileSize;
+                        const previewW = Number(selectedTile.width ?? 1) * tileSize;
+                        const previewH = Number(selectedTile.height ?? 1) * tileSize;
+                        const renderOffsetX = Number(selectedTile?.render?.offsetX) || 0;
+                        const renderOffsetY = Number(selectedTile?.render?.offsetY) || 0;
+                        const overlapX = Number(selectedTile?.render?.overlapX) || 0;
+                        const overlapY = Number(selectedTile?.render?.overlapY) || 0;
+
+                        return (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: mapWidth * tileSize,
+                                    height: mapHeight * tileSize,
+                                    overflow: 'hidden',
+                                    pointerEvents: 'none',
+                                    zIndex: 9
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        left: previewX + renderOffsetX - overlapX / 2,
+                                        top: previewY + renderOffsetY - overlapY / 2,
+                                        width: previewW + overlapX,
+                                        height: previewH + overlapY,
+                                        opacity: 0.6,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <AnimatedItem
+                                        textures={selectedTile.textures}
+                                        texture={selectedTile.texture}
+                                        speed={selectedTile.animationSpeed}
+                                        spriteSheet={selectedTile.spriteSheet}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: selectedTile.type === 'decoration' ? 'cover' : 'contain'
+                                        }}
+                                        alt={selectedTile.name}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })()
+                )}
 
                 {/* Weather Effects Overlay */}
                 {(weatherRain > 0 || weatherSnow > 0 || weatherClouds > 0 || weatherFog > 0 || weatherThunder > 0 || weatherLavaRain > 0 || weatherRadioactiveFog > 0 || weatherMeteorRain > 0) && (
@@ -242,6 +326,7 @@ export const Viewport = ({
                 )}
 
                 <div className="grid"
+                    ref={gridRef}
                     style={{
                         display: 'grid',
                         gridTemplateColumns: `repeat(${mapWidth}, 32px)`,
@@ -249,7 +334,8 @@ export const Viewport = ({
                         gap: '0px', border: '1px solid #444', backgroundColor: 'transparent',
                         position: 'relative', cursor: activeTool === 'bucket' ? 'cell' : 'default',
                         zIndex: 1
-                    }}>
+                    }}
+                    onMouseMove={handleGridMouseMove}>
                     {Array(mapWidth * mapHeight).fill(0).map((_, index) => {
                         const x = index % mapWidth;
                         const y = Math.floor(index / mapWidth);

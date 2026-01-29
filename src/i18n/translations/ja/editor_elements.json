@@ -57,6 +57,7 @@
   "EDITOR_ELEMENTS_LIQUIDS_INFO_TITLE": "\u6db2\u4f53\u306fJSON\u4e0a\u66f8\u304d\u306b\u5bfe\u5fdc\u3057\u3066\u3044\u307e\u3059: liquid.overlay {color,alpha} \u3068 liquid.resources {oxygen,lavaResist,iceResist,strength,radioactivity,health}\uff08enabled\u30d5\u30e9\u30b0\u4ed8\u304d\uff09\u3002",
   "EDITOR_ELEMENTS_LIQUIDS_INFO_LABEL": "\u6db2\u4f53\u306eJSON\u4e0a\u66f8\u304d\u304c\u5229\u7528\u3067\u304d\u307e\u3059\uff08\u8a73\u7d30\u306f\u30db\u30d0\u30fc\uff09",
   "EDITOR_ELEMENTS_DECORATIONS_TITLE": "\u88c5\u98fe",
+  "EDITOR_ELEMENTS_DECORATIONS_GROUP_TREES": "\u6728",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER": "\u30d7\u30ec\u30a4\u30e4\u30fc",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES": "\u6575",
   "EDITOR_ELEMENTS_ENTITIES_INFO_TITLE": "\u30a8\u30f3\u30c6\u30a3\u30c6\u30a3\u306f\u30a8\u30c7\u30a3\u30bf\u30fc\u30e1\u30bf\u30c7\u30fc\u30bf\u3092\u4f7f\u7528\u3057\u307e\u3059: editor.panel 'entities' \u3068 editor.group 'player' / 'enemies'\u3002",

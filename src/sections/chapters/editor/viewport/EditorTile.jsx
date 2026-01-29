@@ -44,8 +44,8 @@ export const EditorTile = React.memo(({
     
     // Dimensijas ņemam no tiešā indeksa, lai izvairītos no citu objektu (piem. Room Area) 
     // ietekmes uz 1x1 objektiem, kas atrodas to robežās.
-    const width = objectMetadata?.[index]?.width || 1;
-    const height = objectMetadata?.[index]?.height || 1;
+    const width = Number(objectMetadata?.[index]?.width ?? objObj?.width ?? secretObj?.width ?? 1);
+    const height = Number(objectMetadata?.[index]?.height ?? objObj?.height ?? secretObj?.height ?? 1);
 
     const handleMouseDown = (e) => {
         // If we're clicking a tile that's part of a region, we should interact with the anchor

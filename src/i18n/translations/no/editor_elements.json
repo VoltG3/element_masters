@@ -57,6 +57,7 @@
   "EDITOR_ELEMENTS_LIQUIDS_INFO_TITLE": "V\u00e6sker st\u00f8tter JSON-overstyringer: liquid.overlay {color,alpha} og liquid.resources {oxygen,lavaResist,iceResist,strength,radioactivity,health} med enabled-flagg.",
   "EDITOR_ELEMENTS_LIQUIDS_INFO_LABEL": "JSON-overstyringer for v\u00e6sker tilgjengelig (hold musepekeren for detaljer)",
   "EDITOR_ELEMENTS_DECORATIONS_TITLE": "Dekorasjoner",
+  "EDITOR_ELEMENTS_DECORATIONS_GROUP_TREES": "Tr\u00e6r",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_PLAYER": "Spiller",
   "EDITOR_ELEMENTS_ENTITIES_GROUP_ENEMIES": "Fiender",
   "EDITOR_ELEMENTS_ENTITIES_INFO_TITLE": "Entiteter bruker editor-metadata: editor.panel 'entities' og editor.group 'player' eller 'enemies'.",
