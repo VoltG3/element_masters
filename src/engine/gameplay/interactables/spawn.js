@@ -4,8 +4,8 @@
 export function findSpawnPosition(map, triggerId, tileSize) {
   if (!map) return null;
 
-  const mapW = map.width || map.mapWidth || 20;
-  const metadata = map.objectMetadata || {};
+  const mapW = map.width || map.mapWidth || map.meta?.width || 20;
+  const metadata = map.objectMetadata || map.meta?.objectMetadata || {};
 
   const objLayer = map.layers?.find(l => l.name === 'entities' || l.type === 'object');
   const objData = map.objectMapData || objLayer?.data;

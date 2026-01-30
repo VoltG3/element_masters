@@ -510,7 +510,7 @@ export default function Game() {
                 messageTimerRef.current = null;
             }, duration || 8000);
         }
-    }, [dispatch, objectMapData, objectMetadata, registryItems]);
+    }, [activeMapData, activeRoomIds, dispatch, mapHeight, mapWidth, objectMapData, objectMetadata, projectMaps, registryItems]);
 
     // We no longer need 'engineMapData' with layers, as we pass objectMapData separately.
     // So we pass the original 'activeMapData' as first argument (for initialization to work correctly and not reset),
