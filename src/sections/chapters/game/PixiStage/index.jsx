@@ -12,6 +12,7 @@ import { createParallaxManager } from './parallaxManager';
 import { createPlayerContainer, updatePlayerSprite } from './playerManager';
 import { syncProjectiles, cleanupProjectiles } from './projectileManager';
 import { syncEntities, cleanupEntities } from './entityManager';
+import { drawSeaRescueTrajectory } from '../../../../engine/gameplay/seaRescue';
 import { rebuildLayers } from './layerBuilder';
 import { createFloatingTextLayer, createFloatingTextManager } from './floatingTextManager';
 import { createBreakEffectLayer, createBreakEffectManager } from './breakEffectManager';
@@ -81,6 +82,9 @@ const PixiStage = ({
   onWeatherEffectHit = null,
   roomBlurEnabled = true,
   debugOverlayEnabled = false,
+  engineInput = null,
+  engineRefs = null,
+  mapData = null,
 }) => {
   const [isPixiReady, setIsPixiReady] = useState(false);
 
@@ -109,7 +113,12 @@ const PixiStage = ({
   const weatherLayerRef = useRef(null);
   const liquidLayerRef = useRef(null);
   const liquidBgLayerRef = useRef(null);
+  const trajectoryLayerRef = useRef(null);
   const liquidSystemRef = useRef(null);
+  const engineInputRef = useRef(engineInput);
+  const engineRefsRef = useRef(engineRefs);
+  const mapTypeRef = useRef(mapType);
+  const mapDataRef = useRef(mapData);
   const fogLayerRef = useRef(null);
   const weatherSystemsRef = useRef({ rain: null, snow: null, clouds: null, thunder: null, fog: null, lavaRain: null, radioactiveFog: null, meteorRain: null });
   const weatherPropsRef = useRef({ rain: 0, snow: 0, clouds: 0, fog: 0, thunder: 0, lavaRain: 0, radioactiveFog: 0, meteorRain: 0 });
@@ -166,6 +175,10 @@ const PixiStage = ({
   useEffect(() => { roomBlurEnabledRef.current = roomBlurEnabled; }, [roomBlurEnabled]);
   useEffect(() => { debugEnabledRef.current = !!debugOverlayEnabled; }, [debugOverlayEnabled]);
   useEffect(() => { cameraScrollRef.current = Number(cameraScrollX) || 0; }, [cameraScrollX]);
+  useEffect(() => { engineInputRef.current = engineInput; }, [engineInput]);
+  useEffect(() => { engineRefsRef.current = engineRefs; }, [engineRefs]);
+  useEffect(() => { mapTypeRef.current = mapType; }, [mapType]);
+  useEffect(() => { mapDataRef.current = mapData; }, [mapData]);
   useEffect(() => { parallaxFactorRef.current = Number(backgroundParallaxFactor) || 0.3; }, [backgroundParallaxFactor]);
   useEffect(() => { bgImageRef.current = backgroundImage; }, [backgroundImage]);
   useEffect(() => { bgColorRef.current = backgroundColor; }, [backgroundColor]);
@@ -233,6 +246,8 @@ const PixiStage = ({
 
         // Enable z-index sorting for the main stage
         app.stage.sortableChildren = true;
+        app.stage.eventMode = 'static';
+        app.stage.hitArea = app.screen;
 
         if (destroyed) {
           app.destroy(true, { children: true, texture: true });
@@ -317,6 +332,11 @@ const PixiStage = ({
       const gridGraphics = new Graphics();
       gridRef.current = gridGraphics;
       overlayLayer.addChild(gridGraphics);
+
+      const trajectoryGraphics = new Graphics();
+      trajectoryLayerRef.current = trajectoryGraphics;
+      overlayLayer.addChild(trajectoryGraphics);
+
       overlayLayer.addChild(breakFxLayer);
 
       const debugGraphics = new Graphics();
@@ -543,6 +563,19 @@ const PixiStage = ({
             rawX: nextRawX,
             rawY: nextRawY
           };
+
+          if (engineRefsRef.current) {
+            if (!engineRefsRef.current.cameraRef) engineRefsRef.current.cameraRef = { x: 0, y: 0 };
+            engineRefsRef.current.cameraRef.x = nextRawX;
+            engineRefsRef.current.cameraRef.y = nextRawY;
+
+            // Update world mouse position for gameplay logic
+            const mouseData = app.renderer.events.pointer.global;
+            const worldMouse = app.stage.toLocal(mouseData);
+            if (!engineRefsRef.current.mouseWorldPos) engineRefsRef.current.mouseWorldPos = { x: 0, y: 0 };
+            engineRefsRef.current.mouseWorldPos.x = worldMouse.x;
+            engineRefsRef.current.mouseWorldPos.y = worldMouse.y;
+          }
           
           app.stage.pivot.set(Math.round(nextRawX), Math.round(nextRawY));
           
@@ -560,6 +593,22 @@ const PixiStage = ({
           if (parallaxManagerRef.current) {
             parallaxManagerRef.current.resize(worldW, worldH, sw, sh);
             parallaxManagerRef.current.setScroll(nextRawX, f);
+          }
+
+          // Sea Rescue Trajectory
+          if (trajectoryLayerRef.current) {
+            trajectoryLayerRef.current.clear();
+            if (mapTypeRef.current === 'sea_rescue') {
+                const drawCtx = {
+                    input: engineInputRef.current,
+                    refs: engineRefsRef.current,
+                    cameraX: nextRawX,
+                    cameraY: nextRawY,
+                    mapData: mapDataRef.current,
+                    tileSize: tileSize
+                };
+                drawSeaRescueTrajectory(drawCtx, trajectoryLayerRef.current);
+            }
           }
         }
 

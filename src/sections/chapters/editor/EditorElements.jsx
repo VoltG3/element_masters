@@ -38,6 +38,7 @@ export const EditorElements = ({
     interactables,
     hazards,
     secrets,
+    miniGames,
     weather,
     messages,
     crackableWalls,
@@ -61,7 +62,9 @@ export const EditorElements = ({
     togglePanel,
     maps,
     activeMapId,
-    createMap
+    createMap,
+    mapType,
+    updateMapData
 }) => {
     const { t } = useTranslation('editor_elements');
     const [lastPanel, setLastPanel] = React.useState(null);
@@ -130,6 +133,7 @@ export const EditorElements = ({
         hazards: t('EDITOR_ELEMENTS_PANEL_HAZARDS'),
         secrets: t('EDITOR_ELEMENTS_PANEL_SECTORS'),
         weather: t('EDITOR_ELEMENTS_PANEL_WEATHER'),
+        minigames: t('EDITOR_ELEMENTS_PANEL_MINI_GAMES'),
         messages: t('EDITOR_ELEMENTS_PANEL_MESSAGES'),
         obstacles: t('EDITOR_ELEMENTS_PANEL_OBSTACLES'),
         stats: t('EDITOR_ELEMENTS_PANEL_STATISTICS'),
@@ -151,6 +155,7 @@ export const EditorElements = ({
                 <ElementEditorButton onClick={() => handleIconClick('hazards')} onMouseEnter={() => handleIconMouseEnter('hazards')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'hazards'} title={t('EDITOR_ELEMENTS_ICON_HAZARDS')}>☠️</ElementEditorButton>
                 <ElementEditorButton onClick={() => handleIconClick('secrets')} onMouseEnter={() => handleIconMouseEnter('secrets')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'secrets'} title={t('EDITOR_ELEMENTS_ICON_SECTORS')}>√2</ElementEditorButton>
                 <ElementEditorButton onClick={() => handleIconClick('weather')} onMouseEnter={() => handleIconMouseEnter('weather')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'weather'} title={t('EDITOR_ELEMENTS_ICON_WEATHER')}>∑</ElementEditorButton>
+                <ElementEditorButton onClick={() => handleIconClick('minigames')} onMouseEnter={() => handleIconMouseEnter('minigames')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'minigames'} title={t('EDITOR_ELEMENTS_ICON_MINI_GAMES')}>🎮</ElementEditorButton>
                 <ElementEditorButton onClick={() => handleIconClick('messages')} onMouseEnter={() => handleIconMouseEnter('messages')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'messages'} title={t('EDITOR_ELEMENTS_ICON_MESSAGES')}>𝔐</ElementEditorButton>
                 <ElementEditorButton onClick={() => handleIconClick('stats')} onMouseEnter={() => handleIconMouseEnter('stats')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'stats'} title={t('EDITOR_ELEMENTS_ICON_STATISTICS')}>📊</ElementEditorButton>
                 <ElementEditorButton onClick={() => handleIconClick('props')} onMouseEnter={() => handleIconMouseEnter('props')} onMouseLeave={handleIconMouseLeave} $active={activePanel === 'props'} title={t('EDITOR_ELEMENTS_ICON_PROPERTIES')}>📋</ElementEditorButton>
@@ -181,6 +186,9 @@ export const EditorElements = ({
                                     setMapName={setMapName}
                                     setCreatorName={setCreatorName}
                                     setMapDescription={setMapDescription}
+                                    mapType={mapType}
+                                    updateMapData={updateMapData}
+                                    activeMapId={activeMapId}
                                 />
                             )}
 
@@ -193,6 +201,7 @@ export const EditorElements = ({
                               displayPanel === 'hazards' || 
                               displayPanel === 'secrets' ||
                               displayPanel === 'weather' ||
+                              displayPanel === 'minigames' ||
                               displayPanel === 'messages' ||
                               displayPanel === 'obstacles') && (
                                 <PalettePanel 
@@ -206,6 +215,7 @@ export const EditorElements = ({
                                     interactables={interactables}
                                     hazards={hazards}
                                     secrets={secrets}
+                                    miniGames={miniGames}
                                     weather={weather}
                                     messages={messages}
                                     crackableWalls={crackableWalls}

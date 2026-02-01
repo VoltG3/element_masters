@@ -1,0 +1,13 @@
+{
+  "id": "minispill_sea_rescue_ship",
+  "name": "minispill.sea_rescue_ship",
+  "displayName": "Sea Rescue Ship",
+  "type": "minigame",
+  "width": 27,
+  "height": 7,
+  "editor": { "panel": "minigames", "group": "sea_rescue", "order": 10 },
+  "texture": "/assets/images/mini_spill/sea_rescue/minispill_sea_rescue_ship.png",
+  "collision": false,
+  "renderAbovePlayer": false,
+  "description": "Sea Rescue ship playfield"
+}

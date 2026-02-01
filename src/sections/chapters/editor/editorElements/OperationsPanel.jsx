@@ -13,7 +13,10 @@ export const OperationsPanel = ({
     mapDescription,
     setMapName,
     setCreatorName,
-    setMapDescription
+    setMapDescription,
+    mapType,
+    updateMapData,
+    activeMapId
 }) => {
     const { t } = useTranslation('editor_elements');
     const inputStyle = {
@@ -79,6 +82,32 @@ export const OperationsPanel = ({
             </div>
 
             <div style={{ padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                    <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '4px', display: 'block' }}>{t('EDITOR_ELEMENTS_OP_MAP_TYPE_LABEL')}</label>
+                    <div style={{ display: 'flex', gap: '15px', padding: '4px 6px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: mapType !== 'sea_rescue' ? 'bold' : 'normal' }}>
+                            <input 
+                                type="radio" 
+                                name="mapType" 
+                                checked={mapType !== 'sea_rescue'} 
+                                onChange={() => updateMapData(activeMapId, { type: 'overworld' })}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            {t('EDITOR_ELEMENTS_OP_MAP_TYPE_DEFAULT')}
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: mapType === 'sea_rescue' ? 'bold' : 'normal' }}>
+                            <input 
+                                type="radio" 
+                                name="mapType" 
+                                checked={mapType === 'sea_rescue'} 
+                                onChange={() => updateMapData(activeMapId, { type: 'sea_rescue' })}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            {t('EDITOR_ELEMENTS_OP_MAP_TYPE_SEA_RESCUE')}
+                        </label>
+                    </div>
+                </div>
+
                 <div>
                     <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '6px', marginBottom: '2px', display: 'block' }}>{t('EDITOR_ELEMENTS_OP_MAP_NAME_LABEL')}</label>
                     <input 

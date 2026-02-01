@@ -11,7 +11,7 @@ import { findSpawnPosition } from '../../../engine/gameplay/interactables';
 import { applyWolfSecretShift, shouldRemoveCrackBlock } from '../../../engine/gameplay/secrets';
 import { shouldTriggerBreakEffect, getBreakEffectParams } from '../../../engine/gameplay/breakEffects';
 import BackgroundMusicPlayer from '../../../utilities/BackgroundMusicPlayer';
-import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver, toggleRoom, clearRooms } from '../../../store/slices/gameSlice';
+import { setActiveMap, removeObjectAtIndex, removeTileAtIndex, moveTileInMap, moveObjectInMap, updateObjectAtIndex, updateObjectMetadata, setObjectTextureIndex, revealSecretZone, resetGame, setGameOver, addSeaRescuePoints, captureSeaRescueBox, toggleRoom, clearRooms } from '../../../store/slices/gameSlice';
 import { setMapModalOpen, setCameraScrollX, setShouldCenterMap } from '../../../store/slices/uiSlice';
 import errorHandler from '../../../services/errorHandler';
 import styled from 'styled-components';
@@ -260,6 +260,7 @@ export default function Game() {
         mapHeight = 15,
         isGameOver = false,
         activeRoomIds = [],
+        seaRescuePoints = 0,
         projectMaps = {}
     } = gameState;
     const {
@@ -267,6 +268,21 @@ export default function Game() {
         cameraScrollX = 0,
         shouldCenterMap = false
     } = uiState;
+
+    const effectiveMapType = useMemo(() => {
+        if (!activeMapData) return 'overworld';
+        const activeId = activeMapData.meta?.activeMapId || activeMapData.meta?.activeMap || 'main';
+        
+        // Check for Project V2.0 structure
+        if (activeMapData.meta?.version === "2.0" && activeMapData.maps) {
+            const activeMap = activeMapData.maps[activeId] || Object.values(activeMapData.maps)[0];
+            return activeMap?.type || 'overworld';
+        }
+        
+        // Fallback to root type or overworld
+        return activeMapData.type || 'overworld';
+    }, [activeMapData]);
+
     const [soundEnabled, setSoundEnabled] = useState(() => {
         try {
             const v = localStorage.getItem('game_sound_enabled');
@@ -441,6 +457,17 @@ export default function Game() {
                     detail: { x, y, text: `-${Math.round(amount)}`, color: '#ff3b3b', amount }
                 }));
             }
+        } else if (action === 'SEA_RESCUE_SCORE' && payload) {
+            const { points, triggerIndex, boxId } = payload;
+            dispatch(addSeaRescuePoints(points));
+            dispatch(captureSeaRescueBox({ triggerIndex, boxId, mapWidth }));
+            
+            // Show floating text at the trigger location (might need adjustment if captured index changed, but for now we show at hit location)
+            const x = (triggerIndex % mapWidth) * TILE_SIZE + TILE_SIZE / 2;
+            const y = Math.floor(triggerIndex / mapWidth) * TILE_SIZE;
+            window.dispatchEvent(new CustomEvent('game-floating-text', {
+                detail: { x, y, text: `+${points}`, color: '#00ff00', amount: points }
+            }));
         } else if (action === 'shiftTile' && payload) {
             const { index, dx, dy } = payload;
             const mapIdAtStart = activeMapIdRef.current;
@@ -524,7 +551,7 @@ export default function Game() {
     // --- START ENGINE ---
     // Engine returns player coordinates and state
     // objectMapData contains dynamic data (removed items)
-    const playerState = useGameEngine(
+    const { player: playerState, input: engineInput, engineRefs } = useGameEngine(
         activeMapData,
         tileMapData,
         objectMapData,
@@ -778,6 +805,8 @@ export default function Game() {
                 maxHealth={playerState.maxHealth}
                 ammo={playerState.ammo || 0} 
                 fishCount={playerState.fishCount || 0}
+                seaRescuePoints={seaRescuePoints}
+                mapType={effectiveMapType}
                 oxygen={playerState.oxygen}
                 maxOxygen={playerState.maxOxygen}
                 lavaResist={playerState.lavaResist}
@@ -927,9 +956,12 @@ export default function Game() {
                             roomBlurEnabled={runtimeSettings.roomBlurEnabled ?? true}
                             debugOverlayEnabled={runtimeSettings.debugOverlayEnabled ?? false}
                             isEditor={false}
-                            mapType={activeMapData?.type || 'overworld'}
+                            mapType={effectiveMapType}
+                            engineInput={engineInput}
+                            engineRefs={engineRefs}
                             activeRoomIds={activeRoomIds}
                             maps={projectMaps}
+                            mapData={activeMapData}
                         />
 
                     </GameCanvas>

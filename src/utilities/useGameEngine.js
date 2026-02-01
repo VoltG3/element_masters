@@ -523,17 +523,38 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         }, originX, originY, direction, ownerId);
     };
 
+    const engineRefs = useRef({ 
+        gameState, 
+        isInitialized, 
+        lastTimeRef, 
+        projectilesRef, 
+        entitiesRef, 
+        shootCooldownRef, 
+        liquidDamageAccumulatorRef, 
+        oxygenDepleteAccRef, 
+        lavaDepleteAccRef, 
+        weatherDamageAccRef, 
+        activeRoomIdsRef,
+        projectileIdRef,
+        objectMetadata: objectMetadataRef,
+        cameraRef: { x: 0, y: 0 },
+        seaRescueRef: null,
+        helpers: { findItemById, isSolidAtPixel }
+    });
+
     // Game Loop (delegated to GameEngine/updateFrame)
     const update = (timestamp) => {
         const ctx = {
             mapData,
             objectData: objectDataRef.current,
             input,
-            refs: { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef, activeRoomIdsRef },
+            refs: engineRefs.current,
             constants: { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE },
             registryItems,
             helpers: {
                 checkCollision,
+                isSolidAtPixel,
+                findItemById,
                 getSurfaceProperties: (x, y, w, h) => getSurfaceProperties(x, y, w, h, mapWidthRef.current || 20, mapHeightRef.current || 15, TILE_SIZE, tileDataRef.current, registryItems, secretDataRef.current, objectMetadataRef.current || mapData?.meta?.objectMetadata, mapData?.maps, activeRoomIdsRef.current || mapData?.meta?.activeRoomIds),
                 isLiquidAt: (wx, wy) => getLiquidTypeAtPixel(wx, wy),
                 getLiquidSample: ({ x, y, width, height }) =>
@@ -579,6 +600,7 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         onStateUpdate: onStateUpdateRef.current,
                         playSfx: playShotSfx
                     }, deltaMs, mapWidthRef.current || 20, mapHeightRef.current || 15),
+                onStateUpdate: onStateUpdateRef.current,
                 setPlayer: (next) => setPlayer(next),
                 onGameOver: onGameOverRef.current
             }
@@ -598,5 +620,5 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         };
     }, [mapData]); // Restart loop ONLY if map changes, not objects
 
-    return player;
+    return { player, input, engineRefs: engineRefs.current };
 };

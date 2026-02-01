@@ -210,7 +210,7 @@ export const EditorTile = React.memo(({
                             texture={objObj.texture}
                             speed={objObj.animationSpeed}
                             spriteSheet={objObj.spriteSheet}
-                            frameIndex={objectMetadata?.[actualIndex]?.currentFrame !== undefined ? objectMetadata[actualIndex].currentFrame : (objObj.subtype === 'door' && mapType === 'room' ? (objObj.interaction?.frames?.inside || 2) : 0)}
+                            frameIndex={objectMetadata?.[actualIndex]?.currentFrame !== undefined ? objectMetadata[actualIndex].currentFrame : (objObj.subtype === 'door' && mapType === 'room' ? (objObj.interaction?.frames?.inside || 2) : undefined)}
                             style={{ 
                                 width: '100%', 
                                 height: '100%', 

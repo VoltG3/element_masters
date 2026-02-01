@@ -40,6 +40,10 @@ const FishDisplay = styled(AmmoDisplay)`
     color: rgba(140, 230, 255, 0.95);
 `;
 
+const SeaRescueDisplay = styled(AmmoDisplay)`
+    color: #00ff00;
+`;
+
 const AmmoIcon = styled.span`
     width: 22px;
     height: 22px;
@@ -109,6 +113,8 @@ const GameHeader = ({
     maxHealth = 100, 
     ammo = 0, 
     fishCount = 0,
+    seaRescuePoints = 0,
+    mapType = 'overworld',
     oxygen = 100, 
     maxOxygen = 100, 
     lavaResist = 100, 
@@ -156,6 +162,11 @@ const GameHeader = ({
                     </AmmoIcon>
                     {fishCount || 0}
                 </FishDisplay>
+                {mapType === 'sea_rescue' && (
+                    <SeaRescueDisplay style={{ marginLeft: '15px' }}>
+                        Points: {seaRescuePoints}
+                    </SeaRescueDisplay>
+                )}
             </div>
 
             <RightSection>

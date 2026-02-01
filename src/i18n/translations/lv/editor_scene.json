@@ -38,6 +38,7 @@
   "EDITOR_SCENE_RESIZER_HINT_LINE2": "(Min: 5x5, Max: 100x100)",
   "EDITOR_SCENE_WORLD_MAIN": "Galvenā",
   "EDITOR_SCENE_WORLD_ADD_OVERWORLD": "+ Virspasaule",
+  "EDITOR_SCENE_WORLD_ADD_SEA_RESCUE": "+ Sea Rescue",
   "EDITOR_SCENE_WORLD_ADD_UNDERWORLD": "+ Pazeme",
   "EDITOR_SCENE_WORLD_ADD_ROOM_TITLE": "Atzīmē telpas zonu kartē",
   "EDITOR_SCENE_WORLD_HELP": "Veic dubultklikšķi uz kartes, lai atlasītu. Velc, lai pārvietotu.",

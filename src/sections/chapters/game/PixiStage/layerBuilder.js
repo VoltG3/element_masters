@@ -364,7 +364,11 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
     const shouldShowAnyway = (isWeatherTrigger || isMessageTrigger || isWolfSecret) && (isEditor || isEditorPlayMode);
     
     if (def.isHiddenInGame && !isEditor && !shouldShowAnyway) {
+      if (meta.capturedBoxId) {
+        visualElement.visible = false;
+      } else {
         container.visible = false;
+      }
     }
 
     const secretDef = secretId ? getDef(secretId) : null;
@@ -377,6 +381,38 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
     }
 
     container.addChild(visualElement);
+
+    if (meta.capturedBoxId) {
+      const boxDef = getDef(meta.capturedBoxId);
+      if (boxDef) {
+        let boxSprite;
+        if (boxDef.spriteSheet && boxDef.spriteSheet.enabled) {
+          const bBaseTexture = getTexture(boxDef.texture);
+          const bSource = bBaseTexture?.source;
+          if (bSource && bSource.width > 1) {
+            const bCols = boxDef.spriteSheet.columns || boxDef.spriteSheet.totalSprites || 1;
+            const bTotal = boxDef.spriteSheet.totalSprites || 1;
+            const bFrameIndex = Math.max(0, Math.min(bTotal - 1, Number(boxDef.spriteSheet.frameIndex) || 0));
+            const bFrameWidth = bSource.width / bCols;
+            const bFrameHeight = bSource.height / Math.ceil(bTotal / bCols);
+            const bCol = bFrameIndex % bCols;
+            const bRow = Math.floor(bFrameIndex / bCols);
+            const bRect = new Rectangle(bCol * bFrameWidth, bRow * bFrameHeight, bFrameWidth, bFrameHeight);
+            boxSprite = new Sprite(new Texture({ source: bSource, frame: bRect }));
+          }
+        }
+        if (!boxSprite) {
+          boxSprite = buildSpriteFromDef(boxDef);
+        }
+        if (boxSprite) {
+          boxSprite.width = tileSize * 0.8;
+          boxSprite.height = tileSize * 0.8;
+          boxSprite.x = (objWidth - boxSprite.width) / 2;
+          boxSprite.y = (objHeight - boxSprite.height) / 2 - 4;
+          container.addChild(boxSprite);
+        }
+      }
+    }
 
     if (def.isDestructible && health < maxH && health > 0) {
       try {

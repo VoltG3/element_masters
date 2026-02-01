@@ -43,7 +43,7 @@ export const useEditorMaps = () => {
         
         const newMap = {
             id,
-            name: name || (type === 'overworld' ? 'New Overworld' : 'New Underworld'),
+            name: name || (type === 'overworld' ? 'New Overworld' : (type === 'sea_rescue' ? 'Sea Rescue' : 'New Underworld')),
             description: '',
             type,
             mapWidth: width,
@@ -53,7 +53,7 @@ export const useEditorMaps = () => {
             secretMapData: Array(width * height).fill(null),
             objectMetadata: {},
             selectedBackgroundImage: null,
-            selectedBackgroundColor: type === 'overworld' ? '#99C1F1' : '#1a1a1a',
+            selectedBackgroundColor: type === 'overworld' ? '#99C1F1' : (type === 'sea_rescue' ? '#99C1F1' : '#1a1a1a'),
             backgroundParallaxFactor: 0.3,
             selectedBackgroundMusic: null,
             weather: {

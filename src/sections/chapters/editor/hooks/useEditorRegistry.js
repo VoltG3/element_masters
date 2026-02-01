@@ -60,7 +60,11 @@ export const useEditorRegistry = (registryItems) => {
     [registryItems]);
 
     const secrets = useMemo(() => 
-        registryItems.filter(item => item.type === 'secret'), 
+        registryItems.filter(item => item.type === 'secret' && item.editor?.panel !== 'minigames'), 
+    [registryItems]);
+
+    const miniGames = useMemo(() =>
+        registryItems.filter(item => item.editor?.panel === 'minigames'),
     [registryItems]);
 
     const weather = useMemo(() => 
@@ -92,6 +96,7 @@ export const useEditorRegistry = (registryItems) => {
         interactables,
         hazards,
         secrets,
+        miniGames,
         weather,
         messages,
         crackableWalls,

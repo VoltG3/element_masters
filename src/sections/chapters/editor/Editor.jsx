@@ -274,7 +274,7 @@ export const Editor = () => {
 
     // Use Custom Hooks
     const { 
-        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, weather, messages, crackableWalls, pushableWalls, obstacles 
+        blocks, liquids, entities, decorations, items, interactables, hazards, secrets, miniGames, weather, messages, crackableWalls, pushableWalls, obstacles 
     } = useEditorRegistry(registryItems);
 
     const { 
@@ -353,6 +353,32 @@ export const Editor = () => {
         setObjectMapData(Array(size).fill(null));
         setSecretMapData(Array(size).fill(null));
     }, []);
+
+    useEffect(() => {
+        if (!secretMapData || !objectMapData || secretMapData.length === 0) return;
+        const toMove = [];
+        for (let i = 0; i < secretMapData.length; i++) {
+            const secretId = secretMapData[i];
+            if (secretId && typeof secretId === 'string' && secretId.startsWith('minispill_sea_rescue_box') && !objectMapData[i]) {
+                toMove.push({ index: i, id: secretId === 'minispill_sea_rescue_box' ? 'minispill_sea_rescue_box0' : secretId });
+            }
+        }
+        if (toMove.length === 0) return;
+        setObjectMapData(prev => {
+            const next = [...prev];
+            toMove.forEach(item => {
+                next[item.index] = item.id;
+            });
+            return next;
+        });
+        setSecretMapData(prev => {
+            const next = [...prev];
+            toMove.forEach(item => {
+                next[item.index] = null;
+            });
+            return next;
+        });
+    }, [secretMapData, objectMapData, setObjectMapData, setSecretMapData]);
 
     const togglePanel = (panel) => {
         setActivePanel(prev => prev === panel ? null : panel);
@@ -448,6 +474,7 @@ export const Editor = () => {
                     interactables={interactables}
                     hazards={hazards}
                     secrets={secrets}
+                    miniGames={miniGames}
                     weather={weather}
                     messages={messages}
                     crackableWalls={crackableWalls}
@@ -472,6 +499,8 @@ export const Editor = () => {
                     maps={maps}
                     activeMapId={activeMapId}
                     createMap={handleCreateMap}
+                    mapType={maps[activeMapId]?.type || 'overworld'}
+                    updateMapData={updateMapData}
                 />
 
                 <div style={{ display: 'flex', flex: 1, flexDirection: 'column', overflow: 'hidden' }}>

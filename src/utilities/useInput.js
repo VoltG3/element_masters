@@ -8,6 +8,7 @@ export const useInput = () => {
         d: false,
         space: false,
         mouseLeft: false,
+        mousePos: { x: 0, y: 0 },
         e: false
     });
 
@@ -124,6 +125,11 @@ export const useInput = () => {
             }
         };
 
+        const handleMouseMove = (e) => {
+            keys.current.mousePos.x = e.clientX;
+            keys.current.mousePos.y = e.clientY;
+        };
+
         const onToggleTerminal = () => clearKeys();
 
         // non-passive to allow preventDefault on Space/Arrow keys
@@ -132,6 +138,7 @@ export const useInput = () => {
         window.addEventListener('game-toggle-terminal', onToggleTerminal);
         window.addEventListener('mousedown', handleMouseDown, { passive: true });
         window.addEventListener('mouseup', handleMouseUp, { passive: true });
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown, { passive: false });
@@ -139,6 +146,7 @@ export const useInput = () => {
             window.removeEventListener('game-toggle-terminal', onToggleTerminal);
             window.removeEventListener('mousedown', handleMouseDown, { passive: true });
             window.removeEventListener('mouseup', handleMouseUp, { passive: true });
+            window.removeEventListener('mousemove', handleMouseMove, { passive: true });
         };
     }, []);
 

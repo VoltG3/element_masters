@@ -1,0 +1,19 @@
+{
+  "id": "minispill_sea_rescue_box1",
+  "name": "minispill.sea_rescue_box1",
+  "displayName": "Sea Rescue Box 2",
+  "type": "minigame",
+  "width": 3,
+  "height": 2,
+  "editor": { "panel": "minigames", "group": "sea_rescue", "order": 31 },
+  "texture": "/assets/images/mini_spill/sea_rescue/minispill_sea_rescue_box.png",
+  "spriteSheet": {
+    "enabled": true,
+    "totalSprites": 4,
+    "columns": 2,
+    "frameIndex": 1
+  },
+  "collision": true,
+  "points": 10,
+  "description": "Sea Rescue box"
+}

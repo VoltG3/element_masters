@@ -8,13 +8,13 @@ export const LAYERS = Object.freeze({
   objBehind: 30,
   secretsBelow: 35,
   player: 40,
+  liquids: 45,
+  liquidFx: 48,
   projectiles: 50,
   objFront: 60,
   secretsAbove: 65,
   weather: 70,
   fog: 80,
-  liquids: 90,
-  liquidFx: 100,
   overlay: 110,
 });
 

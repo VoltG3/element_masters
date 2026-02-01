@@ -24,7 +24,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     return false;
   };
 
-  const checkObjectHit = (cx, cy, hw, hh) => {
+  const checkObjectHit = (cx, cy, hw, hh, isSeaRescueBox = false) => {
     if (!objectData) return null;
     const pts = [
         { x: cx - hw, y: cy - hh },
@@ -40,6 +40,12 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         const index = gy * mapWidth + gx;
         const objId = objectData[index];
         if (objId) {
+            // Special case for Sea Rescue Trigger - it should be hit from above
+            if (isSeaRescueBox && objId === 'minispill_sea_rescue_trigger') {
+              // We check if the projectile is moving downwards and hit the trigger
+              return index;
+            }
+
             const def = findItemById(objId);
             if (def && def.isDestructible) {
                 // Check if already passable
@@ -110,30 +116,49 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
     let cx = p.x;
     let cy = p.y;
+
+    if (p.isSeaRescueBox) {
+      if (p.useSimplePhysics) {
+        // Simple physics matching trajectory preview (no friction, constant G)
+        const settings = findItemById('sea_rescue_settings')?.physics || {};
+        const G = p.gravity || settings.gravity || 1600;
+        p.vy += G * stepTime;
+      } else {
+        p.vy += (p.gravity || 0.5) * 60 * stepTime;
+        p.vx *= (p.friction || 0.98);
+        p.vy *= (p.friction || 0.98);
+      }
+    }
+
     const hw = (p.w * (p.hbs || 1)) * 0.5;
     const hh = (p.h * (p.hbs || 1)) * 0.5;
 
     let removed = false;
 
     for (let s = 0; s < steps; s++) {
+      // Sea Rescue hit detection
+      if (p.isSeaRescueBox) {
+          const objIdx = checkObjectHit(cx, cy, hw, hh, true);
+          if (objIdx !== null) {
+              const hitObjId = objectData[objIdx];
+              if (hitObjId === 'minispill_sea_rescue_trigger' && p.vy > 0) {
+                  const boxDef = findItemById(p.defId);
+                  const points = boxDef?.points || 10;
+                  
+                  if (typeof onStateUpdate === 'function') {
+                      onStateUpdate('SEA_RESCUE_SCORE', { points, triggerIndex: objIdx, boxId: p.defId });
+                  }
+                  
+                  if (typeof playSfx === 'function') playSfx('collect', 0.7);
+                  
+                  removed = true;
+                  break;
+              }
+          }
+      }
+
       // 1) X axis
       let nextX = cx + p.vx * stepTime;
-      
-      const hitPlayerX = checkPlayerHit(nextX, cy, hw, hh, p);
-      if (hitPlayerX) {
-        if (playerState) {
-          playerState.health = Math.max(0, (Number(playerState.health) || 0) - (p.dmg || 10));
-        }
-        if (onStateUpdate && playerState) {
-          onStateUpdate('playerDamage', {
-            damage: p.dmg || 10,
-            x: playerState.x + (playerState.width || TILE_SIZE) / 2,
-            y: playerState.y
-          });
-        }
-        removed = true;
-        break;
-      }
 
       const hitEntX = checkEntityHit(nextX, cy, hw, hh, p);
       if (hitEntX) {

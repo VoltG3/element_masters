@@ -45,6 +45,7 @@
 
   "EDITOR_SCENE_WORLD_MAIN": "Main",
   "EDITOR_SCENE_WORLD_ADD_OVERWORLD": "+ Overworld",
+  "EDITOR_SCENE_WORLD_ADD_SEA_RESCUE": "+ Sea Rescue",
   "EDITOR_SCENE_WORLD_ADD_UNDERWORLD": "+ Underworld",
   "EDITOR_SCENE_WORLD_ADD_ROOM_TITLE": "Mark Room Area on Map",
   "EDITOR_SCENE_WORLD_HELP": "Double-click map to select. Drag to move.",

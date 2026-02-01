@@ -387,6 +387,12 @@ export const WorldView = ({
                     {t('EDITOR_SCENE_WORLD_ADD_OVERWORLD')}
                 </button>
                 <button 
+                    onClick={() => createMap('sea_rescue')}
+                    style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#00bcd4', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
+                >
+                    {t('EDITOR_SCENE_WORLD_ADD_SEA_RESCUE')}
+                </button>
+                <button 
                     onClick={() => createMap('underworld')}
                     style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#5D4037', color: 'white', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}
                 >

@@ -180,20 +180,20 @@ export default class LiquidRegionSystem {
       let targetAlpha = 0.95;
       if (r.type === 'water') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        targetAlpha = playerInRegion ? 0.50 : 0.95;
+        targetAlpha = playerInRegion ? 0.35 : 0.45;
       } else if (r.type === 'quicksand') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        targetAlpha = playerInRegion ? 0.70 : 1.0;
+        targetAlpha = playerInRegion ? 0.55 : 0.75;
       } else if (r.type === 'waterfall' || r.type === 'lava_waterfall' || r.type === 'radioactive_waterfall') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        targetAlpha = playerInRegion ? 0.40 : 0.65;
+        targetAlpha = playerInRegion ? 0.30 : 0.45;
       } else if (r.type === 'radioactive_water') {
         const playerInRegion = this._checkPlayerInRegion(r);
-        targetAlpha = playerInRegion ? 0.55 : 0.90;
+        targetAlpha = playerInRegion ? 0.40 : 0.50;
       } else {
         // Lava
         const playerInRegion = this._checkPlayerInRegion(r);
-        targetAlpha = playerInRegion ? 0.60 : 0.98;
+        targetAlpha = playerInRegion ? 0.45 : 0.60;
       }
 
       // Smooth transition (lerp)
@@ -415,7 +415,7 @@ export default class LiquidRegionSystem {
         });
         
         tiling.tileScale.set(1, 1);
-        tiling.alpha = type === 'lava' ? 0.98 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.6 : 0.92);
+        tiling.alpha = type === 'lava' ? 0.60 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.45 : (type === 'quicksand' ? 0.75 : 0.45));
         node.addChild(tiling);
 
         // Noise/Detail slāņi
@@ -506,7 +506,7 @@ export default class LiquidRegionSystem {
           this.bgContainer.addChild(bgNode);
         }
 
-        const baseAlpha = type === 'lava' ? 0.98 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.6 : 0.92);
+        const baseAlpha = type === 'lava' ? 0.60 : ((type === 'waterfall' || type === 'lava_waterfall' || type === 'radioactive_waterfall') ? 0.45 : (type === 'quicksand' ? 0.75 : 0.45));
 
         if (type === 'water' || type === 'radioactive_water') {
           const capG = new Graphics();

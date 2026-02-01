@@ -4,6 +4,7 @@ import { applyVerticalPhysics } from '../physics/vertical';
 import { resolveInteractableContext } from '../gameplay/interactables/context';
 import { tickLiquidDamage } from '../liquids/liquidUtils';
 import { updateEntities } from '../gameplay/entities';
+import { updateSeaRescue } from '../gameplay/seaRescue';
 import { getWeatherDps, getMapWeather, getRadioactivityRates, weatherAffectsPlayer, weatherBlockedByCover } from '../gameplay/weatherDamage';
 import { isCoveredFromAbove } from '../gameplay/weatherCover';
 
@@ -62,6 +63,10 @@ export function updateFrame(ctx, timestamp) {
   const mapHeight = mapData.meta?.height || mapData.height || 15;
   const keys = input.current;
 
+  const activeId = mapData.meta?.activeMapId || mapData.meta?.activeMap || 'main';
+  const activeMap = mapData.maps ? mapData.maps[activeId] : mapData;
+  const mapType = activeMap?.type;
+
   let {
     x,
     y,
@@ -79,6 +84,11 @@ export function updateFrame(ctx, timestamp) {
 
   const dt = Math.max(0, deltaMs || 0);
   const physicsDt = Math.min(dt, 100);
+
+  // Sea Rescue logic
+  if (mapType === 'sea_rescue') {
+    updateSeaRescue(ctx, dt);
+  }
 
   // 0.5) Resources update (before physics to affect them)
   // Ice resistance depletion: drains while on slippery surface; regenerates otherwise
@@ -578,7 +588,7 @@ export function updateFrame(ctx, timestamp) {
   if (shootCooldownRef.current > 0) shootCooldownRef.current = Math.max(0, shootCooldownRef.current - deltaMs);
   // Get fresh ammo value after item collection
   const currentAmmo = Math.max(0, Number(gameState.current.ammo) || 0);
-  if (keys?.mouseLeft && shootCooldownRef.current <= 0 && currentAmmo > 0) {
+  if (keys?.mouseLeft && shootCooldownRef.current <= 0 && currentAmmo > 0 && mapType !== 'sea_rescue') {
     const originX = x + (direction >= 0 ? width + 4 : -4);
     const originY = y + height / 2;
     spawnProjectile(originX, originY, direction >= 0 ? 1 : -1, 'player');

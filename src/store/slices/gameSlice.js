@@ -21,6 +21,7 @@ const initialState = {
   isPaused: false,
   isGameOver: false,
   activeRoomIds: [], // IDs of currently active rooms (overlays)
+  seaRescuePoints: 0,
 };
 
 const gameSlice = createSlice({
@@ -28,7 +29,28 @@ const gameSlice = createSlice({
   initialState,
   reducers: {
     setActiveMap: (state, action) => {
-      const { mapData, tileMapData, objectMapData, secretMapData, mapWidth, mapHeight } = action.payload;
+      let { mapData, tileMapData, objectMapData, secretMapData, mapWidth, mapHeight } = action.payload;
+
+      // Migration for Sea Rescue boxes (ID change)
+      const migrateBoxes = (data) => {
+        if (!data || !Array.isArray(data)) return;
+        for (let i = 0; i < data.length; i++) {
+          if (data[i] === 'minispill_sea_rescue_box') {
+            data[i] = 'minispill_sea_rescue_box0';
+          }
+        }
+      };
+
+      if (objectMapData) migrateBoxes(objectMapData);
+      
+      // Migrate all maps in project
+      if (mapData?.maps) {
+        Object.values(mapData.maps).forEach(m => {
+          const mapObjectData = m.objectMapData || m.layers?.find(l => l.name === 'entities' || l.type === 'object')?.data;
+          if (mapObjectData) migrateBoxes(mapObjectData);
+        });
+      }
+
       state.activeMapData = mapData;
       state.tileMapData = tileMapData;
       state.objectMapData = objectMapData;
@@ -40,6 +62,7 @@ const gameSlice = createSlice({
       state.mapHeight = mapHeight;
       state.activeRoomIds = []; // Reset active rooms on new map load
       state.isGameOver = false;
+      state.seaRescuePoints = 0; // Reset points on new map load
 
       // If this is a project (v2.0) with multiple maps
       if (mapData?.maps) {
@@ -225,6 +248,39 @@ const gameSlice = createSlice({
     setGameOver: (state, action) => {
       state.isGameOver = action.payload;
     },
+    addSeaRescuePoints: (state, action) => {
+      state.seaRescuePoints += action.payload;
+    },
+    captureSeaRescueBox: (state, action) => {
+      const { triggerIndex, boxId, mapWidth } = action.payload;
+      
+      // Find the lowest available trigger in the same column
+      const col = triggerIndex % mapWidth;
+      const mapHeight = state.mapHeight;
+      let targetIndex = -1;
+
+      // Scan from bottom to top in the same column
+      for (let y = mapHeight - 1; y >= 0; y--) {
+        const idx = y * mapWidth + col;
+        const objId = state.objectMapData[idx];
+        
+        if (objId === 'minispill_sea_rescue_trigger') {
+          const meta = state.objectMetadata[idx] || {};
+          if (!meta.capturedBoxId) {
+            targetIndex = idx;
+            break;
+          }
+        }
+      }
+
+      // If no empty trigger in column, use the one that was hit (fallback)
+      const finalIndex = targetIndex !== -1 ? targetIndex : triggerIndex;
+      
+      state.objectMetadata[finalIndex] = {
+        ...(state.objectMetadata[finalIndex] || {}),
+        capturedBoxId: boxId
+      };
+    },
     resetGame: (state) => {
       return { ...initialState, activeMapData: state.activeMapData };
     },
@@ -248,6 +304,8 @@ export const {
   setError,
   setPaused,
   setGameOver,
+  addSeaRescuePoints,
+  captureSeaRescueBox,
   resetGame,
 } = gameSlice.actions;
 

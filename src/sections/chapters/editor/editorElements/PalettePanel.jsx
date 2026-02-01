@@ -16,6 +16,7 @@ export const PalettePanel = ({
     interactables, 
     hazards, 
     secrets, 
+    miniGames,
     weather,
     messages,
     crackableWalls,
@@ -32,6 +33,7 @@ export const PalettePanel = ({
 }) => {
     const { t } = useTranslation('editor_elements');
     const [selectedChapter, setSelectedChapter] = useState('');
+    const [selectedMiniGame, setSelectedMiniGame] = useState('');
 
     const currentLang = i18n?.language || 'en';
     const tutorialChapters = useMemo(() => getTutorialChapters(currentLang), [currentLang]);
@@ -40,6 +42,46 @@ export const PalettePanel = ({
         [selectedChapter, currentLang]
     );
 
+    const miniGameGroups = useMemo(() => {
+        if (!miniGames || miniGames.length === 0) return [];
+        const groupOrder = new Map();
+        miniGames.forEach(item => {
+            const key = item.editor?.group || 'other';
+            const order = item.editor?.groupOrder ?? item.editor?.order ?? 0;
+            if (!groupOrder.has(key) || order < groupOrder.get(key)) {
+                groupOrder.set(key, order);
+            }
+        });
+        return Array.from(groupOrder.entries())
+            .sort((a, b) => a[1] - b[1])
+            .map(([key]) => key);
+    }, [miniGames]);
+
+    const miniGameItems = useMemo(() => {
+        if (!miniGames || !selectedMiniGame) return [];
+        return miniGames
+            .filter(item => (item.editor?.group || 'other') === selectedMiniGame)
+            .sort((a, b) => {
+                const ao = a.editor?.order ?? 0;
+                const bo = b.editor?.order ?? 0;
+                if (ao !== bo) return ao - bo;
+                return (a.displayName || a.name || '').localeCompare(b.displayName || b.name || '');
+            });
+    }, [miniGames, selectedMiniGame]);
+
+    const getMiniGameLabel = (key) => {
+        if (key === 'sea_rescue') return t('EDITOR_ELEMENTS_MINI_GAMES_GROUP_SEA_RESCUE');
+        if (key === 'other') return t('EDITOR_ELEMENTS_GROUP_OTHER');
+        return key;
+    };
+
+    const getMiniGameLayer = (item) => {
+        if (item.editor?.layer) return item.editor.layer;
+        if (item.type === 'secret') return 'secret';
+        if (item.id === 'minispill_sea_rescue_trigger') return 'object';
+        return 'object';
+    };
+
     useEffect(() => {
         if (!selectedChapter && tutorialChapters.length > 0) {
             setSelectedChapter(tutorialChapters[0]);
@@ -47,6 +89,14 @@ export const PalettePanel = ({
             setSelectedChapter(tutorialChapters[0] || '');
         }
     }, [tutorialChapters, selectedChapter]);
+
+    useEffect(() => {
+        if (!selectedMiniGame && miniGameGroups.length > 0) {
+            setSelectedMiniGame(miniGameGroups[0]);
+        } else if (selectedMiniGame && !miniGameGroups.includes(selectedMiniGame)) {
+            setSelectedMiniGame(miniGameGroups[0] || '');
+        }
+    }, [miniGameGroups, selectedMiniGame]);
 
     const getLiquidLabel = ({
         isLavaWaterfall,
@@ -761,6 +811,54 @@ export const PalettePanel = ({
                             </div>
                         </CollapsiblePanel>
                     )}
+                </div>
+            )}
+
+            {category === 'minigames' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ 
+                        padding: '12px', 
+                        backgroundColor: '#f9f9f9', 
+                        borderRadius: '8px', 
+                        border: '1px solid #ddd', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '6px' 
+                    }}>
+                        <label style={{ fontSize: '10px', color: '#888', fontWeight: 'bold', marginLeft: '2px', display: 'block', textTransform: 'uppercase' }}>
+                            {t('EDITOR_ELEMENTS_MINI_GAMES_SELECT_LABEL')}
+                        </label>
+                        <select
+                            value={selectedMiniGame}
+                            onChange={(e) => setSelectedMiniGame(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                fontSize: '13px',
+                                backgroundColor: '#fff',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            {miniGameGroups.map(group => (
+                                <option key={group} value={group}>
+                                    {getMiniGameLabel(group)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '0 4px' }}>
+                        {miniGameItems.length > 0 ? (
+                            miniGameItems.map(item => renderPaletteItem(item, 'teal', getMiniGameLayer(item)))
+                        ) : (
+                            <div style={{ padding: '10px', fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
+                                {t('EDITOR_ELEMENTS_MINI_GAMES_EMPTY')}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
