@@ -13,7 +13,16 @@
     "columns": 2,
     "frameIndex": 3
   },
+  "sounds": {
+    "water_out": "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg",
+    "water_in": "/assets/sound/sfx/water/out_splash-4-46870.ogg"
+  },
   "collision": true,
   "points": 10,
+  "bubbles": {
+    "enabled": true,
+    "color": "#4b3621",
+    "intervalMs": 1300
+  },
   "description": "Sea Rescue box"
 }

@@ -61,8 +61,9 @@ export function updateSeaRescue(ctx, deltaMs) {
       let index = gy * mapWidth + gx;
       let objId = objectData[index];
       
-      // Ja tiešā flīzē nekā nav, meklējam lielus objektus (meta data), kas varētu pārklāt šo flīzi
+      // Ja tiešā flīzē nekā nav, meklējam lielus objektus (meta data vai root flīzes), kas varētu pārklāt šo flīzi
       if (!objId) {
+        // 1. Meklējam metadata (ja tāda ir)
         for (const [idxStr, meta] of Object.entries(objectMetadata)) {
           const idx = parseInt(idxStr, 10);
           const w = meta.width || 1;
@@ -75,6 +76,30 @@ export function updateSeaRescue(ctx, deltaMs) {
             objId = objectData[idx];
             index = idx;
             break;
+          }
+        }
+
+        // 2. Ja joprojām nekā nav, meklējam root flīzes apkārtnē (jo kastes ir 3x2)
+        if (!objId) {
+          for (let dy = 0; dy <= 2; dy++) {
+            for (let dx = 0; dx <= 3; dx++) {
+              const rx = gx - dx;
+              const ry = gy - dy;
+              if (rx < 0 || ry < 0) continue;
+              const rIdx = ry * mapWidth + rx;
+              const rId = objectData[rIdx];
+              if (rId && rId.startsWith('minispill_sea_rescue_box')) {
+                const def = findItemById(rId);
+                const w = def?.width || 3;
+                const h = def?.height || 2;
+                if (gx >= rx && gx < rx + w && gy >= ry && gy < ry + h) {
+                  objId = rId;
+                  index = rIdx;
+                  break;
+                }
+              }
+            }
+            if (objId) break;
           }
         }
       }
@@ -114,6 +139,12 @@ export function updateSeaRescue(ctx, deltaMs) {
       // Spawn a special projectile that looks like the box
       const id = projectileIdRef.current++;
       
+      const def = findItemById(objId);
+      const meta = objectMetadata[index] || {};
+      const w = (meta.width || def?.width || 1) * TILE_SIZE;
+      const h = (meta.height || def?.height || 1) * TILE_SIZE;
+      const frameIndex = meta.frameIndex !== undefined ? meta.frameIndex : (def?.spriteSheet?.frameIndex || 0);
+
       const proj = {
         id,
         ownerId: 'player',
@@ -121,11 +152,12 @@ export function updateSeaRescue(ctx, deltaMs) {
         y: startY,
         vx,
         vy,
-        w: TILE_SIZE,
-        h: TILE_SIZE,
+        w: w,
+        h: h,
         life: 5000,
         defId: objId,
         isSeaRescueBox: true,
+        frameIndex: frameIndex,
         gravity: G, // px/s^2
         useSimplePhysics: true // Flag for updateProjectiles
       };

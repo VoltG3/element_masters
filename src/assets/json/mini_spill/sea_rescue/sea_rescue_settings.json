@@ -5,5 +5,10 @@
     "maxDrag": 140,
     "trajectorySteps": 35,
     "dt": 0.06
+  },
+  "drift": {
+    "enabled": true,
+    "amplitude": 5,
+    "speed": 0.002
   }
 }

@@ -1,4 +1,4 @@
-import { Sprite, AnimatedSprite, Texture } from 'pixi.js';
+import { Sprite, AnimatedSprite, Texture, Rectangle } from 'pixi.js';
 import { getTexture, msToSpeed, getRegItem } from './helpers';
 
 // Sync and update projectiles: create missing sprites, remove stale ones, update positions
@@ -19,14 +19,32 @@ export const syncProjectiles = (projectilesLayer, projectileSpritesMap, projecti
     if (!spr) {
       // Create new sprite
       const def = getRegItem(registryItems, p.defId);
-      if (def && Array.isArray(def.textures) && def.textures.length > 1) {
-        const frames = def.textures.map((u) => getTexture(u)).filter(Boolean);
-        if (frames.length > 0) {
-          spr = new AnimatedSprite(frames);
-          spr.animationSpeed = msToSpeed(def.animationSpeed);
-          spr.play();
+      if (def) {
+        if (Array.isArray(def.textures) && def.textures.length > 1) {
+          const frames = def.textures.map((u) => getTexture(u)).filter(Boolean);
+          if (frames.length > 0) {
+            spr = new AnimatedSprite(frames);
+            spr.animationSpeed = msToSpeed(def.animationSpeed);
+            spr.play();
+          }
+        } else if (def.spriteSheet && def.spriteSheet.enabled) {
+          const totalSprites = def.spriteSheet.totalSprites || 1;
+          const columns = def.spriteSheet.columns || totalSprites;
+          const frameIndex = p.frameIndex !== undefined ? p.frameIndex : (def.spriteSheet.frameIndex || 0);
+          
+          const baseTexture = getTexture(def.texture);
+          const source = baseTexture?.source;
+          if (source && source.width > 1) {
+            const frameWidth = source.width / columns;
+            const frameHeight = source.height / Math.ceil(totalSprites / columns);
+            const col = frameIndex % columns;
+            const row = Math.floor(frameIndex / columns);
+            const rect = new Rectangle(col * frameWidth, row * frameHeight, frameWidth, frameHeight);
+            spr = new Sprite(new Texture({ source: source, frame: rect }));
+          }
         }
       }
+      
       if (!spr) {
         const tex = getTexture(getRegItem(registryItems, p.defId)?.texture) || Texture.WHITE;
         spr = new Sprite(tex);

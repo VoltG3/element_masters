@@ -7,13 +7,8 @@
   "width": 1,
   "height": 1,
   "editor": { "panel": "minigames", "group": "sea_rescue", "order": 20, "layer": "object" },
-  "texture": "/assets/images/mini_spill/sea_rescue/minispill_sea_rescue_box.png",
-  "spriteSheet": {
-    "enabled": true,
-    "totalSprites": 4,
-    "columns": 2,
-    "frameIndex": 0
-  },
+  "editorIcon": "T",
+  "filterColorInEditor": "rgba(0, 120, 255, 0.6)",
   "collision": false,
   "isHiddenInGame": true,
   "description": "Sea Rescue trigger sector"

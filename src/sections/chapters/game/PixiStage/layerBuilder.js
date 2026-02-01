@@ -358,6 +358,18 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
     container.y = y + anchorOffsetY;
     container.isRoomContent = mapType === 'room';
     
+    if (id === 'minispill_sea_rescue_ship' || id === 'minispill_sea_rescue_trigger') {
+      container.isSeaRescueShipPart = true;
+      container.baseY = container.y;
+    }
+    
+    if (id.startsWith('minispill_sea_rescue_box')) {
+      container.isSeaRescueBox = true;
+      container.bubbles = def.bubbles;
+      container.boxWidth = def.width || 1;
+      container.boxHeight = def.height || 1;
+    }
+    
     const isWeatherTrigger = def.type === 'weather_trigger';
     const isMessageTrigger = def.type === 'message_trigger';
     const isWolfSecret = def.type === 'wolf_secret';

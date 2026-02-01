@@ -133,6 +133,7 @@ const PixiStage = ({
   const hbEnabledRef = useRef(healthBarEnabled !== false);
   const oxyEnabledRef = useRef(oxygenBarEnabled !== false);
   const lavaEnabledRef = useRef(lavaBarEnabled !== false);
+  const driftSettingsRef = useRef({ enabled: true, amplitude: 5, speed: 0.002 });
   const overlayLayerRef = useRef(null);
   const underwaterRef = useRef({ g: null, time: 0, targetAlpha: 0, currentAlpha: 0 });
   const waterFramesRef = useRef(null);
@@ -184,6 +185,17 @@ const PixiStage = ({
   useEffect(() => { bgColorRef.current = backgroundColor; }, [backgroundColor]);
   useEffect(() => { tileMapDataRef.current = tileMapData; }, [tileMapData]);
   useEffect(() => { registryItemsRef.current = registryItems; }, [registryItems]);
+
+  useEffect(() => {
+    if (mapType === 'sea_rescue') {
+      fetch('/assets/json/mini_spill/sea_rescue/sea_rescue_settings.json')
+        .then(r => r.json())
+        .then(data => {
+          if (data.drift) driftSettingsRef.current = data.drift;
+        })
+        .catch(err => console.warn('Failed to load drift settings:', err));
+    }
+  }, [mapType]);
 
   // Sync weather props to ref for systems to read live
   useEffect(() => {
@@ -610,6 +622,45 @@ const PixiStage = ({
                 drawSeaRescueTrajectory(drawCtx, trajectoryLayerRef.current);
             }
           }
+        }
+
+        // Sea Rescue Drift & Bubbles
+        if (mapTypeRef.current === 'sea_rescue') {
+          const time = app.ticker.lastTime;
+          const driftY = driftSettingsRef.current.enabled 
+            ? Math.sin(time * driftSettingsRef.current.speed) * driftSettingsRef.current.amplitude 
+            : 0;
+          
+          const now = Date.now();
+          const updateSeaRescueVisuals = (container) => {
+            if (!container) return;
+            container.children.forEach(child => {
+              // Drift (Ship & Triggers)
+              if (child.isSeaRescueShipPart) {
+                child.y = child.baseY + driftY;
+              }
+              // Bubbles (Boxes)
+              if (child.isSeaRescueBox && child.bubbles?.enabled && bubbleFxRef.current) {
+                if (!child.lastBubbleTime || now - child.lastBubbleTime > (child.bubbles.intervalMs || 1000)) {
+                  const w = (child.boxWidth || 1) * tileSize;
+                  const h = (child.boxHeight || 1) * tileSize;
+                  const bx = child.x + Math.random() * w;
+                  const by = child.y + Math.random() * h;
+                  
+                  bubbleFxRef.current.trigger({
+                    x: bx,
+                    y: by,
+                    color: child.bubbles.color ? parseInt(child.bubbles.color.replace('#', '0x'), 16) : 0xc9ecff,
+                    rise: 0.02 + Math.random() * 0.02,
+                    life: 1500 + Math.random() * 1000
+                  });
+                  child.lastBubbleTime = now;
+                }
+              }
+            });
+          };
+          updateSeaRescueVisuals(objBehindRef.current);
+          updateSeaRescueVisuals(objFrontRef.current);
         }
 
         // Weather

@@ -17,7 +17,7 @@ export default class BubbleFX {
     this.bubbles = [];
   }
 
-  trigger({ x = 0, y = 0, size = 2, rise = 0.03, life = 1200, drift = 0.02 } = {}) {
+  trigger({ x = 0, y = 0, size = 2, rise = 0.03, life = 1200, drift = 0.02, color = 0xc9ecff } = {}) {
     if (this.bubbles.length >= this.maxBubbles) return;
     const g = new Graphics();
     g.x = 0;
@@ -31,7 +31,8 @@ export default class BubbleFX {
       rise,
       drift,
       life: 0,
-      max: life
+      max: life,
+      color
     });
   }
 
@@ -48,7 +49,7 @@ export default class BubbleFX {
       const g = b.g;
       g.clear();
       g.circle(b.x, b.y, size);
-      g.stroke({ width: 1, color: 0xc9ecff, alpha: Math.max(0, alpha) });
+      g.stroke({ width: 1, color: b.color || 0xc9ecff, alpha: Math.max(0, alpha) });
       if (b.life >= b.max) {
         try { g.parent && g.parent.removeChild(g); } catch {}
         try { g.destroy(); } catch {}
