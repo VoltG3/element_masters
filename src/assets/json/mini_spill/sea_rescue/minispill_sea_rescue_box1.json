@@ -19,6 +19,7 @@
   },
   "collision": true,
   "points": 10,
+  "floatingDurationMs": 5000,
   "bubbles": {
     "enabled": true,
     "color": "#ffff00",

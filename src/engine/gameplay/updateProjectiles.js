@@ -1,9 +1,9 @@
 // Projectile update and ricochet simulation extracted from useGameEngine.js
 
-// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate, playSfx }
+// ctx: { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate, playSfx, getLiquidSample, refs, mapData }
 // updateProjectiles(ctx, deltaMs, mapWidth, mapHeight)
 export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
-  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate, playSfx } = ctx;
+  const { projectilesRef, entitiesRef, playerState, TILE_SIZE, isSolidAtPixel, findItemById, objectData, objectMetadata, tileData, secretData, registryItems, onStateUpdate, playSfx, getLiquidSample, refs, mapData } = ctx;
   const dtProj = deltaMs / 1000;
   const worldW = mapWidth * TILE_SIZE;
   const worldH = mapHeight * TILE_SIZE;
@@ -16,10 +16,18 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
       { x: cx - hw, y: cy + hh },
       { x: cx + hw, y: cy + hh },
     ];
+
+    const shipOffset = (playerState && (mapData?.meta?.activeMapType === 'sea_rescue' || 
+                         (mapData?.maps && mapData.maps[mapData.meta?.activeMapId || 'main']?.type === 'sea_rescue'))) 
+                       ? (playerState.x || 0) : 0;
+
     for (let k = 0; k < pts.length; k++) {
       const pt = pts[k];
-      // Updated isSolidAtPixel call with all necessary layers
       if (isSolidAtPixel(pt.x, pt.y, mapWidth, mapHeight, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata)) return true;
+      
+      if (shipOffset !== 0) {
+        if (isSolidAtPixel(pt.x - shipOffset, pt.y, mapWidth, mapHeight, TILE_SIZE, tileData, registryItems, secretData, objectData, objectMetadata)) return true;
+      }
     }
     return false;
   };
@@ -33,26 +41,43 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         { x: cx + hw, y: cy + hh },
         { x: cx, y: cy }
     ];
+
+    const shipOffset = (playerState && (mapData.meta?.activeMapType === 'sea_rescue' || 
+                         (mapData.maps && mapData.maps[mapData.meta?.activeMapId || 'main']?.type === 'sea_rescue'))) 
+                       ? (playerState.x || 0) : 0;
+
     for (const pt of pts) {
+        // 1. Check static objects (Boxes in water)
         const gx = Math.floor(pt.x / TILE_SIZE);
         const gy = Math.floor(pt.y / TILE_SIZE);
-        if (gx < 0 || gy < 0 || gx >= mapWidth || gy >= mapHeight) continue;
-        const index = gy * mapWidth + gx;
-        const objId = objectData[index];
-        if (objId) {
-            // Special case for Sea Rescue Trigger - it should be hit from above
-            if (isSeaRescueBox && objId === 'minispill_sea_rescue_trigger') {
-              // We check if the projectile is moving downwards and hit the trigger
-              return index;
+        if (gx >= 0 && gy >= 0 && gx < mapWidth && gy < mapHeight) {
+            const index = gy * mapWidth + gx;
+            const objId = objectData[index];
+            if (objId && objId.startsWith('minispill_sea_rescue_box')) {
+                const def = findItemById(objId);
+                if (def && def.isDestructible) {
+                    const currentMeta = objectMetadata?.[index] || {};
+                    const health = currentMeta.health !== undefined ? currentMeta.health : def.maxHealth;
+                    if (health > (def.passableHealthThreshold || 0)) return index;
+                }
             }
+        }
 
-            const def = findItemById(objId);
-            if (def && def.isDestructible) {
-                // Check if already passable
-                const currentMeta = objectMetadata?.[index] || {};
-                const health = currentMeta.health !== undefined ? currentMeta.health : def.maxHealth;
-                if (health > (def.passableHealthThreshold || 0)) {
-                    return index;
+        // 2. Check moving objects (Ship & Triggers)
+        const sgx = Math.floor((pt.x - shipOffset) / TILE_SIZE);
+        const sgy = Math.floor(pt.y / TILE_SIZE);
+        if (sgx >= 0 && sgy >= 0 && sgx < mapWidth && sgy < mapHeight) {
+            const sindex = sgy * mapWidth + sgx;
+            const sobjId = objectData[sindex];
+            if (sobjId === 'minispill_sea_rescue_trigger' || sobjId === 'minispill_sea_rescue_ship') {
+                if (isSeaRescueBox && sobjId === 'minispill_sea_rescue_trigger') {
+                    return sindex;
+                }
+                const def = findItemById(sobjId);
+                if (def && def.isDestructible) {
+                    const currentMeta = objectMetadata?.[sindex] || {};
+                    const health = currentMeta.health !== undefined ? currentMeta.health : def.maxHealth;
+                    if (health > (def.passableHealthThreshold || 0)) return sindex;
                 }
             }
         }
@@ -116,15 +141,54 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
     let cx = p.x;
     let cy = p.y;
+    let removed = false;
 
     if (p.isSeaRescueBox) {
+      // Boundaries check for sea rescue boxes - allow much more space
+      if (cx < -p.w - 1000 || cx > worldW + p.w + 1000 || cy < -10000 || cy > worldH + 2000) {
+        removed = true;
+        projectilesRef.current.splice(i, 1);
+        continue;
+      }
+      if (p.floating) {
+        // Floating/Sinking logic
+        p.floatTime = (p.floatTime || 0) + deltaMs;
+        const boxDef = findItemById(p.defId);
+        const floatMax = boxDef?.floatingDurationMs || 4000;
+        
+        const driftSettings = findItemById('sea_rescue_settings')?.drift || {};
+        const driftSpeed = driftSettings.speed || 0.002;
+        const driftAmp = driftSettings.amplitude || 5;
+
+        if (p.floatTime < floatMax) { // Float for configurable time
+            p.vy = Math.sin(p.floatTime * driftSpeed) * driftAmp; 
+            p.vx *= 0.92; // Slow down horizontal movement
+            p.rotation = (p.rotation || 0) + 0.01; // Slight tilt
+        } else {
+            p.vy = 60; // Start sinking
+            p.vx *= 0.98;
+            p.rotation = (p.rotation || 0) + 0.02;
+        }
+        p.x += p.vx * dtProj;
+        p.y += p.vy * dtProj;
+        
+        p.life -= deltaMs;
+
+        // Remove if off-map or expired
+        if (p.y > worldH + 2000 || p.life <= 0) removed = true;
+        if (removed) {
+            projectilesRef.current.splice(i, 1);
+        }
+        continue; // Skip standard movement
+      }
+
       if (p.useSimplePhysics) {
         // Simple physics matching trajectory preview (no friction, constant G)
         const settings = findItemById('sea_rescue_settings')?.physics || {};
         const G = p.gravity || settings.gravity || 1600;
-        p.vy += G * stepTime;
+        p.vy += G * dtProj; // Use dtProj here for gravity step
       } else {
-        p.vy += (p.gravity || 0.5) * 60 * stepTime;
+        p.vy += (p.gravity || 0.5) * 60 * dtProj;
         p.vx *= (p.friction || 0.98);
         p.vy *= (p.friction || 0.98);
       }
@@ -133,9 +197,27 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     const hw = (p.w * (p.hbs || 1)) * 0.5;
     const hh = (p.h * (p.hbs || 1)) * 0.5;
 
-    let removed = false;
+    const isFishEntity = (ent) => {
+      if (!ent) return false;
+      const subtype = ent.subtype || ent.def?.subtype;
+      const aiType = ent.def?.ai?.type;
+      return subtype === 'fish' || aiType === 'fish' || !!ent.def?.fish;
+    };
 
     for (let s = 0; s < steps; s++) {
+      // Check if entering water (for Sea Rescue Boxes)
+      if (p.isSeaRescueBox && getLiquidSample && !p.floating && p.vy > 0) {
+          const sample = getLiquidSample({ x: cx, y: cy, width: p.w, height: p.h });
+          if (sample?.inLiquid && sample?.type?.includes('water')) {
+              p.floating = true;
+              p.floatTime = 0;
+              const inSound = findItemById(p.defId)?.sounds?.water_in || "/assets/sound/sfx/water/out_splash-4-46870.ogg";
+              if (playSfx) playSfx(inSound, 0.6);
+              if (refs?.fx?.triggerSplash) refs.fx.triggerSplash(cx, cy);
+              // Stop stepping, but DON'T set removed=true
+              break;
+          }
+      }
       // Sea Rescue hit detection
       if (p.isSeaRescueBox) {
           const objIdx = checkObjectHit(cx, cy, hw, hh, true);
@@ -149,7 +231,10 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
                       onStateUpdate('SEA_RESCUE_SCORE', { points, triggerIndex: objIdx, boxId: p.defId });
                   }
                   
-                  if (typeof playSfx === 'function') playSfx('collect', 0.7);
+                  if (typeof playSfx === 'function') {
+                      const collectSfx = "/assets/sound/sfx/zzox-fx_nite-hit-item.ogg";
+                      playSfx(collectSfx, 0.7);
+                  }
                   
                   removed = true;
                   break;
@@ -162,17 +247,34 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
       const hitEntX = checkEntityHit(nextX, cy, hw, hh, p);
       if (hitEntX) {
+        const isFish = isFishEntity(hitEntX);
+        
+        if (p.isSeaRescueBox) {
+            if (isFish) {
+                hitEntX.fishState = hitEntX.fishState || {};
+                if (p.vy > 0 && p.y < hitEntX.y) {
+                    hitEntX.health = 0;
+                    if (playSfx) playSfx(hitEntX.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg", 0.5);
+                } else if (p.vy < 0) {
+                    hitEntX.attachedToProjectileId = p.id;
+                    hitEntX.fishState.isAttached = true;
+                    hitEntX.fishState.isJumping = false; // Stop jumping if attached
+                    if (playSfx) playSfx(hitEntX.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                } else {
+                    hitEntX.fishState.isJumping = true;
+                    hitEntX.fishState.jumpVx = -p.vx * 0.5;
+                    hitEntX.fishState.jumpVy = -Math.abs(p.vy) * 0.5 - 600;
+                    hitEntX.fishState.jumpGravity = 900;
+                    hitEntX.fishState.panicUntil = nowMs + 5000;
+                    if (playSfx) playSfx(hitEntX.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                }
+            }
+            // Sea Rescue boxes should NOT disappear when hitting entities
+            cx = nextX;
+            continue; 
+        }
+
         hitEntX.health -= p.dmg || 10;
-        const isFish = hitEntX.subtype === 'fish' || hitEntX.def?.subtype === 'fish' || hitEntX.def?.ai?.type === 'fish' || !!hitEntX.def?.fish;
-        if (isFish && hitEntX.health > 0) {
-          hitEntX.fishState = hitEntX.fishState || {};
-          const panicMs = Number(hitEntX.def?.fish?.panicDurationMs) || 1200;
-          hitEntX.fishState.panicUntil = Math.max(hitEntX.fishState.panicUntil || 0, nowMs + panicMs * 2);
-        }
-        if (isFish && playSfx) {
-          const hitSound = hitEntX.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg";
-          try { playSfx(hitSound, 0.4); } catch {}
-        }
         if (onStateUpdate) {
           onStateUpdate('entityDamage', {
             x: hitEntX.x + hitEntX.width / 2,
@@ -184,7 +286,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         break;
       }
 
-      const hitIdxX = checkObjectHit(nextX, cy, hw, hh);
+      const hitIdxX = !p.isSeaRescueBox ? checkObjectHit(nextX, cy, hw, hh) : null;
       if (hitIdxX !== null) {
         if (onStateUpdate) onStateUpdate('objectDamage', { index: hitIdxX, damage: p.dmg || 10 });
         removed = true;
@@ -228,17 +330,34 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
       const hitEntY = checkEntityHit(cx, nextY, hw, hh, p);
       if (hitEntY) {
+        const isFish = isFishEntity(hitEntY);
+        
+        if (p.isSeaRescueBox) {
+            if (isFish) {
+                hitEntY.fishState = hitEntY.fishState || {};
+                if (p.vy > 0 && p.y < hitEntY.y) {
+                    hitEntY.health = 0;
+                    if (playSfx) playSfx(hitEntY.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg", 0.5);
+                } else if (p.vy < 0) {
+                    hitEntY.attachedToProjectileId = p.id;
+                    hitEntY.fishState.isAttached = true;
+                    hitEntY.fishState.isJumping = false; // Stop jumping if attached
+                    if (playSfx) playSfx(hitEntY.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                } else {
+                    hitEntY.fishState.isJumping = true;
+                    hitEntY.fishState.jumpVx = -p.vx * 0.5;
+                    hitEntY.fishState.jumpVy = -Math.abs(p.vy) * 0.5 - 600;
+                    hitEntY.fishState.jumpGravity = 900;
+                    hitEntY.fishState.panicUntil = nowMs + 5000;
+                    if (playSfx) playSfx(hitEntY.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                }
+            }
+            // Sea Rescue boxes should NOT disappear when hitting entities
+            cy = nextY;
+            continue; 
+        }
+
         hitEntY.health -= p.dmg || 10;
-        const isFish = hitEntY.subtype === 'fish' || hitEntY.def?.subtype === 'fish' || hitEntY.def?.ai?.type === 'fish' || !!hitEntY.def?.fish;
-        if (isFish && hitEntY.health > 0) {
-          hitEntY.fishState = hitEntY.fishState || {};
-          const panicMs = Number(hitEntY.def?.fish?.panicDurationMs) || 1200;
-          hitEntY.fishState.panicUntil = Math.max(hitEntY.fishState.panicUntil || 0, nowMs + panicMs * 2);
-        }
-        if (isFish && playSfx) {
-          const hitSound = hitEntY.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg";
-          try { playSfx(hitSound, 0.4); } catch {}
-        }
         if (onStateUpdate) {
           onStateUpdate('entityDamage', {
             x: hitEntY.x + hitEntY.width / 2,
@@ -250,7 +369,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         break;
       }
 
-      const hitIdxY = checkObjectHit(cx, nextY, hw, hh);
+      const hitIdxY = !p.isSeaRescueBox ? checkObjectHit(cx, nextY, hw, hh) : null;
       if (hitIdxY !== null) {
         if (onStateUpdate) onStateUpdate('objectDamage', { index: hitIdxY, damage: p.dmg || 10 });
         removed = true;
@@ -290,6 +409,14 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
 
     p.x = cx;
     p.y = cy;
+
+    if (p.isSeaRescueBox) {
+        p.life -= deltaMs;
+        if (removed || p.life <= 0) {
+            projectilesRef.current.splice(i, 1);
+        }
+        continue;
+    }
 
     p.life -= deltaMs;
     if (

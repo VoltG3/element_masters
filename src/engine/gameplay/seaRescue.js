@@ -126,9 +126,11 @@ export function updateSeaRescue(ctx, deltaMs) {
     if (sr.draggedBox) {
       // Launch!
       const { startX, startY, index, objId } = sr.draggedBox;
+      const driftY = refs.driftY || ctx.driftY || 0;
+      const currentStartY = startY + driftY;
       
       const dragX = startX - worldMouseX;
-      const dragY = startY - worldMouseY;
+      const dragY = currentStartY - worldMouseY;
       const dist = Math.sqrt(dragX * dragX + dragY * dragY);
       const limitedDist = Math.min(dist, MAX_DRAG);
       const ratio = limitedDist / (dist || 1);
@@ -149,12 +151,13 @@ export function updateSeaRescue(ctx, deltaMs) {
         id,
         ownerId: 'player',
         x: startX,
-        y: startY,
+        y: currentStartY,
         vx,
         vy,
+        dir: vx >= 0 ? 1 : -1,
         w: w,
         h: h,
-        life: 5000,
+        life: 30000,
         defId: objId,
         isSeaRescueBox: true,
         frameIndex: frameIndex,
@@ -170,7 +173,15 @@ export function updateSeaRescue(ctx, deltaMs) {
       }
       
       sr.draggedBox = null;
-      if (typeof playSfx === 'function') playSfx('throw', 0.5);
+
+      // Effects and Sounds
+      if (typeof playSfx === 'function') {
+        const outSound = def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg";
+        playSfx(outSound, 0.6);
+      }
+      if (refs.fx?.triggerSplash) {
+        refs.fx.triggerSplash(startX, currentStartY);
+      }
     }
   }
 }
@@ -180,6 +191,9 @@ export function drawSeaRescueTrajectory(ctx, graphics) {
   if (!sr || !sr.draggedBox) return;
   
   const { startX, startY } = sr.draggedBox;
+  const driftY = ctx.driftY || 0;
+  const currentStartY = startY + driftY;
+  
   const { mousePos } = ctx.input.current;
   const cameraX = ctx.cameraX || ctx.refs?.cameraRef?.x || 0;
   const cameraY = ctx.cameraY || ctx.refs?.cameraRef?.y || 0;
@@ -197,7 +211,7 @@ export function drawSeaRescueTrajectory(ctx, graphics) {
   const DT = settings.dt || 0.06;
   
   const dragX = startX - worldMouseX;
-  const dragY = startY - worldMouseY;
+  const dragY = currentStartY - worldMouseY;
   const dist = Math.sqrt(dragX * dragX + dragY * dragY);
   const limitedDist = Math.min(dist, MAX_DRAG);
   const ratio = limitedDist / (dist || 1);
@@ -218,7 +232,7 @@ export function drawSeaRescueTrajectory(ctx, graphics) {
   for (let i = 1; i <= STEPS; i++) {
     const t = i * DT;
     const px = startX + vx * t;
-    const py = startY + vy * t + 0.5 * G * t * t;
+    const py = currentStartY + vy * t + 0.5 * G * t * t;
     
     // Stop if out of bounds
     if (px < 0 || px > mapWidthPx || py > mapHeightPx) break;

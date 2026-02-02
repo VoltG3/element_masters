@@ -59,13 +59,13 @@ export function updateFrame(ctx, timestamp) {
     }
   } catch {}
 
-  const mapWidth = mapData.meta?.width || mapData.width || 20;
-  const mapHeight = mapData.meta?.height || mapData.height || 15;
-  const keys = input.current;
-
   const activeId = mapData.meta?.activeMapId || mapData.meta?.activeMap || 'main';
   const activeMap = mapData.maps ? mapData.maps[activeId] : mapData;
   const mapType = activeMap?.type;
+
+  const mapWidth = activeMap?.width || mapData.meta?.width || mapData.width || 20;
+  const mapHeight = activeMap?.height || mapData.meta?.height || mapData.height || 15;
+  const keys = input.current;
 
   let {
     x,
@@ -85,9 +85,70 @@ export function updateFrame(ctx, timestamp) {
   const dt = Math.max(0, deltaMs || 0);
   const physicsDt = Math.min(dt, 100);
 
-  // Sea Rescue logic
+    // Sea Rescue logic
   if (mapType === 'sea_rescue') {
     updateSeaRescue(ctx, dt);
+    
+    // Update projectiles in sea rescue too
+    if (actions.updateProjectiles) {
+      actions.updateProjectiles(physicsDt, mapWidth, mapHeight);
+    }
+
+    // Update entities (fishes) in sea rescue
+    try {
+      updateEntities({
+        entitiesRef,
+        projectilesRef: refs.projectilesRef,
+        gameState,
+        mapData,
+        objectData,
+        mapWidth,
+        mapHeight,
+        TILE_SIZE,
+        checkCollision,
+        isLiquidAt,
+        getLiquidSample,
+        spawnProjectile,
+        playSfx,
+        constants,
+        registryItems: ctx.registryItems,
+        onStateUpdate: actions.onStateUpdate,
+        activeRoomIds: activeRoomIdsRef?.current || mapData.meta?.activeRoomIds
+      }, Math.min(dt, 100));
+    } catch (e) {
+      console.error("Sea Rescue Entity update failed:", e);
+    }
+
+    // Ship control (A/D)
+    const shipAccel = 400;
+    const shipFriction = 0.95;
+    const maxShipSpeed = 250;
+    
+    if (keys.a || keys.ArrowLeft) {
+        vx -= shipAccel * (dt / 1000);
+    } else if (keys.d || keys.ArrowRight) {
+        vx += shipAccel * (dt / 1000);
+    } else {
+        vx *= shipFriction;
+        if (Math.abs(vx) < 1) vx = 0;
+    }
+    
+    vx = Math.max(-maxShipSpeed, Math.min(maxShipSpeed, vx));
+    x += vx * (dt / 1000);
+    
+    // Constrain ship within map
+    x = Math.max(0, Math.min(x, (mapWidth - 27) * TILE_SIZE)); // Ship width is 27 tiles
+
+    // Update state and exit early (no normal player physics)
+    gameState.current = {
+        ...gameState.current,
+        x, vx, y, vy, 
+        isGrounded: true, 
+        animation: 'idle',
+        timeMs: Number(timestamp) || 0
+    };
+    setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [], entities: entitiesRef.current || [] });
+    return { continue: true };
   }
 
   // 0.5) Resources update (before physics to affect them)
@@ -602,6 +663,7 @@ export function updateFrame(ctx, timestamp) {
   try {
     updateEntities({
       entitiesRef,
+      projectilesRef: refs.projectilesRef,
       gameState,
       mapData,
       objectData,

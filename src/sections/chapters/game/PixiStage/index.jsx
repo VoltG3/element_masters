@@ -498,6 +498,13 @@ const PixiStage = ({
       try { waterFxRef.current = new WaterSplashFX(liquidFxLayer); } catch {}
       try { bubbleFxRef.current = new BubbleFX(liquidFxLayer); } catch {}
       try { lavaSteamRef.current = new LavaSteamFX(liquidFxLayer); } catch {}
+      
+      if (engineRefs) {
+        engineRefs.fx = {
+          triggerSplash: (x, y, color) => waterFxRef.current?.trigger({ x, y, color }),
+          triggerBubbles: (x, y, color) => bubbleFxRef.current?.trigger({ x, y, color })
+        };
+      }
       try {
         lavaEmbersRef.current = new LavaEmbers(liquidLayerRef.current, { mapWidth, mapHeight, tileSize }, () => (embersEnabledRef.current ? 100 : 0));
       } catch {}
@@ -526,12 +533,15 @@ const PixiStage = ({
 
         const s = playerStateRef.current;
         if (s && playerRef.current) {
-          updatePlayerSprite(
-            { container: playerRef.current, sprites: playerSpriteRefs.current, healthBar: playerHealthBarRef.current },
-            s,
-            tileSize,
-            hbEnabledRef.current
-          );
+          playerRef.current.visible = mapTypeRef.current !== 'sea_rescue';
+          if (playerRef.current.visible) {
+            updatePlayerSprite(
+                { container: playerRef.current, sprites: playerSpriteRefs.current, healthBar: playerHealthBarRef.current },
+                s,
+                tileSize,
+                hbEnabledRef.current
+            );
+          }
         }
 
         // Camera Follow
@@ -611,13 +621,23 @@ const PixiStage = ({
           if (trajectoryLayerRef.current) {
             trajectoryLayerRef.current.clear();
             if (mapTypeRef.current === 'sea_rescue') {
+                const time = app.ticker.lastTime;
+                const driftY = driftSettingsRef.current.enabled 
+                  ? Math.sin(time * driftSettingsRef.current.speed) * driftSettingsRef.current.amplitude 
+                  : 0;
+
+                if (engineRefsRef.current) {
+                  engineRefsRef.current.driftY = driftY;
+                }
+
                 const drawCtx = {
                     input: engineInputRef.current,
                     refs: engineRefsRef.current,
                     cameraX: nextRawX,
                     cameraY: nextRawY,
                     mapData: mapDataRef.current,
-                    tileSize: tileSize
+                    tileSize: tileSize,
+                    driftY: driftY
                 };
                 drawSeaRescueTrajectory(drawCtx, trajectoryLayerRef.current);
             }
@@ -634,10 +654,15 @@ const PixiStage = ({
           const now = Date.now();
           const updateSeaRescueVisuals = (container) => {
             if (!container) return;
+            const shipOffset = (mapTypeRef.current === 'sea_rescue' && s) ? (s.x || 0) : 0;
             container.children.forEach(child => {
-              // Drift (Ship & Triggers)
-              if (child.isSeaRescueShipPart) {
-                child.y = child.baseY + driftY;
+              // Drift (Ship, Triggers & Boxes)
+              if (child.isSeaRescueShipPart || child.isSeaRescueBox) {
+                if (child.isSeaRescueShipPart) {
+                    child.x = (child.baseX || child.x) + shipOffset;
+                }
+                const phase = child.isSeaRescueBox ? ((child.x * 0.1) + (child.y * 0.1)) : 0;
+                child.y = (child.baseY || child.y) + Math.sin((time * driftSettingsRef.current.speed) + phase) * driftSettingsRef.current.amplitude;
               }
               // Bubbles (Boxes)
               if (child.isSeaRescueBox && child.bubbles?.enabled && bubbleFxRef.current) {

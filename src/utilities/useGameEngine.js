@@ -347,13 +347,22 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                     startIndex = objLayer.data.findIndex(id => id && id.includes('player'));
                 }
 
-                if (startIndex !== -1) {
-                    let startX = (startIndex % mapW) * TILE_SIZE;
-                    let startY = Math.floor(startIndex / mapW) * TILE_SIZE;
+                if (startIndex !== -1 || mapData.meta?.activeMapType === 'sea_rescue') {
+                    let startX = startIndex !== -1 ? (startIndex % mapW) * TILE_SIZE : 0;
+                    let startY = startIndex !== -1 ? Math.floor(startIndex / mapW) * TILE_SIZE : 0;
 
                     // Get data from registry
-                    const playerId = objLayer.data[startIndex];
+                    const playerId = startIndex !== -1 ? objLayer.data[startIndex] : "player";
                     const registryPlayer = findItemById(playerId) || findItemById("player"); // Fallback to generic player
+                    
+                    if (mapData.meta?.activeMapType === 'sea_rescue') {
+                        // For sea rescue, we might want a different starting position or dummy player
+                        // Let's use the playerPosition from meta if available
+                        if (mapData.meta?.playerPosition) {
+                            startX = mapData.meta.playerPosition.x * TILE_SIZE;
+                            startY = mapData.meta.playerPosition.y * TILE_SIZE;
+                        }
+                    }
                     const maxHealth = Math.max(1, Number(registryPlayer?.maxHealth) || MAX_HEALTH);
 
                     const prevAmmo = Math.max(0, Number(gameState.current?.ammo) || 0);
@@ -539,6 +548,10 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         objectMetadata: objectMetadataRef,
         cameraRef: { x: 0, y: 0 },
         seaRescueRef: null,
+        fx: {
+            triggerSplash: null,
+            triggerBubbles: null
+        },
         helpers: { findItemById, isSolidAtPixel }
     });
 
@@ -598,7 +611,10 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
                         secretData: secretDataRef.current || secretData,
                         registryItems,
                         onStateUpdate: onStateUpdateRef.current,
-                        playSfx: playShotSfx
+                        playSfx: playShotSfx,
+                        getLiquidSample: (args) => sampleLiquid(args),
+                        refs: engineRefs.current,
+                        mapData
                     }, deltaMs, mapWidthRef.current || 20, mapHeightRef.current || 15),
                 onStateUpdate: onStateUpdateRef.current,
                 setPlayer: (next) => setPlayer(next),

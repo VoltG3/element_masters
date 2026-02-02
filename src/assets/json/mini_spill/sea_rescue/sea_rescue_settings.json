@@ -1,10 +1,11 @@
 {
+  "id": "sea_rescue_settings",
   "physics": {
     "gravity": 1600,
-    "power": 6,
-    "maxDrag": 140,
-    "trajectorySteps": 35,
-    "dt": 0.06
+    "power": 12,
+    "maxDrag": 220,
+    "trajectorySteps": 45,
+    "dt": 0.05
   },
   "drift": {
     "enabled": true,

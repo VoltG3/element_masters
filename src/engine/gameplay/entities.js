@@ -107,6 +107,10 @@ export function updateEntities(ctx, deltaMs) {
 
   // Mēs modificējam entītijas pa tiešo refā
   const entities = entitiesRef.current;
+  const activeMapId = mapData.meta?.activeMapId || mapData.meta?.activeMap || 'main';
+  const activeMap = mapData.maps ? mapData.maps[activeMapId] : mapData;
+  const isSeaRescue = activeMap?.type === 'sea_rescue';
+
   for (let i = entities.length - 1; i >= 0; i--) {
     const entity = entities[i];
     const def = entity.def || {};
@@ -153,14 +157,46 @@ export function updateEntities(ctx, deltaMs) {
     }) : { inLiquid: false };
 
     if (isFish) {
+      const { projectilesRef } = ctx;
       const cfg = def.fish || {};
       const activeRadiusPx = (Number(cfg.activeRadius) || 18) * TILE_SIZE;
       const ex = entity.x + entity.width / 2;
       const ey = entity.y + entity.height / 2;
+      
+      // 0. Attached to projectile logic (Sea Rescue)
+      if (entity.attachedToProjectileId) {
+          const projectiles = projectilesRef?.current || [];
+          const target = projectiles.find(p => p.id === entity.attachedToProjectileId);
+          if (target && !target.floating) {
+              entity.x = target.x - entity.width / 2;
+              entity.y = target.y - entity.height / 2;
+              entity.vx = target.vx;
+              entity.vy = target.vy;
+              entity.animation = 'panic';
+              entity.fishState = entity.fishState || {};
+              entity.fishState.isAttached = true;
+              
+              const anims = def.spriteSheet?.animations || {};
+              const currentAnim = anims['panic'] || anims['swim'] || [0];
+              entity.currentSpriteIndex = currentAnim[Math.floor(Date.now() / 100) % currentAnim.length];
+              continue;
+          } else {
+              if (target) {
+                  entity.fishState = entity.fishState || {};
+                  entity.fishState.isJumping = true;
+                  entity.fishState.jumpVx = -target.vx * 0.5;
+                  entity.fishState.jumpVy = -500;
+                  entity.fishState.jumpGravity = 800;
+              }
+              entity.attachedToProjectileId = null;
+              if (entity.fishState) entity.fishState.isAttached = false;
+          }
+      }
+
       const dxView = (playerX + gameState.current.width / 2) - ex;
       const dyView = (playerY + gameState.current.height / 2) - ey;
       const distView = Math.sqrt(dxView * dxView + dyView * dyView);
-      const isActive = distView <= activeRadiusPx;
+      const isActive = distView <= activeRadiusPx || isSeaRescue;
 
       if (!isActive && entity.health > 0) {
         entity.isDormant = true;
@@ -459,6 +495,15 @@ export function updateEntities(ctx, deltaMs) {
       }
       if (gameState.current.inWater && dist <= panicRadiusPx) {
         fs.panicUntil = now + (Number(cfg.panicDurationMs) || 1200);
+      }
+
+      // Sea Rescue Ship reaction
+      if (isSeaRescue) {
+        const shipDef = getDefById(registryItems, 'minispill_sea_rescue_ship');
+        const shipReactionRadius = (shipDef?.fishReactionRadius || 15) * TILE_SIZE;
+        if (dist <= shipReactionRadius) {
+          fs.panicUntil = now + (Number(cfg.panicDurationMs) || 1200);
+        }
       }
 
       const isPanicking = fs.panicUntil && fs.panicUntil > now;

@@ -360,11 +360,13 @@ const renderMapContent = (refs, options, offsetX, offsetY, secretOverlays, targe
     
     if (id === 'minispill_sea_rescue_ship' || id === 'minispill_sea_rescue_trigger') {
       container.isSeaRescueShipPart = true;
+      container.baseX = container.x;
       container.baseY = container.y;
     }
     
     if (id.startsWith('minispill_sea_rescue_box')) {
       container.isSeaRescueBox = true;
+      container.baseY = container.y;
       container.bubbles = def.bubbles;
       container.boxWidth = def.width || 1;
       container.boxHeight = def.height || 1;

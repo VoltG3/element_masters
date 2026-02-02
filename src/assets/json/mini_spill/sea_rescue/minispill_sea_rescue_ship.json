@@ -9,5 +9,6 @@
   "texture": "/assets/images/mini_spill/sea_rescue/minispill_sea_rescue_ship.png",
   "collision": false,
   "renderAbovePlayer": false,
+  "fishReactionRadius": 15,
   "description": "Sea Rescue ship playfield"
 }
