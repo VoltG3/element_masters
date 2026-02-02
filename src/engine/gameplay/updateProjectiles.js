@@ -117,6 +117,23 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     return false;
   };
 
+  const getWaterSurfaceY = (x) => {
+    if (!tileData || mapWidth <= 0 || mapHeight <= 0) return null;
+    const gx = Math.floor(x / TILE_SIZE);
+    if (gx < 0 || gx >= mapWidth) return null;
+    for (let gy = 0; gy < mapHeight; gy++) {
+      const idx = gy * mapWidth + gx;
+      const id = tileData[idx];
+      if (!id) continue;
+      const def = findItemById(id);
+      if (!def || !def.flags || !def.flags.liquid) continue;
+      if (def.flags.water || def.flags.waterfall) {
+        return gy * TILE_SIZE;
+      }
+    }
+    return null;
+  };
+
   if (!projectilesRef.current.length) return;
 
   for (let i = projectilesRef.current.length - 1; i >= 0; i--) {
@@ -161,9 +178,11 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         const driftAmp = driftSettings.amplitude || 5;
 
         if (p.floatTime < floatMax) { // Float for configurable time
-            p.vy = Math.sin(p.floatTime * driftSpeed) * driftAmp; 
+            if (p.baseY === undefined) p.baseY = p.y;
+            const targetY = p.baseY + Math.sin(p.floatTime * driftSpeed) * driftAmp;
+            p.vy = (targetY - p.y) / dtProj;
             p.vx *= 0.92; // Slow down horizontal movement
-            p.rotation = (p.rotation || 0) + 0.01; // Slight tilt
+            p.rotation = Math.sin(p.floatTime * driftSpeed * 0.5) * 0.1; // Balanced tilt
         } else {
             p.vy = 60; // Start sinking
             p.vx *= 0.98;
@@ -211,6 +230,14 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
           if (sample?.inLiquid && sample?.type?.includes('water')) {
               p.floating = true;
               p.floatTime = 0;
+
+              // Snap to surface for 50/50 visual effect
+              const surfaceY = getWaterSurfaceY(cx);
+              if (surfaceY !== null) {
+                  p.y = surfaceY;
+                  cy = surfaceY;
+              }
+
               const inSound = findItemById(p.defId)?.sounds?.water_in || "/assets/sound/sfx/water/out_splash-4-46870.ogg";
               if (playSfx) playSfx(inSound, 0.6);
               if (refs?.fx?.triggerSplash) refs.fx.triggerSplash(cx, cy);
