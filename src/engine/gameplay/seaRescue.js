@@ -25,13 +25,85 @@ export function updateSeaRescue(ctx, deltaMs) {
   const isMouseDown = keys.mouseLeft;
 
   // We need a way to track the currently dragged box
-  if (!refs.seaRescueRef) {
+  if (!refs.seaRescueRef || refs.seaRescueRef.mapId !== activeId) {
     refs.seaRescueRef = {
+      mapId: activeId,
       draggedBox: null, // { index, startX, startY }
-      points: 0
+      points: 0,
+      triggeredSeagulls: new Set(),
+      soundState: {
+        isMoving: false,
+        engineSoundTimer: 0
+      }
     };
   }
   const sr = refs.seaRescueRef;
+  if (!sr.triggeredSeagulls) sr.triggeredSeagulls = new Set();
+  if (!sr.soundState) sr.soundState = { isMoving: false, engineSoundTimer: 0 };
+
+  const objectData = ctx.objectData || activeMap.layers?.find(l => l.name === 'objects' || l.name === 'entities' || l.type === 'object')?.data || [];
+  const mapWidth = activeMap.width || mapData.meta?.width || 20;
+
+  // Implement Seagull trigger logic
+  const shipX = gameState.current.x;
+  const shipY = gameState.current.y;
+  const shipDef = findItemById('minispill_sea_rescue_ship');
+  const shipW = (shipDef?.width || 27) * TILE_SIZE;
+  const shipH = (shipDef?.height || 7) * TILE_SIZE;
+
+  // Ship sounds logic
+  const isMoving = Math.abs(gameState.current.vx) > 5 || keys.a || keys.d || keys.ArrowLeft || keys.ArrowRight;
+  const ss = sr.soundState;
+
+  if (isMoving && !ss.isMoving) {
+    const hornSound = shipDef?.sounds?.horn;
+    if (hornSound) {
+      const audio = playSfx(hornSound, 0.6);
+      if (audio && shipDef.horn) {
+        const stopTime = (audio.duration || 2) * 1000 * shipDef.horn;
+        if (audio.duration) {
+          setTimeout(() => { try { audio.pause(); } catch {} }, stopTime);
+        } else {
+          audio.addEventListener('loadedmetadata', () => {
+            setTimeout(() => { try { audio.pause(); } catch {} }, audio.duration * 1000 * shipDef.horn);
+          }, { once: true });
+        }
+      }
+    }
+  }
+
+  if (isMoving) {
+    ss.engineSoundTimer -= deltaMs;
+    if (ss.engineSoundTimer <= 0) {
+      const engineSound = shipDef?.sounds?.engine;
+      if (engineSound) {
+        playSfx(engineSound, 0.35);
+        ss.engineSoundTimer = 1800; // Engine sound interval
+      }
+    }
+  } else {
+    ss.engineSoundTimer = 0;
+  }
+  ss.isMoving = isMoving;
+
+  const shipGridXStart = Math.floor(shipX / TILE_SIZE);
+  const shipGridXEnd = Math.floor((shipX + shipW) / TILE_SIZE);
+  const shipGridYStart = Math.floor(shipY / TILE_SIZE);
+  const shipGridYEnd = Math.floor((shipY + shipH) / TILE_SIZE);
+
+  for (let gy = shipGridYStart; gy <= shipGridYEnd; gy++) {
+    for (let gx = shipGridXStart; gx <= shipGridXEnd; gx++) {
+      if (gx < 0 || gy < 0 || gx >= mapWidth) continue;
+      const idx = gy * mapWidth + gx;
+      const objId = objectData[idx];
+      if (objId === 'minispill_sea_rescue_seagull' && !sr.triggeredSeagulls.has(idx)) {
+        sr.triggeredSeagulls.add(idx);
+        const seagullDef = findItemById(objId);
+        const sound = seagullDef?.sounds?.trigger || "/assets/sound/sfx/target/seagull-3-34057.ogg";
+        playSfx(sound, 0.7);
+      }
+    }
+  }
 
   // World mouse position
   // Note: We need to account for camera scroll
@@ -43,9 +115,6 @@ export function updateSeaRescue(ctx, deltaMs) {
   
   const worldMouseX = refs.mouseWorldPos?.x || (mousePos.x + cameraX);
   const worldMouseY = refs.mouseWorldPos?.y || (mousePos.y + cameraY);
-
-  const objectData = ctx.objectData || activeMap.layers?.find(l => l.name === 'objects' || l.name === 'entities' || l.type === 'object')?.data || [];
-  const mapWidth = activeMap.width || mapData.meta?.width || 20;
 
   // Load physics settings
   const settings = findItemById('sea_rescue_settings')?.physics || {};

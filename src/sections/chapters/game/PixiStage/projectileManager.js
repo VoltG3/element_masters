@@ -138,19 +138,27 @@ export const syncProjectiles = (projectilesLayer, projectileSpritesMap, projecti
         const pWidth = Number(p.w) || tileSize;
         const pHeight = Number(p.h) || tileSize;
         const maskW = pWidth * 2; // Extra wide to cover during rotation
-        const maskH = pHeight;
+        const maskH = pHeight * 2;
+        
+        const baseY = p.baseY !== undefined ? p.baseY : p.y;
+        const dy = baseY - p.y; // World vertical offset from center to water line
         
         if (!isNaN(pWidth) && !isNaN(pHeight)) {
+          // Calculate local coordinates for the water surface point (0, dy) in world space
+          // mx = dy * sin(rotation), my = dy * cos(rotation)
+          const mx = dy * Math.sin(rotation);
+          const my = dy * Math.cos(rotation);
+
           spr.topMask.clear();
           spr.topMask.rect(-maskW/2, -maskH, maskW, maskH);
           spr.topMask.fill({ color: 0xffffff, alpha: 1 });
-          spr.topMask.pivot.set(0, 0); 
+          spr.topMask.position.set(mx, my);
           spr.topMask.rotation = -rotation;
           
           spr.bottomMask.clear();
           spr.bottomMask.rect(-maskW/2, 0, maskW, maskH);
           spr.bottomMask.fill({ color: 0xffffff, alpha: 1 });
-          spr.bottomMask.pivot.set(0, 0);
+          spr.bottomMask.position.set(mx, my);
           spr.bottomMask.rotation = -rotation;
         }
 

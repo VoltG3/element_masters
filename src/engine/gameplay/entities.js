@@ -504,6 +504,19 @@ export function updateEntities(ctx, deltaMs) {
         if (dist <= shipReactionRadius) {
           fs.panicUntil = now + (Number(cfg.panicDurationMs) || 1200);
         }
+
+        // Engine panic logic (fishes under moving ship)
+        const isShipMoving = Math.abs(gameState.current.vx) > 5;
+        if (isShipMoving) {
+          const shipX = gameState.current.x;
+          const shipW = (shipDef?.width || 27) * TILE_SIZE;
+          const shipBottomY = gameState.current.y + (shipDef?.height || 7) * TILE_SIZE;
+          const enginePanicRadius = (shipDef?.enginePanicRadius || 10) * TILE_SIZE;
+
+          if (ex >= shipX && ex <= shipX + shipW && ey >= shipBottomY && ey <= shipBottomY + enginePanicRadius) {
+            fs.panicUntil = now + (Number(cfg.panicDurationMs) || 1200);
+          }
+        }
       }
 
       const isPanicking = fs.panicUntil && fs.panicUntil > now;

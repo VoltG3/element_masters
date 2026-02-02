@@ -5,7 +5,9 @@
     "power": 12,
     "maxDrag": 220,
     "trajectorySteps": 45,
-    "dt": 0.05
+    "dt": 0.05,
+    "maxFlightHeight": -5000,
+    "fishJumpImpulse": -500
   },
   "drift": {
     "enabled": true,

@@ -10,5 +10,11 @@
   "collision": false,
   "renderAbovePlayer": false,
   "fishReactionRadius": 15,
+  "sounds": {
+    "horn": "/assets/sound/sfx/mini_spill/ship-horn-352063.ogg",
+    "engine": "/assets/sound/sfx/mini_spill/ship-engine-32705.ogg"
+  },
+  "horn": 0.25,
+  "enginePanicRadius": 10,
   "description": "Sea Rescue ship playfield"
 }

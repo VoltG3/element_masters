@@ -1,0 +1,18 @@
+{
+  "id": "minispill_sea_rescue_seagull",
+  "name": "minispill.sea_rescue_seagull",
+  "displayName": "Seagull Trigger",
+  "type": "secret",
+  "subtype": "seagull_trigger",
+  "width": 1,
+  "height": 1,
+  "editor": { "panel": "minigames", "group": "sea_rescue", "order": 25, "layer": "object" },
+  "editorIcon": "S",
+  "filterColorInEditor": "rgba(255, 255, 255, 0.4)",
+  "collision": false,
+  "isHiddenInGame": true,
+  "sounds": {
+    "trigger": "/assets/sound/sfx/target/seagull-3-34057.ogg"
+  },
+  "description": "Plays seagull sound when ship passes"
+}

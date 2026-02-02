@@ -29,7 +29,7 @@ export function playSfx(ctx, url, volume) {
         }, { once: true });
         const p = audio.play?.();
         if (p && typeof p.catch === 'function') p.catch(() => beepFallback(ctx, vol));
-        return;
+        return audio;
       } catch {
         // fallback below
       }

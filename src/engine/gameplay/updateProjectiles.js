@@ -161,8 +161,10 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     let removed = false;
 
     if (p.isSeaRescueBox) {
+      const settings = findItemById('sea_rescue_settings')?.physics || {};
+      const maxHeight = settings.maxFlightHeight || -10000;
       // Boundaries check for sea rescue boxes - allow much more space
-      if (cx < -p.w - 1000 || cx > worldW + p.w + 1000 || cy < -10000 || cy > worldH + 2000) {
+      if (cx < -p.w - 1000 || cx > worldW + p.w + 1000 || cy < maxHeight || cy > worldH + 2000) {
         removed = true;
         projectilesRef.current.splice(i, 1);
         continue;
@@ -235,6 +237,7 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
               const surfaceY = getWaterSurfaceY(cx);
               if (surfaceY !== null) {
                   p.y = surfaceY;
+                  p.baseY = surfaceY;
                   cy = surfaceY;
               }
 
@@ -279,21 +282,35 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         if (p.isSeaRescueBox) {
             if (isFish) {
                 hitEntX.fishState = hitEntX.fishState || {};
+                const hitCooldown = 500;
+                const canPlaySound = !hitEntX.fishState.lastHitAt || (nowMs - hitEntX.fishState.lastHitAt > hitCooldown);
+                const settings = findItemById('sea_rescue_settings')?.physics || {};
+                const fishJumpImpulse = settings.fishJumpImpulse || -600;
+
                 if (p.vy > 0 && p.y < hitEntX.y) {
                     hitEntX.health = 0;
-                    if (playSfx) playSfx(hitEntX.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg", 0.5);
+                    if (playSfx && canPlaySound) {
+                        playSfx(hitEntX.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg", 0.5);
+                        hitEntX.fishState.lastHitAt = nowMs;
+                    }
                 } else if (p.vy < 0) {
                     hitEntX.attachedToProjectileId = p.id;
                     hitEntX.fishState.isAttached = true;
                     hitEntX.fishState.isJumping = false; // Stop jumping if attached
-                    if (playSfx) playSfx(hitEntX.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                    if (playSfx && canPlaySound) {
+                        playSfx(hitEntX.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                        hitEntX.fishState.lastHitAt = nowMs;
+                    }
                 } else {
                     hitEntX.fishState.isJumping = true;
                     hitEntX.fishState.jumpVx = -p.vx * 0.5;
-                    hitEntX.fishState.jumpVy = -Math.abs(p.vy) * 0.5 - 600;
+                    hitEntX.fishState.jumpVy = -Math.abs(p.vy) * 0.5 + fishJumpImpulse;
                     hitEntX.fishState.jumpGravity = 900;
                     hitEntX.fishState.panicUntil = nowMs + 5000;
-                    if (playSfx) playSfx(hitEntX.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                    if (playSfx && canPlaySound) {
+                        playSfx(hitEntX.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                        hitEntX.fishState.lastHitAt = nowMs;
+                    }
                 }
             }
             // Sea Rescue boxes should NOT disappear when hitting entities
@@ -362,21 +379,35 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
         if (p.isSeaRescueBox) {
             if (isFish) {
                 hitEntY.fishState = hitEntY.fishState || {};
+                const hitCooldown = 500;
+                const canPlaySound = !hitEntY.fishState.lastHitAt || (nowMs - hitEntY.fishState.lastHitAt > hitCooldown);
+                const settings = findItemById('sea_rescue_settings')?.physics || {};
+                const fishJumpImpulse = settings.fishJumpImpulse || -600;
+
                 if (p.vy > 0 && p.y < hitEntY.y) {
                     hitEntY.health = 0;
-                    if (playSfx) playSfx(hitEntY.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg", 0.5);
+                    if (playSfx && canPlaySound) {
+                        playSfx(hitEntY.def?.sounds?.hit || "/assets/sound/sfx/dammage/hit-flesh-03-266308.ogg", 0.5);
+                        hitEntY.fishState.lastHitAt = nowMs;
+                    }
                 } else if (p.vy < 0) {
                     hitEntY.attachedToProjectileId = p.id;
                     hitEntY.fishState.isAttached = true;
                     hitEntY.fishState.isJumping = false; // Stop jumping if attached
-                    if (playSfx) playSfx(hitEntY.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                    if (playSfx && canPlaySound) {
+                        playSfx(hitEntY.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                        hitEntY.fishState.lastHitAt = nowMs;
+                    }
                 } else {
                     hitEntY.fishState.isJumping = true;
                     hitEntY.fishState.jumpVx = -p.vx * 0.5;
-                    hitEntY.fishState.jumpVy = -Math.abs(p.vy) * 0.5 - 600;
+                    hitEntY.fishState.jumpVy = -Math.abs(p.vy) * 0.5 + fishJumpImpulse;
                     hitEntY.fishState.jumpGravity = 900;
                     hitEntY.fishState.panicUntil = nowMs + 5000;
-                    if (playSfx) playSfx(hitEntY.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                    if (playSfx && canPlaySound) {
+                        playSfx(hitEntY.def?.sounds?.water_out || "/assets/sound/sfx/water/in_fish-splashing-release-1-96870.ogg", 0.5);
+                        hitEntY.fishState.lastHitAt = nowMs;
+                    }
                 }
             }
             // Sea Rescue boxes should NOT disappear when hitting entities
