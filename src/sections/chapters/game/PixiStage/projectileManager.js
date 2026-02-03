@@ -134,14 +134,13 @@ export const syncProjectiles = (projectilesLayer, projectileSpritesMap, projecti
         // Since masks are children of spr, they move/rotate with spr.
         // To keep them horizontal, we must counter-rotate them and adjust their shape.
         
+        const baseY = p.baseY !== undefined ? p.baseY : p.y;
+        const dy = baseY - p.y; // World vertical offset from center to water line
         const rotation = spr.rotation || 0;
         const pWidth = Number(p.w) || tileSize;
         const pHeight = Number(p.h) || tileSize;
         const maskW = pWidth * 2; // Extra wide to cover during rotation
-        const maskH = pHeight * 2;
-        
-        const baseY = p.baseY !== undefined ? p.baseY : p.y;
-        const dy = baseY - p.y; // World vertical offset from center to water line
+        const maskH = Math.max(pHeight * 2, Math.abs(dy) + pHeight);
         
         if (!isNaN(pWidth) && !isNaN(pHeight)) {
           // Calculate local coordinates for the water surface point (0, dy) in world space

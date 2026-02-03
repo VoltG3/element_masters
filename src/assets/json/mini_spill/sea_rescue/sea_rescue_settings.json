@@ -3,7 +3,7 @@
   "physics": {
     "gravity": 1600,
     "power": 12,
-    "maxDrag": 220,
+    "maxDrag": 120,
     "trajectorySteps": 45,
     "dt": 0.05,
     "maxFlightHeight": -5000,

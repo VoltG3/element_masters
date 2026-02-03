@@ -7,10 +7,18 @@ export const EditorMapResizer = ({
     onResize
 }) => {
     const { t } = useTranslation('editor_scene');
+    const MIN_SIZE = 5;
+    const MAX_WIDTH = 300;
+    const MAX_HEIGHT = 100;
     const containerRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [startSize, setStartSize] = useState({ width: mapWidth, height: mapHeight });
     const [startMousePos, setStartMousePos] = useState({ x: 0, y: 0 });
+    const [inputSize, setInputSize] = useState({ width: String(mapWidth), height: String(mapHeight) });
+
+    useEffect(() => {
+        setInputSize({ width: String(mapWidth), height: String(mapHeight) });
+    }, [mapWidth, mapHeight]);
 
     // Calculate display size (each block is represented by 10px)
     const displayWidth = mapWidth * 10;
@@ -35,8 +43,8 @@ export const EditorMapResizer = ({
             const blocksX = Math.round(dx / 10);
             const blocksY = Math.round(dy / 10);
 
-            const newWidth = Math.max(5, Math.min(100, startSize.width + blocksX));
-            const newHeight = Math.max(5, Math.min(100, startSize.height + blocksY));
+            const newWidth = Math.max(MIN_SIZE, Math.min(MAX_WIDTH, startSize.width + blocksX));
+            const newHeight = Math.max(MIN_SIZE, Math.min(MAX_HEIGHT, startSize.height + blocksY));
 
             if (newWidth !== mapWidth || newHeight !== mapHeight) {
                 onResize(newWidth, newHeight);
@@ -56,12 +64,89 @@ export const EditorMapResizer = ({
         };
     }, [isDragging, startMousePos, startSize, mapWidth, mapHeight, onResize]);
 
+    const parseSize = (value) => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return null;
+        return Math.round(parsed);
+    };
+
+    const applyInputResize = () => {
+        const widthValue = parseSize(inputSize.width);
+        const heightValue = parseSize(inputSize.height);
+
+        if (widthValue === null || heightValue === null) {
+            setInputSize({ width: String(mapWidth), height: String(mapHeight) });
+            return;
+        }
+
+        const newWidth = Math.max(MIN_SIZE, Math.min(MAX_WIDTH, widthValue));
+        const newHeight = Math.max(MIN_SIZE, Math.min(MAX_HEIGHT, heightValue));
+
+        setInputSize({ width: String(newWidth), height: String(newHeight) });
+        if (newWidth !== mapWidth || newHeight !== mapHeight) {
+            onResize(newWidth, newHeight);
+        }
+    };
+
+    const handleInputKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyInputResize();
+        }
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>
                 {t('EDITOR_SCENE_RESIZER_LABEL')}{' '}
                 <span style={{ color: '#4CAF50' }}>{mapWidth} x {mapHeight}</span>{' '}
                 {t('EDITOR_SCENE_RESIZER_BLOCKS')}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px', color: '#555' }}>
+                    {t('EDITOR_SCENE_RESIZER_WIDTH')}
+                    <input
+                        type="number"
+                        min={MIN_SIZE}
+                        max={MAX_WIDTH}
+                        step="1"
+                        value={inputSize.width}
+                        onChange={(e) => setInputSize(prev => ({ ...prev, width: e.target.value }))}
+                        onKeyDown={handleInputKeyDown}
+                        style={{ width: '72px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    />
+                </label>
+                <span style={{ fontSize: '14px', color: '#666', paddingBottom: '6px' }}>×</span>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px', color: '#555' }}>
+                    {t('EDITOR_SCENE_RESIZER_HEIGHT')}
+                    <input
+                        type="number"
+                        min={MIN_SIZE}
+                        max={MAX_HEIGHT}
+                        step="1"
+                        value={inputSize.height}
+                        onChange={(e) => setInputSize(prev => ({ ...prev, height: e.target.value }))}
+                        onKeyDown={handleInputKeyDown}
+                        style={{ width: '72px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    />
+                </label>
+                <button
+                    type="button"
+                    onClick={applyInputResize}
+                    style={{
+                        padding: '6px 10px',
+                        borderRadius: '4px',
+                        border: '1px solid #4CAF50',
+                        backgroundColor: '#4CAF50',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    {t('EDITOR_SCENE_RESIZER_APPLY')}
+                </button>
             </div>
 
             <div
