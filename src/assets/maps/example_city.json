@@ -1,9 +1,9 @@
 {
   "meta": {
     "version": "2.0",
-    "projectName": "Exampel - Teleport",
+    "projectName": "Exampel - City",
     "author": "Element_Masters",
-    "description": "#Empty Template",
+    "description": "#Platform, Teleport, Cracable wall, Ledders, Hazards, Weather(rain, thunder), cracable box",
     "date_created": "2026-01-19T16:59:13.149Z",
     "date_last_updated": "2026-02-03T18:20:38.867Z",
     "activeMapId": "main"
@@ -11,7 +11,7 @@
   "maps": {
     "main": {
       "id": "main",
-      "name": "Template",
+      "name": "Example - City",
       "description": "#Empty Template",
       "type": "overworld",
       "width": 61,
