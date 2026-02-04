@@ -296,6 +296,35 @@ export default function Game() {
     // Runtime settings that can be changed from GameSettings on the fly
     const [runtimeSettings, setRuntimeSettings] = useState({});
 
+    const getBaseWeather = (mapData) => {
+        if (!mapData) return {};
+        if (mapData.weather && typeof mapData.weather === 'object') return mapData.weather;
+        if (mapData.meta?.weather && typeof mapData.meta.weather === 'object') return mapData.meta.weather;
+        const activeId = mapData.meta?.activeMapId || mapData.meta?.activeMap || 'main';
+        if (activeId && mapData.maps?.[activeId]?.weather) return mapData.maps[activeId].weather;
+        return {};
+    };
+
+    useEffect(() => {
+        if (!activeMapData) return;
+        const base = getBaseWeather(activeMapData);
+        const toNumber = (value) => {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : 0;
+        };
+        setRuntimeSettings(prev => ({
+            ...prev,
+            weatherRain: toNumber(base.rain),
+            weatherSnow: toNumber(base.snow),
+            weatherClouds: toNumber(base.clouds),
+            weatherFog: toNumber(base.fog),
+            weatherThunder: toNumber(base.thunder),
+            weatherLavaRain: toNumber(base.lavaRain),
+            weatherRadioactiveFog: toNumber(base.radioactiveFog),
+            weatherMeteorRain: toNumber(base.meteorRain)
+        }));
+    }, [activeMapData]);
+
     // In-game messages
     const [gameMessage, setGameMessage] = useState({ text: '', isVisible: false });
     const messageTimerRef = useRef(null);

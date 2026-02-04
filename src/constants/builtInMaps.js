@@ -7,6 +7,7 @@ import map6 from '../assets/maps/exampel_weather_01.json';
 import map7 from '../assets/maps/Ports.json';
 import map8 from '../assets/maps/fish.json';
 import map9 from '../assets/maps/minigame_sea.json';
+import map10 from '../assets/maps/Exampel_-_Teleport.json';
 
 
 export const BUILT_IN_MAPS = [
@@ -18,5 +19,6 @@ export const BUILT_IN_MAPS = [
     map6,
     map7,
     map8,
-    map9
+    map9,
+    map10
 ];

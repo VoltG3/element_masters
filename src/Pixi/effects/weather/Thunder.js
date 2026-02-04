@@ -23,6 +23,8 @@ export default class WeatherThunder {
     this.boltAlive = false;
     this.boltTime = 0; // ms since bolt spawned
     this.boltDuration = 0; // ms total
+    this.soundCounter = 0;
+    this.soundStride = 1;
 
     // Graphics
     this.flashG = new Graphics();
@@ -131,8 +133,8 @@ export default class WeatherThunder {
   _triggerFlash() {
     // Brightness based on intensity, with slight randomness
     const t = Math.max(0, Math.min(1, this.intensity / 100));
-    const base = this._lerp(0.25, 0.9, t);
-    this.flashAlpha = Math.min(1, base * this._rand(0.8, 1));
+    const base = this._lerp(0.35, 0.95, t);
+    this.flashAlpha = Math.min(1, base * this._rand(0.9, 1.1));
     // fade time scales with intensity (brighter fades a bit slower)
     this.flashDecay = this._lerp(0.008, 0.004, t);
     this._redrawFlash();
@@ -191,8 +193,8 @@ export default class WeatherThunder {
     // Draw main bolt
     const g = this.boltG;
     g.clear();
-    const thickness = this._lerp(2, 5, Math.max(0, Math.min(1, this.intensity / 100)));
-    const color = 0xCCEEFF;
+    const thickness = this._lerp(2.5, 6, Math.max(0, Math.min(1, this.intensity / 100)));
+    const color = 0xE6F8FF;
     g.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y);
     g.stroke({ width: thickness, color, alpha: 1, alignment: 0.5, cap: 'round', join: 'round' });
@@ -215,6 +217,7 @@ export default class WeatherThunder {
     this.boltTime = 0;
     this.boltDuration = this._rand(120, 260); // very brief
     this.boltG.alpha = 1;
+    this._maybeEmitSound();
   }
 
   _clearBolt() {
@@ -223,6 +226,38 @@ export default class WeatherThunder {
     this.boltTime = 0;
     this.boltDuration = 0;
     try { this.boltG.clear(); } catch {}
+  }
+
+  _maybeEmitSound() {
+    const t = Math.max(0, Math.min(1, this.intensity / 100));
+    let stride = 1;
+    if (t >= 0.6) {
+      stride = Math.random() < 0.5 ? 3 : 4;
+    } else if (t >= 0.2) {
+      stride = 2;
+    }
+
+    if (stride <= 1) {
+      this.soundCounter = 0;
+      this.soundStride = 1;
+      if (typeof this.api?.onThunderStrike === 'function') {
+        try { this.api.onThunderStrike(); } catch {}
+      }
+      return;
+    }
+
+    if (this.soundStride !== stride) {
+      this.soundStride = stride;
+      this.soundCounter = 0;
+    }
+
+    this.soundCounter += 1;
+    if (this.soundCounter >= this.soundStride) {
+      this.soundCounter = 0;
+      if (typeof this.api?.onThunderStrike === 'function') {
+        try { this.api.onThunderStrike(); } catch {}
+      }
+    }
   }
 
   _findGroundY(worldX, maxH) {

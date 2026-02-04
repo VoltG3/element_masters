@@ -8,6 +8,13 @@
   "collision": false,
   "editor": { "panel": "liquids", "group": "water", "order": 21 },
   "flags": { "liquid": true, "waterfall": true, "swimmable": true },
+  "sounds": {
+    "ambient": {
+      "src": "/assets/sound/sfx/water/259626__stevious42__public-waterfall.ogg",
+      "volume": 0.6,
+      "maxDistance": 10
+    }
+  },
   "liquid": {
     "buoyancy": -0.5,
     "drag": { "x": 0.7, "y": 0.95 },

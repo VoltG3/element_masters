@@ -78,6 +78,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
     const soundEnabledRef = useRef(false);                 // Global sound toggle
     const audioCtxRef = useRef(null);                      // WebAudio context (fallback)
     const audioCtxUnlockedRef = useRef(false);             // Whether AudioContext is unlocked with user gesture
+    const ambientAudioRef = useRef({});                    // Looping ambient audio (rain/waterfall)
+    const thunderSoundStateRef = useRef({ bag: [], last: null });
     const liquidDamageAccumulatorRef = useRef(0);          // Accumulated time for liquid DPS ticking (e.g., lava)
     const oxygenDepleteAccRef = useRef(0);                 // O2 depletion DPS accumulator
     const lavaDepleteAccRef = useRef(0);                   // Lava resist depletion DPS accumulator
@@ -150,6 +152,61 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         const isInsideRoom = activeRoomIdsRef.current && activeRoomIdsRef.current.length > 0;
         return playSfx({ soundEnabledRef, audioCtxRef, audioCtxUnlockedRef, isInsideRoom }, url, volume);
     };
+
+    useEffect(() => {
+        const onThunderStrike = () => {
+            try {
+                const def = findItemById('weather_thunder_on');
+                const strike = def?.sounds?.strike;
+                let url = null;
+                let volume = 0.7;
+                if (typeof strike === 'string') {
+                    url = strike;
+                } else if (strike && typeof strike === 'object') {
+                    const v = Number(strike.volume);
+                    if (Number.isFinite(v)) volume = v;
+                    if (Array.isArray(strike.variants) && strike.variants.length > 0) {
+                        const state = thunderSoundStateRef.current || { bag: [], last: null };
+                        if (!Array.isArray(state.bag) || state.bag.length === 0) {
+                            state.bag = strike.variants.slice();
+                            for (let i = state.bag.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                const tmp = state.bag[i];
+                                state.bag[i] = state.bag[j];
+                                state.bag[j] = tmp;
+                            }
+                            if (state.last && state.bag.length > 1 && state.bag[0] === state.last) {
+                                const swapIdx = 1 + Math.floor(Math.random() * (state.bag.length - 1));
+                                const tmp = state.bag[0];
+                                state.bag[0] = state.bag[swapIdx];
+                                state.bag[swapIdx] = tmp;
+                            }
+                        }
+                        url = state.bag.shift();
+                        state.last = url;
+                        thunderSoundStateRef.current = state;
+                    } else if (typeof strike.src === 'string') {
+                        url = strike.src;
+                    }
+                }
+                if (url) playShotSfx(url, volume);
+            } catch {}
+        };
+        window.addEventListener('weather-thunder-strike', onThunderStrike);
+        return () => window.removeEventListener('weather-thunder-strike', onThunderStrike);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            const ambient = ambientAudioRef.current;
+            if (!ambient) return;
+            Object.values(ambient).forEach((entry) => {
+                if (!entry || !entry.audio) return;
+                try { entry.audio.pause(); } catch {}
+                try { entry.audio.currentTime = 0; } catch {}
+            });
+        };
+    }, []);
 
     // Adapter: correctly calls GameEngine/checkHazardDamage with options object
     const checkHazardDamageWrapper = (currentX, currentY, mapWidth, objectLayerData, deltaMs) => {
@@ -265,6 +322,10 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         // Use a unique ID that changes on map load or restart
         const currentMapId = `${projectName}|${mapId}|${timestamp}`;
         const isNewMapLoad = currentMapId !== lastMapIdRef.current;
+
+        if (isNewMapLoad) {
+            localRevealedRef.current = new Set();
+        }
 
         // Ja spēle jau ir inicializēta UN tā ir tā pati karte, nemainām spēlētāja pozīciju
         // Tas novērš "reset" uz sākumu, kad spēlētājs paceļ itemu vai mainās laikapstākļi
@@ -544,6 +605,8 @@ export const useGameEngine = (mapData, tileData, objectData, secretData, reveale
         lavaDepleteAccRef, 
         weatherDamageAccRef, 
         activeRoomIdsRef,
+        soundEnabledRef,
+        ambientAudioRef,
         projectileIdRef,
         objectMetadata: objectMetadataRef,
         cameraRef: { x: 0, y: 0 },

@@ -11,7 +11,7 @@ export const createFloatingTextManager = (layer) => {
     x,
     y,
     text,
-    color = '#ff3b3b',
+    color,
     fontSize = 14,
     ttlMs = 900,
     amount,
@@ -23,7 +23,7 @@ export const createFloatingTextManager = (layer) => {
     const critThreshold = Number.isFinite(critCfg.threshold) ? critCfg.threshold : null;
     const isCrit = !!crit || (amountValue !== null && critThreshold !== null && Math.abs(amountValue) >= critThreshold);
 
-    const baseColor = defaultCfg.color || color;
+    const baseColor = color ? String(color) : (defaultCfg.color || '#ff3b3b');
     const finalColor = isCrit ? (critCfg.color || baseColor) : baseColor;
     const finalFontSize = isCrit ? (critCfg.fontSize || Math.round((defaultCfg.fontSize || fontSize) * 1.2)) : (defaultCfg.fontSize || fontSize);
     const finalTtl = isCrit ? (critCfg.ttlMs || defaultCfg.ttlMs || ttlMs) : (defaultCfg.ttlMs || ttlMs);

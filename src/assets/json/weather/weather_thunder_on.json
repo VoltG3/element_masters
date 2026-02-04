@@ -10,5 +10,16 @@
   "height": 1,
   "editorIcon": "⚡",
   "isHiddenInGame": true,
-  "collision": false
+  "collision": false,
+  "sounds": {
+    "strike": {
+      "variants": [
+        "/assets/sound/weather/torden-og-lynild-1.ogg",
+        "/assets/sound/weather/torden-og-lynild-2.ogg",
+        "/assets/sound/weather/torden-og-lynild-3.ogg",
+        "/assets/sound/weather/torden-og-lynild-4.ogg"
+      ],
+      "volume": 0.7
+    }
+  }
 }

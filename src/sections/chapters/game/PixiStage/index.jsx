@@ -551,8 +551,13 @@ const PixiStage = ({
         const worldH = mapHeight * tileSize;
 
         if (s) {
-          const targetX = (s.x || 0) + (s.width || tileSize) / 2;
-          const targetY = (s.y || 0) + (s.height || tileSize) / 2;
+          const isSeaRescue = mapTypeRef.current === 'sea_rescue';
+          const baseX = (isSeaRescue && Number.isFinite(s.shipWorldX)) ? s.shipWorldX : (s.x || 0);
+          const baseY = (isSeaRescue && Number.isFinite(s.shipWorldY)) ? s.shipWorldY : (s.y || 0);
+          const sW = (isSeaRescue && Number.isFinite(s.shipWorldWidth)) ? s.shipWorldWidth : (s.width || tileSize);
+          const sH = (isSeaRescue && Number.isFinite(s.shipWorldHeight)) ? s.shipWorldHeight : (s.height || tileSize);
+          const targetX = baseX + sW / 2;
+          const targetY = baseY + sH / 2;
 
           let camX = targetX - sw / 2;
           let camY = targetY - sh / 2;
@@ -601,7 +606,7 @@ const PixiStage = ({
           
           app.stage.pivot.set(Math.round(nextRawX), Math.round(nextRawY));
           
-          window.__PLAYER_POS__ = { x: s.x, y: s.y };
+          window.__PLAYER_POS__ = { x: baseX, y: baseY };
 
           if (parallaxRef.current) {
             parallaxRef.current.position.set(nextRawX, nextRawY);
@@ -1331,6 +1336,11 @@ const PixiStage = ({
         if (typeof onWeatherEffectHit === 'function') {
           onWeatherEffectHit('meteor', data);
         }
+      },
+      onThunderStrike: () => {
+        try {
+          window.dispatchEvent(new CustomEvent('weather-thunder-strike'));
+        } catch {}
       },
       getViewport: () => ({
         x: cameraPosRef.current.x,

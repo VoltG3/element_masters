@@ -10,5 +10,11 @@
   "height": 1,
   "editorIcon": "💧",
   "isHiddenInGame": true,
-  "collision": false
+  "collision": false,
+  "sounds": {
+    "loop": {
+      "src": "/assets/sound/weather/370285__ztitchez__rain-gutter-sink-roof.ogg",
+      "volume": 0.45
+    }
+  }
 }

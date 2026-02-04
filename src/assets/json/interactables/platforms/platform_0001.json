@@ -4,7 +4,7 @@
   "editor": { "panel": "interactables", "group": "platforms", "order": 10 },
   "type": "interactable",
   "subtype": "platform",
-  "width": 2,
+  "width": 1,
   "height": 1,
   "texture": "/assets/images/interactables/platforms/platform_0001.png",
   "collision": true,

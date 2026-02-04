@@ -32,6 +32,22 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
     return false;
   };
 
+  const getDestructibleIndex = (gx, gy) => {
+    if (!objectData) return null;
+    if (gx < 0 || gy < 0 || gx >= mapWidth || gy >= mapHeight) return null;
+    const index = gy * mapWidth + gx;
+    const objId = objectData[index];
+    if (!objId) return null;
+    const def = findItemById(objId);
+    if (!def || !def.isDestructible) return null;
+    const currentMeta = objectMetadata?.[index] || {};
+    const maxHealth = def.maxHealth || 100;
+    const health = currentMeta.health !== undefined ? currentMeta.health : maxHealth;
+    const threshold = def.passableHealthThreshold || 0;
+    if (health <= threshold) return null;
+    return index;
+  };
+
   const checkObjectHit = (cx, cy, hw, hh, isSeaRescueBox = false) => {
     if (!objectData) return null;
     const pts = [
@@ -61,6 +77,12 @@ export function updateProjectiles(ctx, deltaMs, mapWidth, mapHeight) {
                     if (health > (def.passableHealthThreshold || 0)) return index;
                 }
             }
+        }
+
+        // Destructible objects (wooden box, crack block, etc.)
+        if (!isSeaRescueBox) {
+            const destructibleIdx = getDestructibleIndex(gx, gy);
+            if (destructibleIdx !== null) return destructibleIdx;
         }
 
         // 2. Check moving objects (Ship & Triggers)

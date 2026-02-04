@@ -906,15 +906,16 @@ export function updateEntities(ctx, deltaMs) {
 
       // Spēlētāja "pārvešana"
       const player = gameState.current;
-      const onPlatform = (
-        player.x + player.width > entity.x &&
-        player.x < entity.x + entity.width &&
-        Math.abs((player.y + player.height) - entity.y) < 5 &&
-        player.vy >= 0
-      );
+      const stepScale = deltaMs / 16.6;
+      const feetNow = player.y + player.height;
+      const feetPrev = feetNow - (Number(player.vy) || 0) * stepScale;
+      const overlapsX = player.x + player.width > entity.x && player.x < entity.x + entity.width;
+      const onTop = Math.abs(feetNow - entity.y) < 6;
+      const crossedTop = feetPrev <= entity.y + 2 && feetNow >= entity.y - 2;
+      const falling = (player.vy || 0) >= 0;
 
-      if (onPlatform) {
-        player.x += entity.vx * (deltaMs / 16.6);
+      if (overlapsX && falling && (onTop || crossedTop)) {
+        player.x += entity.vx * stepScale;
         player.y = entity.y - player.height;
         player.vy = 0;
         player.isGrounded = true;

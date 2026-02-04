@@ -42,6 +42,7 @@ export function updateSeaRescue(ctx, deltaMs) {
   if (!sr.soundState) sr.soundState = { isMoving: false, engineSoundTimer: 0 };
 
   const objectData = ctx.objectData || activeMap.layers?.find(l => l.name === 'objects' || l.name === 'entities' || l.type === 'object')?.data || [];
+  const secretData = activeMap.secretMapData || activeMap.layers?.find(l => l.name === 'secrets' || l.type === 'secret')?.data || [];
   const mapWidth = activeMap.width || mapData.meta?.width || 20;
 
   // Implement Seagull trigger logic
@@ -50,6 +51,19 @@ export function updateSeaRescue(ctx, deltaMs) {
   const shipDef = findItemById('minispill_sea_rescue_ship');
   const shipW = (shipDef?.width || 27) * TILE_SIZE;
   const shipH = (shipDef?.height || 7) * TILE_SIZE;
+  if (sr.shipBaseMapId !== activeId || sr.shipBaseX === undefined || sr.shipBaseY === undefined) {
+    const shipIdx = objectData.findIndex(id => id === 'minispill_sea_rescue_ship');
+    if (shipIdx >= 0) {
+      sr.shipBaseX = (shipIdx % mapWidth) * TILE_SIZE;
+      sr.shipBaseY = Math.floor(shipIdx / mapWidth) * TILE_SIZE;
+    } else {
+      sr.shipBaseX = 0;
+      sr.shipBaseY = 0;
+    }
+    sr.shipBaseMapId = activeId;
+  }
+  const shipWorldX = (sr.shipBaseX || 0) + shipX;
+  const shipWorldY = (sr.shipBaseY || 0) + shipY;
 
   // Ship sounds logic
   const isMoving = Math.abs(gameState.current.vx) > 5 || keys.a || keys.d || keys.ArrowLeft || keys.ArrowRight;
@@ -86,20 +100,20 @@ export function updateSeaRescue(ctx, deltaMs) {
   }
   ss.isMoving = isMoving;
 
-  const shipGridXStart = Math.floor(shipX / TILE_SIZE);
-  const shipGridXEnd = Math.floor((shipX + shipW) / TILE_SIZE);
-  const shipGridYStart = Math.floor(shipY / TILE_SIZE);
-  const shipGridYEnd = Math.floor((shipY + shipH) / TILE_SIZE);
+  const shipGridXStart = Math.floor(shipWorldX / TILE_SIZE);
+  const shipGridXEnd = Math.floor((shipWorldX + shipW) / TILE_SIZE);
+  const shipGridYStart = Math.floor(shipWorldY / TILE_SIZE);
+  const shipGridYEnd = Math.floor((shipWorldY + shipH) / TILE_SIZE);
 
   for (let gy = shipGridYStart; gy <= shipGridYEnd; gy++) {
     for (let gx = shipGridXStart; gx <= shipGridXEnd; gx++) {
       if (gx < 0 || gy < 0 || gx >= mapWidth) continue;
       const idx = gy * mapWidth + gx;
-      const objId = objectData[idx];
+      const objId = objectData[idx] || secretData[idx];
       if (objId === 'minispill_sea_rescue_seagull' && !sr.triggeredSeagulls.has(idx)) {
         sr.triggeredSeagulls.add(idx);
         const seagullDef = findItemById(objId);
-        const sound = seagullDef?.sounds?.trigger || "/assets/sound/sfx/target/seagull-3-34057.ogg";
+        const sound = seagullDef?.sounds?.trigger || "/assets/sound/sfx/target/seagulls-3-34057.ogg";
         playSfx(sound, 0.7);
       }
     }

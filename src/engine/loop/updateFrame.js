@@ -35,7 +35,7 @@ export function updateFrame(ctx, timestamp) {
     registryItems
   } = ctx;
 
-  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef, activeRoomIdsRef } = refs;
+  const { gameState, isInitialized, lastTimeRef, projectilesRef, entitiesRef, shootCooldownRef, liquidDamageAccumulatorRef, oxygenDepleteAccRef, lavaDepleteAccRef, weatherDamageAccRef, activeRoomIdsRef, soundEnabledRef, ambientAudioRef } = refs;
   const { TILE_SIZE, GRAVITY, TERMINAL_VELOCITY, MOVE_SPEED, JUMP_FORCE } = constants;
   const { checkCollision, isLiquidAt, getLiquidSample } = helpers;
   const { collectItem, checkInteractables, checkHazardDamage, checkSecrets, spawnProjectile, playSfx, updateProjectiles, setPlayer, onGameOver } = actions;
@@ -66,6 +66,13 @@ export function updateFrame(ctx, timestamp) {
   const mapWidth = activeMap?.width || mapData.meta?.width || mapData.width || 20;
   const mapHeight = activeMap?.height || mapData.meta?.height || mapData.height || 15;
   const keys = input.current;
+
+  const getDefById = (id) => {
+    if (!id) return null;
+    const map = registryItems && registryItems.__byId;
+    if (map && typeof map.get === 'function') return map.get(id) || null;
+    return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
+  };
 
   let {
     x,
@@ -140,11 +147,22 @@ export function updateFrame(ctx, timestamp) {
     x = Math.max(0, Math.min(x, (mapWidth - 27) * TILE_SIZE)); // Ship width is 27 tiles
 
     // Update state and exit early (no normal player physics)
+    const shipDef = getDefById('minispill_sea_rescue_ship');
+    const shipBaseX = refs.seaRescueRef?.shipBaseX || 0;
+    const shipBaseY = refs.seaRescueRef?.shipBaseY || 0;
+    const shipWorldX = shipBaseX + x;
+    const shipWorldY = shipBaseY + y;
+    const shipWorldWidth = (shipDef?.width || 27) * TILE_SIZE;
+    const shipWorldHeight = (shipDef?.height || 7) * TILE_SIZE;
     gameState.current = {
         ...gameState.current,
         x, vx, y, vy, 
         isGrounded: true, 
         animation: 'idle',
+        shipWorldX,
+        shipWorldY,
+        shipWorldWidth,
+        shipWorldHeight,
         timeMs: Number(timestamp) || 0
     };
     setPlayer({ ...gameState.current, projectiles: projectilesRef.current || [], entities: entitiesRef.current || [] });
@@ -255,13 +273,6 @@ export function updateFrame(ctx, timestamp) {
   }
 
   // 1.9) Ladder check (allow climbing when overlapping ladder objects)
-  const getDefById = (id) => {
-    if (!id) return null;
-    const map = registryItems && registryItems.__byId;
-    if (map && typeof map.get === 'function') return map.get(id) || null;
-    return Array.isArray(registryItems) ? registryItems.find(r => r.id === id) : null;
-  };
-
   const findLadderAtPlayer = () => {
     if (!objectData || !registryItems) return null;
     const centerX = x + width / 2;
@@ -280,34 +291,55 @@ export function updateFrame(ctx, timestamp) {
     });
     const { activeObjectData, activeMetadata, activeMapWidth, activeMapHeight, offsetX, offsetY } = ctxResolved;
     if (!activeObjectData) return null;
-    const localX = centerX - offsetX;
-    const localY = centerY - offsetY;
-    const gridX = Math.floor(localX / TILE_SIZE);
-    const gridY = Math.floor(localY / TILE_SIZE);
-    if (gridX < 0 || gridY < 0 || gridX >= activeMapWidth || gridY >= activeMapHeight) return null;
-    let idx = gridY * activeMapWidth + gridX;
-    let objId = activeObjectData[idx];
-    if (!objId && activeMetadata) {
-      for (const [idxStr, meta] of Object.entries(activeMetadata)) {
-        const baseIdx = parseInt(idxStr, 10);
-        const w = meta.width || 1;
-        const h = meta.height || 1;
-        if (w <= 1 && h <= 1) continue;
-        const ox = baseIdx % activeMapWidth;
-        const oy = Math.floor(baseIdx / activeMapWidth);
-        if (gridX >= ox && gridX < ox + w && gridY >= oy && gridY < oy + h) {
-          objId = activeObjectData[baseIdx];
-          idx = baseIdx;
-          break;
+    const resolveObjectAt = (gridX, gridY) => {
+      if (gridX < 0 || gridY < 0 || gridX >= activeMapWidth || gridY >= activeMapHeight) return null;
+      let idx = gridY * activeMapWidth + gridX;
+      let objId = activeObjectData[idx];
+      if (!objId && activeMetadata) {
+        for (const [idxStr, meta] of Object.entries(activeMetadata)) {
+          const baseIdx = parseInt(idxStr, 10);
+          const w = meta.width || 1;
+          const h = meta.height || 1;
+          if (w <= 1 && h <= 1) continue;
+          const ox = baseIdx % activeMapWidth;
+          const oy = Math.floor(baseIdx / activeMapWidth);
+          if (gridX >= ox && gridX < ox + w && gridY >= oy && gridY < oy + h) {
+            objId = activeObjectData[baseIdx];
+            idx = baseIdx;
+            break;
+          }
         }
       }
+      if (!objId) return null;
+      return { objId, idx };
+    };
+
+    const samplePoints = [
+      { x: centerX, y: centerY },
+      { x: centerX, y: y + height - 2 }
+    ];
+
+    for (const pt of samplePoints) {
+      const localX = pt.x - offsetX;
+      const localY = pt.y - offsetY;
+      const gridX = Math.floor(localX / TILE_SIZE);
+      const gridY = Math.floor(localY / TILE_SIZE);
+      const hit = resolveObjectAt(gridX, gridY);
+      if (!hit) continue;
+      const def = getDefById(hit.objId);
+      if (!def) continue;
+      const isLadder = !!(def.flags?.ladder || def.subtype === 'ladder' || def.type === 'ladder');
+      if (!isLadder) continue;
+      let hasLadderAbove = false;
+      if (gridY > 0) {
+        const above = resolveObjectAt(gridX, gridY - 1);
+        const aboveDef = above ? getDefById(above.objId) : null;
+        hasLadderAbove = !!(aboveDef && (aboveDef.flags?.ladder || aboveDef.subtype === 'ladder' || aboveDef.type === 'ladder'));
+      }
+      const topY = offsetY + gridY * TILE_SIZE;
+      return { def, index: hit.idx, hasLadderAbove, topY };
     }
-    if (!objId) return null;
-    const def = getDefById(objId);
-    if (!def) return null;
-    const isLadder = !!(def.flags?.ladder || def.subtype === 'ladder' || def.type === 'ladder');
-    if (!isLadder) return null;
-    return { def, index: idx };
+    return null;
   };
 
   const ladderInfo = findLadderAtPlayer();
@@ -321,15 +353,37 @@ export function updateFrame(ctx, timestamp) {
   if (ladderInfo && !keys?.space) {
     const ladderSpeed = Math.max(40, Number(ladderInfo.def?.ladder?.speed) || 120);
     const climbDir = (keys.w ? -1 : 0) + (keys.s ? 1 : 0);
-    if (climbDir !== 0) {
+    const standY = !ladderInfo.hasLadderAbove ? ladderInfo.topY - height : null;
+    let snappedToTop = false;
+
+    if (standY !== null && y <= standY + 1) {
+      y = standY;
+      vy = 0;
+      isGrounded = true;
+      animation = Math.abs(vx || 0) > 0.1 ? 'run' : 'idle';
+      snappedToTop = true;
+    }
+
+    if (!snappedToTop && climbDir !== 0) {
       const proposedY = y + (climbDir * ladderSpeed) * (physicsDt / 1000);
-      if (!checkCollisionExtended(x, proposedY, mapWidth, mapHeight, width, height)) {
+      if (standY !== null && climbDir < 0 && proposedY <= standY) {
+        y = standY;
+        vy = 0;
+        isGrounded = true;
+        animation = Math.abs(vx || 0) > 0.1 ? 'run' : 'idle';
+        snappedToTop = true;
+      } else if (!checkCollisionExtended(x, proposedY, mapWidth, mapHeight, width, height)) {
         y = proposedY;
       }
-      animation = 'climb';
+      if (!snappedToTop) {
+        animation = 'climb';
+      }
     }
-    vy = 0;
-    isGrounded = false;
+
+    if (!snappedToTop) {
+      vy = 0;
+      isGrounded = false;
+    }
     vp = { y, vy, isGrounded, animation, inWater: false, headUnderWater: false, atSurface: false };
   } else {
     while (remaining > 0 && steps < 10) {
@@ -592,6 +646,93 @@ export function updateFrame(ctx, timestamp) {
       weatherDamageAccRef.current = 0;
     }
 
+    const ambientStore = ambientAudioRef?.current;
+    if (ambientStore) {
+      const nowMs = Number(timestamp) || 0;
+      const isSoundEnabled = !!soundEnabledRef?.current;
+      const isInsideRoom = !!(activeRoomIdsRef?.current && activeRoomIdsRef.current.length > 0);
+      const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
+      const updateLoopingAudio = (key, url, volume) => {
+        let vol = isSoundEnabled ? clamp01(volume) : 0;
+        if (isInsideRoom) vol *= 0.5;
+
+        if (!url || vol <= 0) {
+          const entry = ambientStore[key];
+          if (entry?.audio) {
+            try { entry.audio.pause(); } catch {}
+            try { entry.audio.currentTime = 0; } catch {}
+          }
+          return;
+        }
+
+        let entry = ambientStore[key];
+        if (!entry || entry.url !== url || !entry.audio) {
+          if (entry?.audio) {
+            try { entry.audio.pause(); } catch {}
+          }
+          const audio = new Audio(url);
+          audio.loop = true;
+          entry = { audio, url, lastPlayAttempt: 0 };
+          ambientStore[key] = entry;
+        }
+
+        entry.audio.volume = vol;
+        if (entry.audio.paused && (!entry.lastPlayAttempt || nowMs - entry.lastPlayAttempt > 1000)) {
+          entry.lastPlayAttempt = nowMs;
+          const p = entry.audio.play?.();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }
+      };
+
+      const rainDef = getDefById('weather_rain_on');
+      const rainSound = rainDef?.sounds?.loop;
+      const rainUrl = typeof rainSound === 'string' ? rainSound : rainSound?.src;
+      const rainBaseVol = Number.isFinite(Number(rainSound?.volume)) ? Number(rainSound.volume) : 0.45;
+      const rainIntensity = Math.max(0, Math.min(100, Number(weatherNow?.rain || 0)));
+      updateLoopingAudio('rain', rainUrl, (rainIntensity / 100) * rainBaseVol);
+
+      const waterfallDef = getDefById('waterfall_block');
+      const waterfallSound = waterfallDef?.sounds?.ambient;
+      const waterfallUrl = typeof waterfallSound === 'string' ? waterfallSound : waterfallSound?.src;
+      if (waterfallUrl) {
+        const maxDistTiles = Number.isFinite(Number(waterfallSound?.maxDistance))
+          ? Math.max(1, Number(waterfallSound.maxDistance))
+          : 8;
+        const maxDistPx = maxDistTiles * TILE_SIZE;
+        const px = x + width / 2;
+        const py = y + height / 2;
+        const minGX = Math.max(0, Math.floor((px - maxDistPx) / TILE_SIZE));
+        const maxGX = Math.min(mapWidth - 1, Math.floor((px + maxDistPx) / TILE_SIZE));
+        const minGY = Math.max(0, Math.floor((py - maxDistPx) / TILE_SIZE));
+        const maxGY = Math.min(mapHeight - 1, Math.floor((py + maxDistPx) / TILE_SIZE));
+        const waterfallId = waterfallDef?.id || 'waterfall_block';
+        let bestSq = Infinity;
+        for (let gy = minGY; gy <= maxGY; gy++) {
+          for (let gx = minGX; gx <= maxGX; gx++) {
+            const idx = gy * mapWidth + gx;
+            if (backgroundLayer[idx] !== waterfallId) continue;
+            const cx = (gx + 0.5) * TILE_SIZE;
+            const cy = (gy + 0.5) * TILE_SIZE;
+            const dx = cx - px;
+            const dy = cy - py;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < bestSq) bestSq = distSq;
+          }
+        }
+        let waterfallVolume = 0;
+        if (Number.isFinite(bestSq)) {
+          const dist = Math.sqrt(bestSq);
+          if (dist <= maxDistPx) {
+            const baseVol = Number.isFinite(Number(waterfallSound?.volume)) ? Number(waterfallSound.volume) : 0.6;
+            waterfallVolume = baseVol * Math.max(0, 1 - dist / maxDistPx);
+          }
+        }
+        updateLoopingAudio('waterfall', waterfallUrl, waterfallVolume);
+      } else {
+        updateLoopingAudio('waterfall', null, 0);
+      }
+    }
+
   } catch {}
 
   // 2.8) Base liquid DPS (e.g., lava) — only after resource logic so we can gate by resistance
@@ -702,6 +843,7 @@ export function updateFrame(ctx, timestamp) {
     if (entitiesRef.current && entitiesRef.current.length > 0) {
       for (const ent of entitiesRef.current) {
         if (ent.health <= 0 || ent.isExploding) continue;
+        if (ent.subtype === 'pushable' || ent.def?.isPushable || ent.subtype === 'platform' || ent.def?.subtype === 'platform') continue;
         
         // AABB pārbaude
         const hit = (

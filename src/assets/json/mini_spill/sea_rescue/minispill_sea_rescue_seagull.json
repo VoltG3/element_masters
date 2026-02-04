@@ -12,7 +12,7 @@
   "collision": false,
   "isHiddenInGame": true,
   "sounds": {
-    "trigger": "/assets/sound/sfx/target/seagull-3-34057.ogg"
+    "trigger": "/assets/sound/sfx/target/seagulls-3-34057.ogg"
   },
   "description": "Plays seagull sound when ship passes"
 }
